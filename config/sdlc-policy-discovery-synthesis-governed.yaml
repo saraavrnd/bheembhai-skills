@@ -1,0 +1,21 @@
+# Discovery synthesis — gate the three claims that become "truth".
+#
+# sdlc-discovery-architecture and sdlc-discovery-security-posture are the synthesized system view, and
+# sdlc-discovery-consolidate ratifies reverse-engineered knowledge into the canonical docs.
+# Those three get a lead review; the mechanical extractions between them do not.
+policy: sdlc-policy-discovery-synthesis-governed
+version: 1
+applies_to: sdlc-wf-discovery-synthesis
+gates:
+  sdlc-discovery-architecture:
+    review: required
+    role: lead
+    on_status: [completed]
+  sdlc-discovery-security-posture:
+    review: required
+    role: lead
+    on_status: [completed]
+  sdlc-discovery-consolidate:
+    review: required           # the hardest gate — canonical docs become team doctrine
+    role: lead
+    on_status: [completed]

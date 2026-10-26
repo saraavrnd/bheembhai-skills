@@ -1,0 +1,145 @@
+version: 1
+skill: sdlc-discovery-init
+summary: >
+  services.md carries a valid bheembhai:foreach block of first-party services with unique,
+  filesystem-safe ids whose roots and manifests exist, and AGENTS.md has the Project Layout table
+  with the discovery rows.
+verdicts_used: [changes_requested, escalation_required]
+
+facts:
+  service_ids:
+    kind: yaml_block
+    from: services
+    info: "yaml bheembhai:foreach"
+    expr: "$.services[*].id"
+  service_roots:
+    kind: yaml_block
+    from: services
+    info: "yaml bheembhai:foreach"
+    expr: "$.services[*].root"
+  service_manifests:
+    kind: yaml_block
+    from: services
+    info: "yaml bheembhai:foreach"
+    expr: "$.services[*]"
+    description: root + manifest pairs; paths_exist skips manifest 'none'.
+  compose_image_only:
+    kind: jsonpath
+    from: "{docker-compose,compose}.{yml,yaml}"
+    expr: "$.services[?(!@.build)]~"
+    description: Compose services with image but no build (infra, not first-party).
+  topology_single:
+    kind: yaml_block
+    from: services
+    info: "yaml bheembhai:foreach"
+    expr: "$[?(@.topology == 'single')]"
+
+artifacts:
+  - id: services
+    path: "{layout.services_manifest}"
+  - id: agents_md
+    path: "AGENTS.md"
+    must_change: false
+
+checks:
+  - id: foreach_block
+    run: builtin:yaml_block
+    args: {artifact: services, info: "yaml bheembhai:foreach", required_keys: [artifact, repo, generated, topology, summary, services], artifact_name: services}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: at_least_one_service
+    run: builtin:count_range
+    args: {fact: facts.service_ids, min: 1}
+    on_fail: escalation_required
+    reason_code: missing_input
+  - id: ids_unique
+    run: builtin:unique_values
+    args: {fact: facts.service_ids}
+    on_fail: changes_requested
+    reason_code: duplicate
+  - id: ids_filesystem_safe
+    run: builtin:jsonpath_assert
+    args: {artifact: services, info: "yaml bheembhai:foreach", expr: "$.services[*].id", op: matches, value: '^[a-z0-9][a-z0-9._-]*$'}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: services_complete
+    description: Every service entry names its id, root and manifest (the literal none is allowed for a Dockerfile-only service).
+    run: builtin:jsonpath_assert
+    args: {artifact: services, info: "yaml bheembhai:foreach", expr: "$.services[?(!@.id)]", op: empty}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: services_rooted
+    run: builtin:jsonpath_assert
+    args: {artifact: services, info: "yaml bheembhai:foreach", expr: "$.services[?(!@.root)]", op: empty}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: services_manifested
+    run: builtin:jsonpath_assert
+    args: {artifact: services, info: "yaml bheembhai:foreach", expr: "$.services[?(!@.manifest)]", op: empty}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: services_confidence
+    description: >
+      Every service entry carries the template's confidence field. evidence_entries silently
+      skips an entry with no confidence, so it cannot enforce the per-entry contract.
+    run: builtin:jsonpath_assert
+    args: {artifact: services, info: "yaml bheembhai:foreach", expr: "$.services[?(!@.confidence)]", op: empty}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: roots_exist
+    run: builtin:paths_exist
+    args: {fact: facts.service_roots}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: manifests_exist
+    run: builtin:paths_exist
+    args: {fact: facts.service_manifests}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: no_infra_listed
+    description: Image-only compose services (postgres, redis, …) are infrastructure, not first-party services.
+    when: "facts.compose_image_only"
+    run: builtin:set_relation
+    args: {left: facts.service_ids, right: facts.compose_image_only, relation: disjoint}
+    on_fail: changes_requested
+    reason_code: wrong_assumption
+  - id: topology_consistent
+    when: "facts.topology_single"
+    run: builtin:count_range
+    args: {fact: facts.service_ids, max: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: evidence_contract
+    run: builtin:evidence_entries
+    args: {artifact: services, info: "yaml bheembhai:foreach", lists: [services]}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: sources_resolve
+    run: builtin:sources_resolve
+    args: {artifact: services, info: "yaml bheembhai:foreach", sample: all}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: layout_has_discovery_rows
+    run: builtin:regex_count
+    args: {artifact: agents_md, section: "Project Layout", pattern: 'docs/discovery/', min: 3}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: bootstrap_files_only
+    run: builtin:diff_paths
+    args: {allowed: ["AGENTS.md", "{layout.discovery_root}**"]}
+    on_fail: changes_requested
+    reason_code: scope
+
+judge:
+  tier: low
+  vendor: prefer_different
+  inputs: [services, "{docker-compose,compose}.{yml,yaml}", "references/service-boundary-heuristics.md"]
+  criteria:
+    - id: boundaries_right
+      question: "Following the service-boundary heuristics, is every listed entry a separately deployable/runnable unit, and is no component that runs inside another service listed as its own service?"
+      on_fail: changes_requested
+      reason_code: wrong_assumption
+    - id: none_missed
+      question: "Is every first-party unit with its own Dockerfile, compose build: entry or manifest-backed runnable present in the list?"
+      on_fail: changes_requested
+      reason_code: coverage_gap

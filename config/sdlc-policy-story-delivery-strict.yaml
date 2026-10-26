@@ -1,0 +1,7 @@
+policy: sdlc-policy-story-delivery-strict
+version: 1
+applies_to: sdlc-wf-story-delivery
+gates:
+  sdlc-deliver-story-design: {review: required, role: any}
+  sdlc-deliver-code-review: {review: required, role: lead}
+  sdlc-deliver-pr-open: {review: required, role: lead}

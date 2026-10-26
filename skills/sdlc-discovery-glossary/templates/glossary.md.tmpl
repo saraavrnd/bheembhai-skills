@@ -1,0 +1,38 @@
+<!-- Discovery hand-off (system): glossary.md -> docs/discovery/_system/glossary.md
+     SDLC-standard Glossary / Domain Vocabulary document. Readable term tables on top, machine block
+     at the bottom. Every term keeps a confidence tag + source (where the term is defined/used in
+     the code or artifacts). A definition `inferred` from usage (not a docstring) is tagged so. -->
+
+---
+artifact: glossary
+generated: <DATE>
+status: draft
+confidence_summary: "<n observed, n inferred, n uncertain>"
+---
+
+# Domain Glossary — <SYSTEM / REPO NAME>
+
+## 1. Overview
+<!-- 1-3 sentences: the domain this vocabulary covers and where terms were drawn from. -->
+<prose overview>
+
+## 2. Domain Terms
+| Term | Definition | Confidence | Source |
+|------|------------|------------|--------|
+| <Term> | <definition in domain language> | observed | <path:line / artifact> |
+
+## 3. Abbreviations & Acronyms
+| Abbrev. | Expansion | Confidence | Source |
+|---------|-----------|------------|--------|
+| <ABC> | <expansion> | observed | <path:line> |
+
+## 4. Evidence Notes
+- Tags: observed (term defined/named in cited code or artifact), inferred (meaning read from usage — basis stated), uncertain.
+- Coverage: <full | partial — which domains the vocabulary covers>
+
+<!-- ── MACHINE BLOCK ── -->
+```yaml machine
+artifact: glossary
+terms:
+  - { term: "<Term>", definition: "<...>", kind: "term|abbreviation", confidence: observed, source: "<path:line>" }
+```

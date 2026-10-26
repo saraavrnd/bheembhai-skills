@@ -1,0 +1,86 @@
+version: 1
+skill: sdlc-deliver-code-review
+summary: >
+  The review covers all four areas with located, severity-tagged findings, writes nothing else,
+  and its outcome matches its findings (Critical/High → changes_requested; advisory-only → completed).
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  # Only the Findings section: the severity-summary table header, the advisory
+  # note, and the [High]-tagged fix-list entries are not findings.
+  blocking_findings:
+    kind: regex
+    from: review
+    section: Findings
+    pattern: '(?im)^\s*(?:[-*|]|\d+\.)(?=.*\b(Critical|High)\b)(?=.*\b[\w./-]+:\d+).*$'
+
+preconditions:
+  - id: verified_first
+    description: Review correct code, not broken code.
+    run: builtin:report_verdict
+    args: {path: "{layout.story_dir}verification.md", pattern: '(?im)^\**\s*(?:verdict|result)\s*:?\**\s*\**(PASS|BLOCK)\b', allowed: [PASS]}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: review
+    path: "{layout.story_dir}code-review.md"
+
+checks:
+  - id: diff_scope
+    description: Read-only; publishes nothing but the report.
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.story_dir}code-review.md"]}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: four_areas
+    run: builtin:md_sections
+    args: {artifact: review, required: [["Coding standards", "Standards"], ["Security"], ["Acceptance"], ["Maintainability"]], match: contains}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: findings_located
+    description: Every severity-tagged finding carries a file:line location.
+    run: builtin:regex_absent
+    args: {artifact: review, section: Findings, pattern: '(?im)^\s*(?:[-*|]|\d+\.)(?=.*\b(Critical|High|Medium|Low|Nit)\b)(?!.*\b[\w./-]+:\d+).*$'}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: severity_summary
+    run: builtin:regex_count
+    args: {artifact: review, pattern: '(?i)\b\d+\s+(Critical|High|Medium|Low|Nit)\b', min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: fix_list_present
+    run: builtin:regex_count
+    args: {artifact: review, pattern: '(?i)^#+.*fix list', min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: high_findings_route_to_fix
+    description: Critical/High findings mean defects the next pass should fix in-loop.
+    when: "self_verdict == 'completed'"
+    run: builtin:count_range
+    args: {fact: facts.blocking_findings, max: 0}
+    on_fail: changes_requested
+    reason_code: report_inconsistent
+  - id: platform_lint
+    run: builtin:lint_run
+    on_fail: advisory
+    reason_code: lint_failure
+
+judge:
+  tier: high
+  vendor: prefer_different
+  inputs: [review, diff, context.story, "{layout.design_note}"]
+  criteria:
+    - id: no_missed_security_issue
+      critical: true
+      question: "Reading the diff, is it free of a Critical or High security issue (injection, missing authorization on a new endpoint, hard-coded secret, unsafe deserialization, SSRF) that the review did not list?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: findings_are_real
+      question: "Is every Critical or High finding in the review real when checked against the cited file:line (not a misreading of the code)?"
+      on_fail: advisory
+      reason_code: unsupported_claim
+    - id: intent_checked
+      question: "Does the acceptance-criteria section assess the intent behind the criteria (edge cases, genuine unhappy-path behaviour), not only restate that tests pass?"
+      on_fail: advisory
+      reason_code: quality

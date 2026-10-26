@@ -1,0 +1,49 @@
+stack: laravel
+language: php
+manifest: composer.json
+
+detect:
+  - file_exists: artisan                       # near-proof: only Laravel ships this
+  - dep_present: laravel/framework
+  - glob_exists: app/Http/Controllers
+version_hint:
+  file: composer.json
+  key: require."laravel/framework"
+
+locations:
+  routes:        [routes/api.php, routes/web.php, routes/]
+  controllers:   app/Http/Controllers
+  models:        app/Models                     # Laravel 8+; older apps: app/
+  migrations:    database/migrations
+  config:        config/
+  tests:         [tests/Feature, tests/Unit, tests/]
+  env_example:   .env.example
+  entrypoint:    public/index.php
+
+patterns:
+  route:         'Route::(get|post|put|patch|delete|resource|apiResource)\('
+  model:         'extends\s+(Model|Authenticatable)'
+  auth:          "middleware\\(\\s*['\"]auth"
+  external_call: '(Http::(get|post|put|delete)|GuzzleHttp|->request\()'
+
+commands:
+  install: "composer install"
+  test:    "php artisan test"
+  run:     "php artisan serve"
+  migrate: "php artisan migrate"
+
+risk_hints:
+  - "mass-assignment: models without $fillable/$guarded accept arbitrary input"
+  - "raw DB::statement / DB::raw calls are a SQL-injection surface"
+  - "->get() in a loop (N+1 queries) — check for missing eager loading (with())"
+  - ".env committed to the repo (should be gitignored; only .env.example committed)"
+
+glossary_hints:
+  - app/Models            # entity names = domain nouns
+  - database/migrations   # table/column names
+
+graph:
+  builder: graphify
+  dynamic_caveats:
+    - "Laravel service-container binding & facade resolution is runtime, not static"
+    - "Route closures and route:: strings bind controllers at runtime"

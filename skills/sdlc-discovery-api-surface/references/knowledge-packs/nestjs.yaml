@@ -1,0 +1,42 @@
+stack: nestjs
+language: typescript
+manifest: package.json
+
+detect:
+  - file_exists: nest-cli.json                  # near-proof
+  - dep_present: "@nestjs/core"
+  - glob_exists: "src/**/*.module.ts"
+version_hint:
+  file: package.json
+  key: dependencies."@nestjs/core"
+
+locations:
+  routes:        [src/]                          # routes are decorators on controllers, not a file
+  controllers:   src/                            # *.controller.ts anywhere under src
+  models:        [src/, prisma/schema.prisma]    # entities (*.entity.ts) or Prisma schema
+  migrations:    [migrations/, prisma/migrations/]
+  config:        [src/config/, .env]
+  tests:         [test/, src/]                    # *.spec.ts colocated or in test/
+  env_example:   .env.example
+  entrypoint:    src/main.ts
+
+patterns:
+  route:         '@(Get|Post|Put|Patch|Delete|All)\('
+  model:         '@(Entity|Schema)\(|model\s+\w+\s*\{'   # TypeORM @Entity, Mongoose @Schema, Prisma model
+  auth:          '@(UseGuards|UseInterceptors)\(|AuthGuard'
+  external_call: '(HttpService|axios|fetch\()'
+
+commands:
+  install: "npm install"
+  test:    "npm run test"
+  run:     "npm run start:dev"
+  migrate: "npm run migration:run"
+
+risk_hints:
+  - "missing @UseGuards on a controller route = unauthenticated endpoint"
+  - "ValidationPipe not applied globally = unvalidated request bodies"
+  - "secrets read via process.env with no schema validation (check for @nestjs/config + Joi)"
+
+glossary_hints:
+  - src/**/*.entity.ts
+  - prisma/schema.prisma

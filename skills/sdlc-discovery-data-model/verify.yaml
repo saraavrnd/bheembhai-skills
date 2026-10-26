@@ -1,0 +1,223 @@
+version: 1
+skill: sdlc-discovery-data-model
+summary: >
+  data-model.md indexes entities and relationships from the authoritative source (migrations), each sourced, with drift between models and migrations called out.
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  # >>> GENERATED facts (tools/gen_template_checks.py)
+  tmpl_has_entities_columns_nullable:
+    kind: yaml_block
+    from: note
+    expr: "$.entities[*].columns[*].nullable"
+  tmpl_has_relationships_kind:
+    kind: yaml_block
+    from: note
+    expr: "$.relationships[*].kind"
+  # <<< GENERATED
+  stack_pack:
+    kind: yaml_block
+    from: "{layout.discovery_service_dir}stack.md"
+    expr: "$.stack_pack"
+  note_pack:
+    kind: yaml_block
+    from: note
+    expr: "$.stack_pack"
+  inference_mode:
+    kind: yaml_block
+    from: "{layout.discovery_service_dir}stack.md"
+    expr: "$[?(@.stack_pack == 'none')]"
+  entities:
+    kind: yaml_block
+    from: note
+    expr: "$.entities[*]"
+  entity_names:
+    kind: yaml_block
+    from: note
+    expr: "$.entities[*].name"
+  relationship_ends:
+    kind: yaml_block
+    from: note
+    expr: "$.relationships[*]['from','to']"
+  relationship_entries:
+    kind: yaml_block
+    from: note
+    expr: "$.relationships[*]"
+  column_entries:
+    kind: yaml_block
+    from: note
+    expr: "$.entities[*].columns[*]"
+  source_of_truth:
+    kind: yaml_block
+    from: note
+    expr: "$.coverage.source_of_truth"
+  partial:
+    kind: yaml_block
+    from: note
+    expr: "$.coverage[?(@.partial == true)]"
+  observed_sample:
+    kind: yaml_block
+    from: note
+    expr: "$.entities[?(@.confidence == 'observed')]"
+
+preconditions:
+  - id: stack_note_present
+    run: builtin:file_exists
+    args: {path: "{layout.discovery_service_dir}stack.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: note
+    path: "{layout.discovery_service_dir}data-model.md"
+
+checks:
+  - id: own_service_only
+    description: >
+      A fan-out child writes only under its own service folder (a child that wrote all services'
+      notes made every push-rebase conflict, live 2026-10-17).
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.discovery_service_dir}**"]}
+    on_fail: changes_requested
+    reason_code: scope
+  # >>> GENERATED from templates/data-model.md.tmpl by tools/gen_template_checks.py: do not edit by hand
+  - id: tmpl_block
+    description: "The machine block parses and has every top-level key the template declares."
+    run: builtin:yaml_block
+    args: {artifact: note, required_keys: ["artifact", "service", "generated", "stack_pack", "summary", "entities", "relationships", "coverage"], artifact_name: "data-model"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_entities_name
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.entities[?(!@.name)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_entities_columns
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.entities[?(!@.columns)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_entities_columns_name
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.entities[*].columns[?(!@.name)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_entities_columns_type
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.entities[*].columns[?(!@.type)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_entities_columns_nullable_bool
+    when: "facts.tmpl_has_entities_columns_nullable"
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.entities[*].columns[*].nullable", op: "in", value: [true, false]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: tmpl_relationships_from
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.relationships[?(!@.from)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_relationships_to
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.relationships[?(!@.to)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_relationships_via
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.relationships[?(!@.via)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_relationships_kind
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.relationships[?(!@.kind)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_relationships_kind_enum
+    when: "facts.tmpl_has_relationships_kind"
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.relationships[*].kind", op: "in", value: ["FK", "join"]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: tmpl_coverage_entities_found
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.coverage.entities_found", op: ">=", value: 0}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_coverage_source_of_truth
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$[?(!@.coverage.source_of_truth)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_coverage_partial_bool
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.coverage.partial", op: "in", value: [true, false]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: tmpl_evidence
+    description: "Contract: every entry has confidence; observed needs source, inferred needs basis or note."
+    run: builtin:evidence_entries
+    args: {artifact: note, lists: ["entities", "relationships"]}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  # <<< GENERATED
+  - id: right_service
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.service", op: "==", value: "{item.id}"}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: pack_matches_stack
+    description: Downstream skills trust stack-detect's verdict; they must not re-detect.
+    run: builtin:fact_compare
+    args: {left: facts.note_pack, right: facts.stack_pack, op: "=="}
+    on_fail: changes_requested
+    reason_code: wrong_assumption
+  - id: sources_resolve
+    run: builtin:sources_resolve
+    args: {artifact: note, scope: "{item.root}", sample: all}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: inference_mode_declared
+    when: "facts.inference_mode"
+    run: builtin:regex_count
+    args: {artifact: note, pattern: '(?i)inference mode', min: 1}
+    on_fail: changes_requested
+    reason_code: quality
+  - id: source_of_truth_exists
+    run: builtin:paths_exist
+    args: {fact: facts.source_of_truth, base: "{item.root}"}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: models_in_code
+    when: "not facts.inference_mode"
+    run: builtin:regex_count
+    args: {path: "{item.root}/{pack.locations.models}", pattern: "{pack.patterns.model}", min: 0}
+    on_fail: advisory
+    reason_code: coverage_gap
+  - id: every_model_listed
+    when: "not facts.inference_mode and not facts.partial"
+    run: builtin:fact_compare
+    args: {left: facts.entities, right: checks.models_in_code.count, op: ">="}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: relationships_reference_entities
+    run: builtin:set_relation
+    args: {left: facts.relationship_ends, right: facts.entity_names, relation: subset}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+
+judge:
+  tier: low
+  vendor: prefer_different
+  inputs: [note, facts.observed_sample]
+  criteria:
+    - id: cited_line_supports_claim
+      for_each: facts.observed_sample
+      max_items: 12
+      question: "Does the cited source line actually support this claim, exactly as stated (not a stronger version of it)? Claim and source: {item}"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: columns_match_migrations
+      question: "Do the listed columns of each sampled entity match its migration (names and types), with any model-versus-migration drift reported rather than silently resolved?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim

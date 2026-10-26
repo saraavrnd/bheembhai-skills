@@ -1,0 +1,48 @@
+# Fix Design — {{bug_key}}: {{bug_summary}}
+
+**Status:** PROPOSED · **Date:** {{date}} · **Domain:** {{backend | frontend | full-stack}}
+
+## Root cause
+{{one or two sentences naming the wrong behaviour}} at `{{path:line}}`.
+
+## Causal chain
+<!-- From the cause to the observed signature. Each link is an observed fact with path:line. -->
+1. `{{path:line}}` — {{what happens}}
+2. `{{path:line}}` — {{what happens}}
+3. Signature `{{signature from reproduction.md}}` returned by `{{path:line}}`.
+
+## How it got in
+{{commit / story that introduced it, and the wrong assumption; or "history not conclusive"}}
+
+## Fix approach
+{{what changes at the cause, and why this removes the cause rather than hiding the symptom}}
+
+## Target module(s)
+- `{{module path}}` — {{what changes there}}
+
+## Interfaces
+{{"No interface change." | the changed signature/endpoint and why it is compatible}}
+
+## Data-model deltas
+{{"None." | the delta}} {{and: whether stored data is already wrong, and that repair is out of scope}}
+
+## Blast radius
+- Callers of the changed code: `{{path}}`, `{{path}}`
+- Siblings (same wrong assumption elsewhere): {{list | "none found"}} — {{fixed here | new bug suggested}}
+
+## Fix scope
+**Scope:** {{local | cross-module | architectural}}
+
+## Test surface
+- Regression tests from test-plan.md must pass: {{ids}}
+- Guard tests must stay green: {{ids}}
+- {{any extra test implement should add, e.g. for a sibling fixed here}}
+
+## Out of scope
+{{data repair, sibling bugs in other modules, refactors}}
+
+## Traceability
+**Bug:** {{bug_key}} · **Introduced by:** {{story key / commit | unknown}} · **Requirements:** {{FR IDs}}
+
+---
+*Next: `sdlc-deliver-code-implement` builds this fix on `fix/{{bug_key}}-<slug>` until the regression tests pass.*

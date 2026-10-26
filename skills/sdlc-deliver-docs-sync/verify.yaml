@@ -1,0 +1,98 @@
+version: 1
+skill: sdlc-deliver-docs-sync
+summary: >
+  The sync note classifies the change and lists flagged stories, only docs changed, the design
+  changelog was appended (never rewritten), and a structural change escalates instead of being
+  written up as a sync.
+verdicts_used: [changes_requested, escalation_required]
+
+facts:
+  classification:
+    kind: regex
+    from: note
+    pattern: '(?i)\b(no system-level change|incremental|structural)\b'
+  flagged_stories:
+    kind: regex
+    from: note
+    section: "Flagged"
+    pattern: '\b([A-Z][A-Z0-9]+-\d+)\b'
+  contracts_changed:
+    kind: glob
+    pattern: "{layout.api_contracts_dir}*.openapi.yaml"
+    when: "changed('{layout.api_contracts_dir}')"
+
+artifacts:
+  - id: note
+    path: "{layout.story_dir}design-sync.md"
+  - id: changelog
+    path: "{layout.changelog_design}"
+
+checks:
+  - id: docs_only
+    description: Docs and AGENTS.md only; never production code or tests.
+    run: builtin:diff_paths
+    args: {allowed: ["docs/**", "AGENTS.md"]}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: changelog_append_only
+    run: builtin:append_only
+    args: {path: "{layout.changelog_design}"}
+    on_fail: changes_requested
+    reason_code: policy
+  - id: changelog_names_story
+    run: builtin:regex_count
+    args: {artifact: changelog, pattern: '{story}', min: 1}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+  - id: classified
+    run: builtin:count_range
+    args: {fact: facts.classification, min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_adr_edits
+    description: sdlc-deliver-docs-sync reflects shipped decisions; new or changed ADRs come from sdlc-arch-design.
+    run: builtin:diff_paths
+    args: {forbidden: ["{layout.adr_dir}**"]}
+    on_fail: escalation_required
+    reason_code: architecture_conflict
+  - id: structural_escalates
+    description: A structural change that bypassed sdlc-arch-design (amend) must not be reported as completed.
+    run: builtin:self_verdict_consistent
+    args: {fact: facts.classification, map: {"structural": escalation_required, "incremental": completed, "no system-level change": completed}}
+    on_fail: escalation_required
+    reason_code: architecture_conflict
+  - id: contracts_still_valid
+    when: "facts.contracts_changed"
+    run: builtin:openapi_valid
+    args: {glob: "{layout.api_contracts_dir}*.openapi.yaml"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: agents_md_layout_kept
+    run: builtin:md_sections
+    args: {path: "{layout.agents_md}", required: ["Project Layout"], match: contains}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: flagged_stories_notified
+    when: "facts.flagged_stories"
+    run: builtin:jira_field
+    args: {keys: facts.flagged_stories, field: comments, op: contains, value: "{story}"}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+
+judge:
+  tier: medium
+  vendor: prefer_different
+  inputs: [note, diff, "diff:run", "{layout.architecture}", "{layout.data_model}"]
+  criteria:
+    - id: classification_correct
+      question: "Given the story's code diff and the design docs before this sync, is the note's classification (no system-level change / incremental / structural) correct?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: docs_reflect_code
+      question: "Does every new endpoint, data field or module dependency in the story's code diff now appear in the design docs or contracts?"
+      on_fail: changes_requested
+      reason_code: design_drift
+    - id: proportionate
+      question: "Are the doc edits limited to the lines the story changed (no churn of unrelated architecture narrative)?"
+      on_fail: changes_requested
+      reason_code: scope

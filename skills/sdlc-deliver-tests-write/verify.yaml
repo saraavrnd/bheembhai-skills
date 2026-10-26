@@ -1,0 +1,128 @@
+version: 1
+skill: sdlc-deliver-tests-write
+summary: Every acceptance scenario maps to at least one test that exists and fails for the right reason (good red), placed under the mirrored module folder, with no production code written.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+facts:
+  scenarios:
+    kind: gherkin_scenarios
+    from: context.story.acceptance_criteria
+  scenario_titles:
+    kind: gherkin_scenarios
+    from: context.story.acceptance_criteria
+    key: title
+  plan_scenarios:
+    kind: md_table_column
+    from: test_plan
+    section: "Scenario → test mapping"
+    column: Scenario
+  plan_test_ids:
+    kind: md_table_column
+    from: test_plan
+    section: "Scenario → test mapping"
+    column: Test
+  stateful_story:
+    kind: regex
+    from: "{layout.story_dir}story-design.md"
+    section: "Data-model deltas"
+    pattern: '(?i)\b(table|migration|column|model|entity)\b'
+
+snapshot: [test_inventory]
+
+preconditions:
+  - id: design_approved_present
+    run: builtin:file_exists
+    args: {path: "{layout.story_dir}story-design.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: scenario_count
+    run: builtin:count_range
+    args: {fact: facts.scenarios, min: 1}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: harness_green
+    description: The walking-skeleton harness passes before new tests are added, so a red later means "feature missing".
+    run: builtin:tests_run
+    args: {expect: pass, layer: unit}
+    on_fail: failed_execution
+    reason_code: env_infra
+
+artifacts:
+  - id: test_plan
+    path: "{layout.story_dir}test-plan.md"
+  - id: new_tests
+    glob: "tests/**/test_*"
+    min_count: 1
+
+checks:
+  - id: plan_sections
+    run: builtin:md_sections
+    args: {artifact: test_plan, required: ["Scenario → test mapping", "Coverage check", "Red-phase verification", "Traceability"]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: every_scenario_mapped
+    run: builtin:set_relation
+    args: {left: facts.scenario_titles, right: facts.plan_scenarios, relation: subset}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: planned_tests_exist
+    run: builtin:tests_exist
+    args: {fact: facts.plan_test_ids}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: new_tests_are_red
+    run: builtin:tests_run
+    args: {expect: fail, select: facts.plan_test_ids}
+    on_fail: changes_requested
+    reason_code: bad_red
+  - id: good_red_only
+    run: builtin:tests_fail_reason
+    args: {select: facts.plan_test_ids}
+    on_fail: changes_requested
+    reason_code: bad_red
+  - id: existing_suite_untouched
+    run: builtin:tests_compare_baseline
+    args: {no_removed: true, no_new_skips: true, no_assertion_drop: true}
+    on_fail: changes_requested
+    reason_code: regression
+  - id: tests_and_plan_only
+    description: No production code in the red phase.
+    run: builtin:diff_paths
+    args: {allowed: ["tests/**", "{layout.story_dir}**"], min_changed: 2}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: not_flat
+    description: New tests live under tests/<layer>/<module>/, never flat in the layer folder.
+    run: builtin:diff_paths
+    args: {forbidden: ["tests/unit/test_*", "tests/integration/test_*"]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_skip_markers
+    run: builtin:diff_forbids_added
+    args: {paths: ["tests/**"], pattern: '(@pytest\.mark\.(skip|xfail)|\b(it|test|describe)\.skip\(|\bxit\(|@Disabled)'}
+    on_fail: changes_requested
+    reason_code: faked_green
+
+judge:
+  tier: medium
+  vendor: prefer_different
+  inputs: [test_plan, new_tests, facts.scenarios, "{layout.story_dir}story-design.md"]
+  criteria:
+    - id: asserts_criteria_values
+      for_each: facts.scenarios
+      question: "Do the tests mapped to this scenario assert its concrete Then values verbatim (exact status, message, state), not a looser version? Scenario: {item}"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: unhappy_paths_present
+      question: "Are the story's unhappy-path scenarios (invalid input, permission denied, empty state) covered by tests, not only the happy path?"
+      on_fail: changes_requested
+      reason_code: coverage_gap
+    - id: targets_design_interfaces
+      question: "Do the tests call the interfaces named in story-design.md rather than inventing different signatures?"
+      on_fail: escalation_required
+      reason_code: design_drift
+    - id: asserts_system_of_record
+      when: "facts.stateful_story"
+      question: "Does at least one test prove the persisted row/state exists in the declared durable store, not only a return value, mock or in-memory list?"
+      on_fail: changes_requested
+      reason_code: quality

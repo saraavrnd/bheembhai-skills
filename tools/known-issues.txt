@@ -1,0 +1,9 @@
+# Errors that existed when the repo was seeded (2026-10-26). CI reports them as 'known' instead of failing.
+# Fix the skill, then delete its line here; check.py tells you when a line is no longer needed.
+skills/sdlc-discovery-api-surface: SKILL.md references references/graphify-verbs.md, which does not exist
+skills/sdlc-discovery-architecture: SKILL.md references references/graphify-verbs.md, which does not exist
+skills/sdlc-discovery-architecture: SKILL.md references templates/architecture-SAD.md.tmpl, which does not exist
+skills/sdlc-discovery-consolidate: SKILL.md references templates/architecture.md.tmpl, which does not exist
+skills/sdlc-discovery-consolidate: SKILL.md references templates/ADR.md.tmpl, which does not exist
+skills/sdlc-discovery-data-model: SKILL.md references references/graphify-verbs.md, which does not exist
+skills/sdlc-discovery-security-posture: SKILL.md references references/graphify-verbs.md, which does not exist

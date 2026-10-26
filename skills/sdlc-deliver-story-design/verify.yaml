@@ -1,0 +1,104 @@
+version: 1
+skill: sdlc-deliver-story-design
+summary: story-design.md exists in the story folder with every template section, a domain tag, concrete interfaces, and either a clean fit or an explicit escalation.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+facts:
+  scenarios:
+    kind: gherkin_scenarios
+    from: context.story.acceptance_criteria
+  escalation_raised:
+    kind: regex
+    from: design
+    section: "Architecture impact"
+    pattern: '(?i)\b(escalat\w*|sdlc-arch-design|new (service|integration)|contradicts ADR)\b'
+  touches_persistence:
+    kind: regex
+    from: design
+    section: "Data-model deltas"
+    pattern: '(?i)\b(table|migration|column|model|entity)\b'
+
+preconditions:
+  - id: story_has_criteria
+    run: builtin:count_range
+    args: {fact: facts.scenarios, min: 1}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: architecture_present
+    run: builtin:file_exists
+    args: {path: "{layout.architecture}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: design
+    path: "{layout.story_dir}story-design.md"
+
+checks:
+  - id: template_sections
+    run: builtin:md_sections
+    args:
+      artifact: design
+      required: ["Target module", "Interfaces", "Data-model deltas", "Reuse", "Approach", "Test surface",
+                 "Out of scope", "Architecture impact", "Dependencies discovered", "Traceability"]
+    on_fail: changes_requested
+    reason_code: structure
+  - id: domain_tag
+    run: builtin:regex_count
+    args: {artifact: design, pattern: '(?i)\b(backend|frontend|full-stack)\b', min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: concrete_interfaces
+    description: At least one route + method, function signature, or component name.
+    run: builtin:regex_count
+    args: {artifact: design, section: "Interfaces", pattern: '(\b(GET|POST|PUT|PATCH|DELETE)\s+/\S+|\w+\(.*\)|<\w+[ />])', min: 1}
+    on_fail: changes_requested
+    reason_code: quality
+  - id: modules_exist
+    description: Every module path the note names exists in the repo (no new top-level structure without escalation).
+    run: builtin:links_resolve
+    args: {artifact: design, include_backticks: true}
+    on_fail: escalation_required
+    reason_code: architecture_conflict
+    when: "not facts.escalation_raised"
+  - id: size_bound
+    description: A note longer than ~a page suggests the story should be split.
+    run: builtin:regex_count
+    args: {artifact: design, pattern: '\n', max: 120}
+    on_fail: advisory
+    reason_code: scope
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: design}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: story_folder_only
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.story_dir}**", "{layout.epic_dir}sdlc-plan-epic-sequence.*"]}
+    on_fail: changes_requested
+    reason_code: scope
+
+judge:
+  tier: high
+  vendor: prefer_different
+  inputs: [design, context.story, facts.scenarios]
+  criteria:
+    - id: interfaces_cover_scenarios
+      for_each: facts.scenarios
+      question: "Can this acceptance scenario be exercised through the interfaces the design names, without inventing a new one? Scenario: {item}"
+      on_fail: changes_requested
+      reason_code: coverage_gap
+    - id: durable_store_named
+      when: "facts.touches_persistence"
+      question: "Does the design name the durable system of record (actual model/table/migration) and write to it directly, not to a shim, file or in-memory store?"
+      on_fail: escalation_required
+      reason_code: architecture_conflict
+    - id: fits_architecture
+      when: "not facts.escalation_raised"
+      question: "Does the design fit the existing architecture, contracts and ADRs (no new service, external integration or cross-cutting concern)? Answer no if it quietly bends the architecture."
+      on_fail: escalation_required
+      reason_code: architecture_conflict
+    - id: proportionate
+      question: "Is the note proportionate to the story (interfaces and approach, no pseudocode dump, no speculative design for future stories)?"
+      on_fail: changes_requested
+      reason_code: quality

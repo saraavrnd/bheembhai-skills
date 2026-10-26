@@ -1,0 +1,39 @@
+<!-- Human index for the service graph graphify built. Written to docs/discovery/<SERVICE>/graph.md.
+     An INDEX + hand-off record, not a description of the code. The real artifact is the graphify
+     store at graphify-out/graph.json; downstream skills query it via graphify verbs. -->
+```yaml
+artifact: graph
+service: <SERVICE>
+generated: <DATE>
+# Node count graphify reported for the store (never hand-counted). `null` when the build did not
+# report one or did not run — the Status line carries the reason.
+nodes: <N|null>
+```
+
+# Service graph — <SERVICE>
+
+**Built by:** graphify (`graphify extract <SERVICE_ROOT> --code-only`) · **generated:** <DATE>
+**Graph store:** `docs/discovery/<SERVICE>/graphify-out/graph.json`  ← pass as `--graph` to every verb
+**Status:** <built | partial | not built — reason>
+
+## Scale
+<!-- From graphify's build output if it reports counts; otherwise "see store". -->
+- Nodes: <N> · relations: <E> · languages: <...>
+
+## Smoke test
+<!-- The one verb call run to confirm the graph answers queries. -->
+`graphify query "entry points" --budget 500 --graph docs/discovery/<SERVICE>/graphify-out/graph.json`
+→ <returned N nodes with source refs | FAILED — reason>
+
+## How downstream skills query this graph
+Pass `--graph docs/discovery/<SERVICE>/graphify-out/graph.json` to:
+- `graphify query "<question>" [--budget N] [--context call]` — neighborhood around a topic
+- `graphify explain "<node>"` — one node's source, cluster, relationships
+- `graphify path "<src>" "<tgt>" [--directed|--undirected]` — shortest relationship path
+- `graphify affected "<node>"` — dependent impact / blast radius
+
+## Evidence note
+graphify returns graph **context**, not a verified answer. A returned relation + source ref is
+`observed`; a missing path or empty `affected` set is `inferred` (static structure only — dynamic
+wiring such as DI / dynamic dispatch may be absent). If the graph was not built, downstream skills
+read source directly and mark findings `inferred`.

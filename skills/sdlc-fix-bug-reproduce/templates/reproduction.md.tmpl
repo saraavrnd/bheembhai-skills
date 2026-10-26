@@ -1,0 +1,36 @@
+# Reproduction — {{bug_key}}: {{bug_summary}}
+
+**Date:** {{date}} · **Stack:** {{how the stack was run, e.g. docker compose up api db}}
+
+## Bug
+- Key: {{bug_key}}
+- Triage: `{{bug_dir}}bug-triage.md` (Decision: Fix, Severity {{severity}})
+
+## Reproduction
+<!-- What you actually ran, in order, and what came back. One block per attempt. -->
+**Attempt 1:** {{steps as run}}
+```
+{{command and raw output}}
+```
+**Result:** {{reproduced | not reproduced — what differed}}
+
+## Observed symptom
+**Signature:** `{{shortest string the buggy code emits that identifies the symptom}}`
+{{one sentence: where it appears (response body, exception, UI text)}}
+
+## Minimal failing case
+- Layer: {{unit | integration | e2e}}
+- Input: {{the smallest input that still fails}}
+- Corrections to triage: {{assumed details that turned out wrong, or "none"}}
+
+## Regression tests
+- `{{tests/<layer>/<module>/test_<unit>.py::test_name}}` — regression — {{what it asserts}}
+- `{{tests/<layer>/<module>/test_<unit>.py::test_name}}` — guard — {{what it protects}}
+
+## Red-phase verification
+```
+{{test run output: regression tests FAIL with the signature, guard tests PASS}}
+```
+
+## Notes
+{{other symptoms seen on the way, things root-cause analysis should look at}}

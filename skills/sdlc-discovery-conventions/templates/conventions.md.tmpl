@@ -1,0 +1,46 @@
+<!-- Discovery hand-off (system): conventions.md -> docs/discovery/_system/conventions.md
+     SDLC-standard Coding Conventions / Standards document. Readable sections on top, machine block
+     at the bottom. Every line keeps a confidence tag + source. A convention is usually `observed`
+     across N files, or `inferred` if it holds only in part of the code — say which. -->
+
+---
+artifact: conventions
+generated: <DATE>
+status: draft
+confidence_summary: "<n observed, n inferred, n uncertain>"
+---
+
+# Coding Conventions — <SYSTEM / REPO NAME>
+
+## 1. Overview
+<!-- 2-4 sentences: how consistent the codebase is; whether conventions are enforced or just de-facto. -->
+<prose overview>
+
+## 2. Code Organization
+- <module/package layout, per-domain shape> _[observed — source: structure-map.md]_
+
+## 3. Naming
+- <files, classes, functions, routes, DB> _[observed — source: <...>]_
+
+## 4. Error Handling & Logging
+- <patterns, where centralized, gaps> _[observed — source: <...>]_
+
+## 5. Testing Conventions
+- <layout, layers, fixtures, naming> _[observed — source: test-coverage-map.md]_
+
+## 6. API / Interface Conventions
+- <route shape, request/response models, versioning> _[observed — source: api-surface.md]_
+
+## 7. Configuration & Environment
+- <config module, env handling, defaults> _[observed — source: <...>]_
+
+## 8. Evidence Notes
+- Tags: observed (holds across cited files), inferred (holds in part — basis stated), uncertain.
+- Coverage: <full | partial — conventions validated against which parts of the code>
+
+<!-- ── MACHINE BLOCK ── -->
+```yaml machine
+artifact: conventions
+conventions:
+  - { area: "organization|naming|errors|testing|api|config", claim: "<statement>", confidence: observed, source: "<path:line>", note: "<optional>" }
+```

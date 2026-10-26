@@ -1,0 +1,113 @@
+version: 1
+skill: sdlc-deliver-tests-verify
+summary: >
+  The verification report exists with raw evidence, and its PASS/BLOCK verdict agrees with what
+  the platform observes when it re-runs the suite, lint, coverage and the faked-green diff checks.
+  A PASS the platform cannot reproduce becomes BLOCK.
+verdicts_used: [failed_execution, changes_requested, BLOCK]
+
+facts:
+  plan_test_ids:
+    kind: md_table_column
+    from: "{layout.story_dir}test-plan.md"
+    section: "Scenario → test mapping"
+    column: Test
+  report_says:
+    kind: check_output
+    check: report_verdict
+    key: verdict
+
+preconditions:
+  - id: test_plan_present
+    run: builtin:file_exists
+    args: {path: "{layout.story_dir}test-plan.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: report
+    path: "{layout.story_dir}verification.md"
+
+checks:
+  - id: report_sections
+    run: builtin:md_sections
+    args:
+      artifact: report
+      required: ["Suite, lint, coverage", "Acceptance-scenario coverage", "Faked-green inspection", "Regression & design"]
+    on_fail: changes_requested
+    reason_code: structure
+  - id: raw_evidence_blocks
+    description: Separate raw output blocks for suite, lint and coverage, run verbosely.
+    run: builtin:regex_count
+    args: {artifact: report, pattern: '^```', min: 6}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: report_verdict
+    run: builtin:report_verdict
+    args: {artifact: report, pattern: '(?im)^\**\s*(?:verdict|result)\s*:?\**\s*\**(PASS|BLOCK)\b', allowed: [PASS, BLOCK]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: read_only
+    description: The gate inspects; it writes nothing but its report.
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.story_dir}verification.md"]}
+    on_fail: changes_requested
+    reason_code: scope
+
+  # A PASS must survive the platform re-running everything.
+  - id: suite_really_green
+    when: "facts.report_says == 'PASS'"
+    run: builtin:tests_run
+    args: {expect: pass}
+    on_fail: BLOCK
+    reason_code: test_failure
+  - id: lint_really_clean
+    when: "facts.report_says == 'PASS'"
+    run: builtin:lint_run
+    on_fail: BLOCK
+    reason_code: lint_failure
+  - id: coverage_really_met
+    when: "facts.report_says == 'PASS'"
+    run: builtin:coverage_gate
+    on_fail: BLOCK
+    reason_code: coverage_below_gate
+  - id: scenarios_really_tested
+    when: "facts.report_says == 'PASS'"
+    run: builtin:tests_exist
+    args: {fact: facts.plan_test_ids}
+    on_fail: BLOCK
+    reason_code: coverage_gap
+  - id: no_weakening_since_red
+    when: "facts.report_says == 'PASS'"
+    run: builtin:tests_compare_baseline
+    args: {no_removed: true, no_new_skips: true, no_assertion_drop: true, protected: facts.plan_test_ids, baseline: "last_change:{layout.story_dir}test-plan.md"}
+    on_fail: BLOCK
+    reason_code: faked_green
+  - id: no_skip_markers_since_red
+    when: "facts.report_says == 'PASS'"
+    run: builtin:diff_forbids_added
+    args: {paths: ["tests/**"], pattern: '(@pytest\.mark\.(skip|xfail)|\b(it|test|describe)\.skip\(|\bxit\(|@Disabled|assert\s+True\b)', baseline: "last_change:{layout.story_dir}test-plan.md"}
+    on_fail: BLOCK
+    reason_code: faked_green
+  - id: outcome_matches_report
+    run: builtin:self_verdict_consistent
+    args: {fact: facts.report_says, map: {PASS: completed, BLOCK: BLOCK}}
+    on_fail: BLOCK
+    reason_code: report_inconsistent
+
+judge:
+  tier: medium
+  vendor: prefer_different
+  inputs: [report, diff]
+  criteria:
+    - id: no_cheating_code
+      when: "facts.report_says == 'PASS'"
+      critical: true
+      question: "Reading the production diff since the tests were written, is the behaviour implemented in general, with no special-casing of fixture inputs, hard-coded expected values, or exceptions swallowed to silence an unhappy-path test?"
+      on_fail: BLOCK
+      reason_code: faked_green
+    - id: block_is_actionable
+      when: "facts.report_says == 'BLOCK'"
+      question: "Does every BLOCK issue name its evidence (file:line or failing test) and the owning step to fix it (sdlc-deliver-code-implement, or the step that wrote the tests: sdlc-deliver-tests-write or sdlc-fix-bug-reproduce)?"
+      on_fail: changes_requested
+      reason_code: quality

@@ -1,0 +1,18 @@
+<!-- Discovery hand-off: what is tested in one service. docs/discovery/<SERVICE>/test-coverage-map.md
+     A MAP of existing tests (not a %, not a judgment). "no tests found for X" is a valid finding. -->
+```yaml
+artifact: test-coverage-map
+service: <SERVICE>
+generated: <DATE>
+stack_pack: <pack|none>
+summary: ><2-3 sentences; which layers exist, roughly what's covered, notable bare areas.>
+layers:
+  unit:        { run: "<cmd>", needs_services: false, source: "<tests dir>" }
+  integration: { run: "<cmd>", needs_services: true,  source: "<tests dir>" }
+  e2e:         { run: "<cmd>", needs_services: true,  source: "<tests dir>" }
+tests:
+  - { file: "<path>", layer: unit|integration|e2e, covers: "<one line>", confidence: observed|inferred, source: "<path>", basis: "<required for inferred>" }
+area_coverage:
+  - { area: "<module/feature>", tested: true,  by: ["<test file>"], confidence: observed|inferred, source: "<path>", basis: "<required for inferred>" }
+  - { area: "<module/feature>", tested: false, note: "no tests found", confidence: observed|inferred, source: "<the bare module dir>", basis: "<required for inferred>" }
+```

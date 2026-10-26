@@ -1,0 +1,155 @@
+version: 1
+skill: sdlc-discovery-build-run
+summary: >
+  build-run.md gives sourced install/test/run commands, backing services and required env vars for this service only.
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  # >>> GENERATED facts (tools/gen_template_checks.py)
+  tmpl_has_env_required_secret:
+    kind: yaml_block
+    from: note
+    expr: "$.env_required[*].secret"
+  tmpl_has_commands:
+    kind: yaml_block
+    from: note
+    expr: "$.commands.*"
+  # <<< GENERATED
+  stack_pack:
+    kind: yaml_block
+    from: "{layout.discovery_service_dir}stack.md"
+    expr: "$.stack_pack"
+  note_pack:
+    kind: yaml_block
+    from: note
+    expr: "$.stack_pack"
+  inference_mode:
+    kind: yaml_block
+    from: "{layout.discovery_service_dir}stack.md"
+    expr: "$[?(@.stack_pack == 'none')]"
+  entrypoint:
+    kind: yaml_block
+    from: note
+    expr: "$.entrypoint.path"
+  env_entries:
+    kind: yaml_block
+    from: note
+    expr: "$.env_required[*]"
+  observed_sample:
+    kind: yaml_block
+    from: note
+    expr: "$.commands[?(@.confidence == 'observed')]"
+
+preconditions:
+  - id: stack_note_present
+    run: builtin:file_exists
+    args: {path: "{layout.discovery_service_dir}stack.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: note
+    path: "{layout.discovery_service_dir}build-run.md"
+
+checks:
+  - id: own_service_only
+    description: >
+      A fan-out child writes only under its own service folder (a child that wrote all services'
+      notes made every push-rebase conflict, live 2026-10-17).
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.discovery_service_dir}**"]}
+    on_fail: changes_requested
+    reason_code: scope
+  # >>> GENERATED from templates/build-run.md.tmpl by tools/gen_template_checks.py: do not edit by hand
+  - id: tmpl_block
+    description: "The machine block parses and has every top-level key the template declares."
+    run: builtin:yaml_block
+    args: {artifact: note, required_keys: ["artifact", "service", "generated", "stack_pack", "summary", "commands", "backing_services", "env_required", "entrypoint"], artifact_name: "build-run"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_backing_services_name
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.backing_services[?(!@.name)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_env_required_name
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.env_required[?(!@.name)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_env_required_secret_bool
+    when: "facts.tmpl_has_env_required_secret"
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.env_required[*].secret", op: "in", value: [true, false]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: tmpl_commands_cmd
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.commands[?(!@.cmd)]~", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_commands_keys
+    description: "Entries use the template's keys (a service may omit one it does not have)."
+    when: "facts.tmpl_has_commands"
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.commands.keys()", op: "in", value: ["install", "test", "run", "migrate"]}
+    on_fail: advisory
+    reason_code: structure
+  - id: tmpl_entrypoint_path
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$[?(!@.entrypoint.path)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_evidence
+    description: "Contract: every entry has confidence; observed needs source, inferred needs basis or note."
+    run: builtin:evidence_entries
+    args: {artifact: note, lists: ["backing_services", "env_required", "commands", "entrypoint"]}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  # <<< GENERATED
+  - id: right_service
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.service", op: "==", value: "{item.id}"}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: pack_matches_stack
+    description: Downstream skills trust stack-detect's verdict; they must not re-detect.
+    run: builtin:fact_compare
+    args: {left: facts.note_pack, right: facts.stack_pack, op: "=="}
+    on_fail: changes_requested
+    reason_code: wrong_assumption
+  - id: sources_resolve
+    description: >
+      Every observed source resolves under the service root, and a quoted line is really there
+      (covers env names, backing services, commands and the entrypoint).
+    run: builtin:sources_resolve
+    args: {artifact: note, scope: "{item.root}", sample: all, quote: true}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: inference_mode_declared
+    when: "facts.inference_mode"
+    run: builtin:regex_count
+    args: {artifact: note, pattern: '(?i)inference mode', min: 1}
+    on_fail: changes_requested
+    reason_code: quality
+  - id: entrypoint_exists
+    run: builtin:paths_exist
+    args: {fact: facts.entrypoint, base: "{item.root}"}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+
+judge:
+  tier: low
+  vendor: prefer_different
+  inputs: [note, facts.observed_sample]
+  criteria:
+    - id: cited_line_supports_claim
+      for_each: facts.observed_sample
+      max_items: 12
+      question: "Does the cited source line actually support this claim, exactly as stated (not a stronger version of it)? Claim and source: {item}"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: commands_runnable
+      question: "Is each command plausible to run from the service root as written (correct tool, script name present in the manifest), with nothing presented as observed that is only a convention guess?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim

@@ -1,0 +1,27 @@
+<!-- Discovery hand-off: the HTTP/API surface of one service.
+     Written to docs/discovery/<SERVICE>/api-surface.md. An INDEX into the code, not a re-description.
+     Every endpoint row carries confidence + a source pointer. Read by security-posture,
+     integration-map, and (in delivery) by sdlc-deliver-story-design when a feature touches an endpoint. -->
+```yaml
+artifact: api-surface
+service: <SERVICE>
+generated: <DATE>
+stack_pack: <pack|none>
+
+summary: ><2-3 sentences. State coverage and any inference. If inference mode, say so loudly.>
+
+endpoints:
+  - method: <GET|POST|PUT|PATCH|DELETE>
+    path: "<route path>"
+    handler: "<handler symbol>"
+    auth: "<auth as written, or 'no auth declared'>"
+    confidence: observed|inferred|uncertain
+    source: "<path:line>"   # required for observed
+    basis: "<the facts it was inferred from>"   # required for inferred (note: is accepted instead)
+    response_shape: "<inline-declared shape, or 'not inline-declared'>"
+
+coverage:
+  routes_found: <n>
+  locations_searched: ["<pack locations.routes actually grepped>"]
+  partial: <true|false>          # true if the codebase was too large to cover fully
+```

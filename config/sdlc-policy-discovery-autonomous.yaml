@@ -1,0 +1,14 @@
+# Discovery parent policy — no gates of its own.
+#
+# The parent's OWN human checkpoints (the bootstrap manifest, architecture,
+# security posture, the capstone) live in `sdlc-policy-discovery-governed`. The per-service
+# chain is a CHILD run gated by the child policy the foreach node names
+# (`sdlc-policy-discovery-service-governed`) — a parked child parks the parent at its
+# barrier, so this policy is "no parent gates", not "nothing gates anywhere".
+# It exists so the parent workflow is runnable from the run modal (a workflow
+# needs at least one policy) and gives teams an autonomous knob for the
+# in-process steps.
+policy: sdlc-policy-discovery-autonomous
+version: 1
+applies_to: sdlc-wf-discovery
+gates: {}

@@ -1,0 +1,53 @@
+<!-- Discovery hand-off (system): integration-map.md -> docs/discovery/_system/integration-map.md
+     SDLC-standard Integration / Interface document: readable sections on top, machine block
+     (nodes/edges/external_dependencies) at the bottom for downstream skills. Every factual line
+     keeps a confidence tag and, when observed, a source. "None observed." where a section is empty. -->
+
+---
+artifact: integration-map
+generated: <DATE>
+status: draft
+confidence_summary: "<n observed, n inferred, n uncertain>"
+---
+
+# Integration & Interface Map — <SYSTEM / REPO NAME>
+
+## 1. Overview
+<!-- 2-4 sentences: the shape of the system and its key couplings. -->
+<prose overview>
+
+## 2. System Context
+<!-- The boundary: first-party services vs external systems vs datastores. -->
+- First-party services: <list> _[observed — source: docs/discovery/services.md]_
+- External systems / infra: <list>
+
+## 3. Nodes (Inventory)
+| Node | Kind | Role | Confidence | Source |
+|------|------|------|------------|--------|
+| <id> | service/datastore/queue/external-api | <one line> | observed | <where identified> |
+
+## 4. Interfaces & Integrations
+<!-- Directed edges. Planned-but-unwired seams go here as confidence: uncertain, labelled PLANNED. -->
+| From | To | Via | Interface / Detail | Confidence | Source |
+|------|----|----|--------------------|------------|--------|
+| <a> | <b> | http/queue/shared-db/sdk | <endpoint/topic/what> | observed | <path:line> |
+
+## 5. External Dependencies
+| Service | External System | Purpose | Confidence | Source |
+|---------|-----------------|---------|------------|--------|
+| <service> | <SendGrid/Stripe/S3/…> | <one line> | observed | <dep or call site> |
+
+## 6. Evidence Notes
+- Tags: observed (cited), inferred (basis stated), uncertain (declared-only/not wired).
+- Coverage: <full | partial — what was not reachable>
+
+<!-- ── MACHINE BLOCK ── -->
+```yaml machine
+artifact: integration-map
+nodes:
+  - { id: "<service-or-external>", kind: "service|datastore|queue|external-api", confidence: observed, source: "<where>" }
+edges:
+  - { from: "<node>", to: "<node>", via: "http|queue|shared-db|sdk", detail: "<what>", confidence: observed, source: "<path:line>" }
+external_dependencies:
+  - { service: "<service>", system: "<e.g. SendGrid>", purpose: "<one line>", confidence: observed, source: "<dep or call site>" }
+```

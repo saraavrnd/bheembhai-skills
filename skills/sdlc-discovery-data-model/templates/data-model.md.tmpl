@@ -1,0 +1,19 @@
+<!-- Discovery hand-off: persistent data model of one service.
+     docs/discovery/<SERVICE>/data-model.md. Migrations are authoritative; flag model/migration drift. -->
+```yaml
+artifact: data-model
+service: <SERVICE>
+generated: <DATE>
+stack_pack: <pack|none>
+summary: ><2-3 sentences; authoritative source (migrations), coverage, any drift found.>
+entities:
+  - name: <table/entity>
+    columns:
+      - { name: <col>, type: <type>, nullable: <bool>, note: "<PK/FK/unique/default>" }
+    confidence: observed|inferred|uncertain
+    source: "<migration path:line>"   # required for observed
+    basis: "<the facts it was inferred from>"   # required for inferred (note: is accepted instead)
+relationships:
+  - { from: <entity>, to: <entity>, via: "<entity.col> -> <entity.col>", kind: <FK|join>, confidence: observed|inferred|uncertain, source: "<path:line>", basis: "<required for inferred>" }
+coverage: { entities_found: <n>, source_of_truth: "<migrations dir>", partial: <bool> }
+```

@@ -1,0 +1,14 @@
+# Discovery per-service — gate the keystone step only.
+#
+# sdlc-discovery-stack-detect decides the framework for the whole per-service chain: a wrong
+# answer poisons every artifact downstream, so a human confirms it. Gating
+# every step of 7 per service would bury the reviewer; the gate parks ONLY
+# this child (siblings keep running — `on_branch_block: continue_others`).
+policy: sdlc-policy-discovery-service-governed
+version: 1
+applies_to: sdlc-wf-discovery-service
+gates:
+  sdlc-discovery-stack-detect:
+    review: required
+    role: any
+    on_status: [completed]

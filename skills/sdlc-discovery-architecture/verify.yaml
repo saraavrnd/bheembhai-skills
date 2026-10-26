@@ -1,0 +1,217 @@
+version: 1
+skill: sdlc-discovery-architecture
+summary: >
+  architecture.md inventories every service as a component, sources every relationship, keeps style labels inferred (never observed), and states its gaps and coverage.
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  # >>> GENERATED facts (tools/gen_template_checks.py)
+  tmpl_has_components_kind:
+    kind: yaml_block
+    from: note
+    info: "yaml machine"
+    expr: "$.components[*].kind"
+  # <<< GENERATED
+  service_ids:
+    kind: yaml_block
+    from: "{layout.services_manifest}"
+    info: "yaml bheembhai:foreach"
+    expr: "$.services[*].id"
+  have_stack:
+    kind: glob
+    pattern: "{layout.discovery_root}*/stack.md"
+    key: parent_dir
+  have_structure_map:
+    kind: glob
+    pattern: "{layout.discovery_root}*/structure-map.md"
+    key: parent_dir
+  have_api_surface:
+    kind: glob
+    pattern: "{layout.discovery_root}*/api-surface.md"
+    key: parent_dir
+  have_data_model:
+    kind: glob
+    pattern: "{layout.discovery_root}*/data-model.md"
+    key: parent_dir
+  observed_sample:
+    kind: yaml_block
+    from: note
+    info: "yaml machine"
+    expr: "$..[?(@.confidence == 'observed')]"
+  component_ids:
+    kind: yaml_block
+    from: note
+    info: "yaml machine"
+    expr: "$.components[*].id"
+  edge_ends:
+    kind: yaml_block
+    from: note
+    info: "yaml machine"
+    expr: "$.edges[*]['from','to']"
+
+preconditions:
+  - id: services_manifest_present
+    run: builtin:file_exists
+    args: {path: "{layout.services_manifest}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: every_service_has_stack
+    run: builtin:set_relation
+    args: {left: facts.service_ids, right: facts.have_stack, relation: subset}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: every_service_has_structure_map
+    run: builtin:set_relation
+    args: {left: facts.service_ids, right: facts.have_structure_map, relation: subset}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: every_service_has_api_surface
+    run: builtin:set_relation
+    args: {left: facts.service_ids, right: facts.have_api_surface, relation: subset}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: every_service_has_data_model
+    run: builtin:set_relation
+    args: {left: facts.service_ids, right: facts.have_data_model, relation: subset}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: integration_map_present
+    run: builtin:file_exists
+    args: {path: "{layout.discovery_system_dir}integration-map.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: note
+    path: "{layout.discovery_system_dir}architecture.md"
+
+checks:
+  - id: own_file_only
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.discovery_system_dir}architecture.md"]}
+    on_fail: changes_requested
+    reason_code: scope
+  # >>> GENERATED from templates/architecture.md.tmpl by tools/gen_template_checks.py: do not edit by hand
+  - id: tmpl_block
+    description: "The machine block parses and has every top-level key the template declares."
+    run: builtin:yaml_block
+    args: {artifact: note, info: "yaml machine", required_keys: ["artifact", "components", "edges", "style", "gaps"], artifact_name: "architecture"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_sections
+    run: builtin:md_sections
+    args:
+      artifact: note
+      ordered: true
+      required: ["1. Overview", "2. Context & Scope", "3. Component Inventory", "4. Component Relationships", "5. Data & Persistence", "6. Cross-Cutting Concerns", "7. Deployment & Runtime", "8. Architecture Style", "9. Gaps & Known Limitations", "10. Evidence Notes"]
+    on_fail: changes_requested
+    reason_code: structure
+  - id: tmpl_components_id
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.components[?(!@.id)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_components_kind
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.components[?(!@.kind)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_components_kind_enum
+    when: "facts.tmpl_has_components_kind"
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.components[*].kind", op: "in", value: ["service", "datastore", "module", "external"]}
+    on_fail: advisory
+    reason_code: structure
+  - id: tmpl_edges_from
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.edges[?(!@.from)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_edges_to
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.edges[?(!@.to)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_edges_via
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.edges[?(!@.via)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_style_claim
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.style[?(!@.claim)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_gaps_claim
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.gaps[?(!@.claim)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_evidence
+    description: "Contract: every entry has confidence; observed needs source, inferred needs basis or note."
+    run: builtin:evidence_entries
+    args: {artifact: note, info: "yaml machine", lists: ["components", "edges", "style", "gaps"]}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  # <<< GENERATED
+  - id: prose_tagged
+    description: Every factual line in the prose carries an observed/inferred/uncertain tag.
+    run: builtin:inline_evidence_tags
+    args: {artifact: note, exempt_sections: ["1. Overview", "Evidence Notes"]}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: confidence_summary_true
+    run: builtin:confidence_summary_matches
+    args: {artifact: note, info: "yaml machine"}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: sources_resolve
+    run: builtin:sources_resolve
+    args: {artifact: note, info: "yaml machine", sample: 40, follow_artifacts: true, quote: true}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: note}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: every_service_is_a_component
+    run: builtin:set_relation
+    args: {left: facts.service_ids, right: facts.component_ids, relation: subset}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: edges_reference_components
+    run: builtin:set_relation
+    args: {left: facts.edge_ends, right: facts.component_ids, relation: subset}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+  - id: style_is_inferred
+    description: Style labels are synthesis; tagging one observed overstates the evidence.
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.style[?(@.confidence == 'observed')]", op: empty}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+
+judge:
+  tier: high
+  vendor: prefer_different
+  inputs: [note, facts.observed_sample]
+  criteria:
+    - id: cited_evidence_supports_claim
+      for_each: facts.observed_sample
+      max_items: 15
+      question: "Does the cited per-service artifact entry or code line support this claim exactly as stated? Claim and source: {item}"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: synthesis_labelled
+      question: "Is every judgment or synthesis claim (not directly visible in one source) tagged inferred with its basis stated?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: coupling_not_overclaimed
+      question: "Is every 'no coupling' or 'layer A never reaches B' claim tagged inferred when it rests on a missing graph path rather than positive evidence?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: ste_wording
+      question: "Is the prose in short, active sentences with one claim each (Simplified Technical English), so consolidate can rewrite it faithfully?"
+      on_fail: advisory
+      reason_code: quality

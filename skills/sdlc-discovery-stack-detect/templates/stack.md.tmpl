@@ -1,0 +1,36 @@
+<!-- Discovery hand-off: tech stack for one service. Written to docs/discovery/<SERVICE>/stack.md
+     Read by every downstream discovery skill. It carries BOTH the detection findings AND an
+     embedded copy of the selected knowledge pack's data — because downstream skills cannot read
+     the pack files (those live only in sdlc-discovery-stack-detect's folder; each skill's container
+     sees only its own folder). Every finding carries confidence and, when observed, a source. -->
+```yaml
+artifact: stack
+service: <SERVICE>
+generated: <DATE>
+stack_pack: <pack-id|none>        # the key downstream skills load; none = inference mode
+
+summary: >
+  <2-3 sentences, honest about confidence. If stack_pack is none, state loudly that downstream
+  discovery runs in INFERENCE MODE with lower-confidence findings.>
+
+findings:
+  - claim: "<single specific statement>"
+    confidence: observed|inferred|uncertain
+    source: "<path:line | path | grep:pattern>"   # required for observed (never enough for inferred)
+    basis: "<the observed facts it was inferred from>"   # required for inferred (note: is accepted instead)
+    note: "<optional>"
+
+# Embedded copy of the SELECTED pack's data, carried here so downstream skills need nothing but
+# this file. Copied verbatim from references/knowledge-packs/<stack_pack>.yaml (NOT the detect:
+# block — selection is done). If stack_pack is none, write: embedded_pack: none
+embedded_pack:
+  pack: <pack-id>
+  locations:        { <routes|models|migrations|config|tests|entrypoint ...>: [ <paths/globs> ] }
+  patterns:         { route: "<regex>", model: "<regex>", auth: "<regex>", external_call: "<regex>" }
+  commands:         { install: "<cmd>", test: "<cmd>", run: "<cmd>", migrate: "<cmd>" }
+  risk_hints:       [ "<...>" ]
+  glossary_hints:   [ "<path|doc>" ]
+  graph:
+    builder: graphify
+    dynamic_caveats: [ "<stack wiring the static graph can't see>" ]
+```

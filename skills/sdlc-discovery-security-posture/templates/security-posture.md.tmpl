@@ -1,0 +1,53 @@
+<!-- Discovery hand-off (system): security-posture.md -> docs/discovery/_system/security-posture.md
+     SDLC-standard Security Posture document. Readable domain sections on top; machine block of
+     severity-ranked findings at the bottom. Every line keeps a confidence tag + source; security
+     findings also carry a severity. "None observed." where a control is absent — say so explicitly,
+     since absence of a control IS a finding. -->
+
+---
+artifact: security-posture
+generated: <DATE>
+status: draft
+confidence_summary: "<n observed, n inferred, n uncertain>"
+---
+
+# Security Posture — <SYSTEM / REPO NAME>
+
+## 1. Overview
+<!-- 2-4 sentences: the overall posture and the single biggest honest caveat. -->
+<prose overview>
+
+## 2. Authentication & Authorization
+- <scheme, where enforced, gaps> _[observed — source: <path:line>]_
+
+## 3. Secrets & Configuration
+- <how secrets are loaded; defaults; what is in .env vs code> _[observed — source: <...>]_
+
+## 4. Data Protection
+- <encryption at rest/in transit, PII handling, tenancy scoping> _[observed — source: <...>]_
+
+## 5. Transport & Network
+- <TLS, exposed ports, internal vs external surface> _[observed — source: <...>]_
+
+## 6. Input & Attack Surface
+- <validation, CSRF, injection surfaces, unauthenticated routes> _[observed — source: <...>]_
+
+## 7. Dependency & Supply-Chain
+- <lockfile presence, known-vuln deps, pinning> _[observed — source: dependency-inventory.md]_
+
+## 8. Findings (severity-ranked)
+<!-- The actionable list. Highest severity first. -->
+| ID | Severity | Finding | Confidence | Source |
+|----|----------|---------|------------|--------|
+| SEC-1 | high | <specific statement> | observed | <path:line> |
+
+## 9. Evidence Notes
+- Tags: observed (cited), inferred (basis stated), uncertain (declared-only).
+- Coverage: <full | partial — what was not reachable>
+
+<!-- ── MACHINE BLOCK ── -->
+```yaml machine
+artifact: security-posture
+findings:
+  - { id: "SEC-1", claim: "<statement>", severity: "high|med|low", confidence: observed, source: "<path:line>", note: "<optional>" }
+```

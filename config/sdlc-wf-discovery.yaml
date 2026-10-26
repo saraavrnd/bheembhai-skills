@@ -1,0 +1,121 @@
+# BheemBhai Discovery — PARENT workflow. Onboards a brownfield repo into the BheemBhai convention.
+# Shape: init (bootstrap skill, detects services) -> foreach over services.md running the
+#        per-service child workflow once per service (fan-out) -> system synthesis (fan-in, reads
+#        every service's artifacts) -> consolidate (canonical docs).
+# The per-service chain lives in the CHILD workflow (sdlc-wf-discovery-service.yaml); the foreach
+# node invokes it once per entry in services.md, binding that entry as ITEM in the child run
+# (the child writes docs/discovery/<ITEM.id>/). The foreach node itself runs no skill.
+# Steps declare a model TIER (low/medium/high) — the engine resolves tier -> concrete model per
+# project at run init.
+workflow: sdlc-wf-discovery
+version: 2
+category: Software Delivery
+description: Onboard a brownfield repository — detect the services, profile each one, then synthesize the system view into canonical docs.
+start: sdlc-discovery-init
+
+steps:
+  # ---- bootstrap: detect services, write services.md + AGENTS.md ----
+  - id: sdlc-discovery-init
+    skill: sdlc-discovery-init
+    model: low
+    label: Detect services & bootstrap the convention
+    "on":
+      completed: per-service-fanout
+      changes_requested: sdlc-discovery-init     # revise the manifest in place (visit-capped)
+      BLOCK: DONE                           # a real problem: report it, don't loop
+      escalation_required: DONE
+
+  # ---- FAN-OUT: run the per-service child workflow once per service in services.md ----
+  - id: per-service-fanout
+    foreach:
+      items_from: docs/discovery/services.md   # the artifact sdlc-discovery-init wrote
+      select: "$.services[*]"                  # each first-party service entry
+      as: ITEM                                 # bound into each child run (ITEM.id, ITEM.root, ...)
+      run: sdlc-wf-discovery-service          # the child workflow (per-service chain)
+      concurrency: 1                           # v1: the ONLY legal value (declarative-only)
+      on_branch_block: continue_others         # a service BLOCK parks that child; siblings continue
+      join: all_terminal                       # barrier: synthesis waits until every child is terminal
+      then_require: all_completed              # v1: the ONLY legal value
+      policy: sdlc-policy-discovery-service-governed       # the child's policy (its own gate checkpoints)
+    label: Per-service discovery (fan-out over services.md)
+    # partial advances too: a child that BLOCKed and was resolved as partial (coverage partial:
+    # true) is terminal and counts toward the barrier — synthesis reports the gaps rather than
+    # hiding them. failed stops the onboarding before any synthesis work.
+    "on": {completed: sdlc-discovery-integration-map, partial: sdlc-discovery-integration-map, failed: DONE}
+
+  # ---- SYSTEM synthesis (fan-in: runs once, after ALL child runs are terminal) ----
+  - id: sdlc-discovery-integration-map
+    skill: sdlc-discovery-integration-map
+    model: medium
+    label: Map integrations across services
+    "on":
+      completed: sdlc-discovery-architecture
+      changes_requested: sdlc-discovery-integration-map
+      BLOCK: DONE
+      escalation_required: DONE
+
+  - id: sdlc-discovery-architecture
+    skill: sdlc-discovery-architecture
+    model: high
+    label: Synthesize the architecture
+    "on":
+      completed: sdlc-discovery-security-posture
+      changes_requested: sdlc-discovery-architecture
+      BLOCK: DONE
+      escalation_required: DONE
+
+  - id: sdlc-discovery-security-posture
+    skill: sdlc-discovery-security-posture
+    model: high
+    label: Synthesize the security posture
+    "on":
+      completed: sdlc-discovery-conventions
+      changes_requested: sdlc-discovery-security-posture
+      BLOCK: DONE
+      escalation_required: DONE
+
+  - id: sdlc-discovery-conventions
+    skill: sdlc-discovery-conventions
+    model: medium
+    label: Extract house conventions
+    "on":
+      completed: sdlc-discovery-risk-register
+      changes_requested: sdlc-discovery-conventions
+      BLOCK: DONE
+      escalation_required: DONE
+
+  - id: sdlc-discovery-risk-register
+    skill: sdlc-discovery-risk-register
+    model: medium
+    label: Compile risk & tech-debt register
+    "on":
+      completed: sdlc-discovery-glossary
+      changes_requested: sdlc-discovery-risk-register
+      BLOCK: DONE
+      escalation_required: DONE
+
+  - id: sdlc-discovery-glossary
+    skill: sdlc-discovery-glossary
+    model: medium
+    label: Extract the domain glossary
+    "on":
+      completed: sdlc-discovery-consolidate
+      changes_requested: sdlc-discovery-glossary
+      BLOCK: DONE
+      escalation_required: DONE
+
+  # ---- capstone: canonical docs ----
+  - id: sdlc-discovery-consolidate
+    skill: sdlc-discovery-consolidate
+    model: high
+    label: Produce canonical project docs
+    "on":
+      completed: DONE
+      changes_requested: sdlc-discovery-consolidate
+      BLOCK: DONE
+      escalation_required: DONE
+
+# NOTE: the fan-in skills (integration-map, architecture, ...) read every service's
+# docs/discovery/<ITEM.id>/ artifacts. The barrier (join: all_terminal) guarantees all child runs
+# have reached a terminal state before they run. A child that BLOCKed counts as terminal —
+# synthesis then proceeds on partial coverage.

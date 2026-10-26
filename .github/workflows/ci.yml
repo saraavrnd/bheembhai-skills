@@ -1,0 +1,23 @@
+# Tier 1 (ADR-032 §2): static checks on every PR and every push to main. No LLM, no network.
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-tools.txt
+      - name: Shared notes are in sync
+        run: python tools/build.py sync --check
+      - name: Static checks
+        run: python tools/check.py
+      - name: Catalog packs
+        run: python tools/build.py pack --version "$(python -c 'import yaml;print(yaml.safe_load(open("catalog.yaml"))["version"])')" --git-sha "$GITHUB_SHA"

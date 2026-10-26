@@ -1,0 +1,92 @@
+version: 1
+skill: sdlc-deliver-pr-open
+summary: A PR for this work item's branch (story or bug) is open against the run's merge target with a complete body, the Jira story is In Review, story artifacts are committed, and nothing was merged.
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  has_code_host:
+    kind: context
+    key: integrations.code_host
+  has_jira:
+    kind: context
+    key: integrations.jira
+  is_bug:
+    kind: context
+    key: work_item.is_bug
+
+preconditions:
+  - id: verified_pass
+    run: builtin:report_verdict
+    args: {path: "{layout.story_dir}verification.md", pattern: '(?im)^\**\s*(?:verdict|result)\s*:?\**\s*\**(PASS|BLOCK)\b', allowed: [PASS]}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: sync_note
+    path: "{layout.story_dir}design-sync.md"
+  - id: handoff
+    source: reply
+
+checks:
+  - id: story_artifacts_tracked
+    run: builtin:cmd_exit_code
+    args: {cmd: "git ls-files --error-unmatch {layout.design_note} {layout.story_dir}test-plan.md {layout.story_dir}verification.md {layout.story_dir}design-sync.md"}
+    on_fail: changes_requested
+    reason_code: missing_artifact
+  - id: bug_artifacts_tracked
+    when: "facts.is_bug"
+    run: builtin:cmd_exit_code
+    args: {cmd: "git ls-files --error-unmatch {layout.bug_dir}bug-triage.md {layout.bug_dir}reproduction.md"}
+    on_fail: changes_requested
+    reason_code: missing_artifact
+  - id: right_branch
+    run: builtin:branch_matches
+    args: {pattern: '(feat|fix)/{story}\b'}
+    on_fail: changes_requested
+    reason_code: wrong_assumption
+  - id: pr_open
+    when: "facts.has_code_host"
+    run: builtin:pr_exists
+    args: {base: "{run.merge_branch}", title_pattern: '^{story}: .+'}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: pr_body_complete
+    when: "facts.has_code_host"
+    run: builtin:pr_body_sections
+    args: {required: [["What it does", "Summary"], ["Acceptance criteria", "Expected behaviour"], "Tests", "Traceability", ["Jira", "{story}"]]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: bug_pr_body_explains_cause
+    description: A bug PR tells the reviewer why it broke, not only that the tests pass.
+    when: "facts.has_code_host and facts.is_bug"
+    run: builtin:pr_body_sections
+    args: {required: ["Root cause", ["Regression test", "Regression tests"]]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: body_in_reply_without_host
+    when: "not facts.has_code_host"
+    run: builtin:md_sections
+    args: {artifact: handoff, required: [["Acceptance criteria", "Expected behaviour"], "Tests", "Traceability"], match: contains}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: jira_in_review
+    when: "facts.has_jira"
+    run: builtin:jira_field
+    args: {keys: "{story}", field: status, op: in, value: ["In Review", "Code Review", "Review"]}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: never_merges
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)merge_pull_request|bb_post', input_pattern: '(?i)/merge\b|merge_pull_request'}
+    on_fail: changes_requested
+    reason_code: unsafe_action
+
+judge:
+  tier: low
+  vendor: same_ok
+  inputs: [handoff, "{layout.story_dir}verification.md", context.story, "{layout.design_note}"]
+  criteria:
+    - id: body_factual
+      question: "Does the PR body (in the hand-off) report the test result exactly as verification.md states it, and list the same acceptance scenarios (or, for a bug, the same root cause and regression tests) and requirement IDs as the work item?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim

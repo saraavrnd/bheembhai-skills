@@ -1,0 +1,5 @@
+# Exact pin of the shared verifier (ADR-032 §2a). CI tiers 2-3 install this version.
+# Uncomment once packages/bheembhai-verify publishes its first release, e.g.:
+# bheembhai-verify==0.1.0
+# or, without a package index:
+# bheembhai-verify @ git+https://github.com/<org>/<platform-repo>@verify-v0.1.0#subdirectory=packages/bheembhai-verify

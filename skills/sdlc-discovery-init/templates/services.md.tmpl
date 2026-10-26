@@ -1,0 +1,24 @@
+<!-- Discovery hand-off: the services this repo contains, driving the per-service fan-out.
+     Written to docs/discovery/services.md. The parent workflow's fan-out node parses the fenced
+     block below (info string `bheembhai:foreach`, select `$.services[*]`) and starts ONE child
+     run per entry; each entry's `id` becomes that service's docs/discovery/<id>/ folder.
+     Keep it valid YAML: unique, filesystem-safe ids.
+     A SERVICE is a separately deployable/runnable unit (own Dockerfile, own compose `build:`, or
+     own manifest) — NOT every dir with a manifest. Off-the-shelf infra (compose `image:`-only:
+     postgres, redis, …) and components that run inside another service are NOT services; mention
+     them in `summary`, don't list them here. See references/service-boundary-heuristics.md. -->
+```yaml bheembhai:foreach
+artifact: services
+repo: <REPO_NAME>
+generated: <DATE>
+topology: single|multi            # single ONLY if the sole signal is one root manifest
+summary: "<1-2 sentences: how many services, how detected; note infra deps and any components.>"
+services:
+  - id: <service-id>                # filesystem-safe; becomes docs/discovery/<service-id>/
+    root: "<path from repo root>"
+    manifest: "<pyproject.toml|package.json|composer.json|none for a Dockerfile-only service>"
+    confidence: observed|inferred
+    source: "<the marker that revealed it, e.g. docker-compose.yml service `api` build: .>"   # required for observed
+    # basis: "<required for inferred — the facts the service/component call was inferred from>"
+    # note: "<optional — the alternative reading when it is a close call>"
+```

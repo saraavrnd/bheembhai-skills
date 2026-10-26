@@ -1,0 +1,59 @@
+# Discovery — per-service child workflow (ADR-027).
+#
+# One child run PER ITEM of sdlc-wf-discovery's `per-service` foreach node.
+# The item stays fully static here: the engine hands it to every step through
+# the step context as ITEM / ITEM__index / ITEM__count, and each skill writes
+# to docs/discovery/<ITEM.id>/ on the shared run branch.
+workflow: sdlc-wf-discovery-service
+version: 1
+category: Software Delivery
+start: sdlc-discovery-stack-detect
+steps:
+  - id: sdlc-discovery-stack-detect
+    skill: sdlc-discovery-stack-detect
+    model: low
+    label: Detect the stack
+    deadline: 900
+    "on": {completed: sdlc-discovery-structure-map, changes_requested: sdlc-discovery-stack-detect, BLOCK: DONE, escalation_required: DONE}
+
+  - id: sdlc-discovery-structure-map
+    skill: sdlc-discovery-structure-map
+    model: low
+    label: Map where code lives
+    deadline: 900
+    "on": {completed: sdlc-discovery-dependency-inventory, changes_requested: sdlc-discovery-structure-map, BLOCK: DONE, escalation_required: DONE}
+
+  - id: sdlc-discovery-dependency-inventory
+    skill: sdlc-discovery-dependency-inventory
+    model: low
+    label: Inventory dependencies
+    deadline: 900
+    "on": {completed: sdlc-discovery-api-surface, changes_requested: sdlc-discovery-dependency-inventory, BLOCK: DONE, escalation_required: DONE}
+
+  - id: sdlc-discovery-api-surface
+    skill: sdlc-discovery-api-surface
+    model: medium
+    label: Extract the API surface
+    deadline: 900
+    "on": {completed: sdlc-discovery-data-model, changes_requested: sdlc-discovery-api-surface, BLOCK: DONE, escalation_required: DONE}
+
+  - id: sdlc-discovery-data-model
+    skill: sdlc-discovery-data-model
+    model: medium
+    label: Extract the data model
+    deadline: 900
+    "on": {completed: sdlc-discovery-build-run, changes_requested: sdlc-discovery-data-model, BLOCK: DONE, escalation_required: DONE}
+
+  - id: sdlc-discovery-build-run
+    skill: sdlc-discovery-build-run
+    model: low
+    label: Extract build/run/test
+    deadline: 900
+    "on": {completed: sdlc-discovery-test-coverage-map, changes_requested: sdlc-discovery-build-run, BLOCK: DONE, escalation_required: DONE}
+
+  - id: sdlc-discovery-test-coverage-map
+    skill: sdlc-discovery-test-coverage-map
+    model: low
+    label: Map existing test coverage
+    deadline: 900
+    "on": {completed: DONE, changes_requested: sdlc-discovery-test-coverage-map, BLOCK: DONE, escalation_required: DONE}

@@ -1,0 +1,192 @@
+version: 1
+skill: sdlc-arch-design
+summary: >
+  Create mode: a proposal exists before approval and the full committed design after it.
+  Amend mode: the delta lands in the design docs with a new ADR and no old ADR rewritten.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+facts:
+  approved:
+    kind: context
+    key: gate.approved_proposal
+    description: True when this run follows a human approval of the proposal (the gate the skill stops at).
+  amend_mode:
+    kind: context
+    key: upstream_handoff.from_step
+    description: Set when sdlc-deliver-story-design / sdlc-plan-story-review escalated here (amend mode).
+  new_adrs:
+    kind: glob
+    pattern: "{layout.adr_dir}ADR-*.md"
+  prd_req_ids:
+    kind: regex
+    from: "{layout.prd}"
+    pattern: '^\|\s*(N?FR-\d{3})\s*\|'
+  has_frontend:
+    kind: regex
+    from: architecture
+    pattern: '(?i)\b(frontend|web app|single-page|UI layer|React|Vue|Svelte|Angular|Next\.js)\b'
+  design_req_refs:
+    kind: regex
+    from: data_model
+    pattern: '\b(N?FR-\d{3})\b'
+
+preconditions:
+  - id: prd_present
+    run: builtin:file_exists
+    args: {path: "{layout.prd}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: architecture_present_for_amend
+    when: "facts.amend_mode"
+    run: builtin:file_exists
+    args: {path: "{layout.architecture}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: proposal
+    path: "{layout.design_history}tech-design-proposal.md"
+    when: "not facts.amend_mode and not facts.approved"
+  - id: architecture
+    path: "{layout.architecture}"
+    when: "facts.approved or facts.amend_mode"
+  - id: data_model
+    path: "{layout.data_model}"
+    when: "facts.approved and not facts.amend_mode"
+  - id: tech_stack
+    path: "{layout.tech_stack}"
+    when: "facts.approved and not facts.amend_mode"
+  - id: testing_strategy
+    path: "{layout.testing_strategy}"
+    when: "facts.approved and not facts.amend_mode"
+  - id: contracts
+    glob: "{layout.api_contracts_dir}*.openapi.yaml"
+    when: "facts.approved and not facts.amend_mode"
+  - id: adrs
+    glob: "{layout.adr_dir}ADR-*.md"
+    min_count: 1
+    when: "facts.approved or facts.amend_mode"
+
+checks:
+  # Phase A — proposal (stops for approval)
+  - id: proposal_options_and_decisions
+    when: "not facts.amend_mode and not facts.approved"
+    run: builtin:md_sections
+    args:
+      artifact: proposal
+      required: [["Option", "Options"], ["Recommend", "Recommendation"], ["Open decision", "Decisions needed", "Open questions"]]
+      match: contains
+    on_fail: changes_requested
+    reason_code: structure
+  - id: proposal_pins_versions
+    when: "not facts.amend_mode and not facts.approved"
+    run: builtin:regex_count
+    args: {artifact: proposal, pattern: '\b\d+\.\d+(\.\d+)?\b', min: 3}
+    on_fail: changes_requested
+    reason_code: quality
+  - id: no_committed_design_before_approval
+    description: Phase B files must not be written before the human approves the proposal.
+    when: "not facts.amend_mode and not facts.approved"
+    run: builtin:diff_paths
+    args:
+      forbidden: ["{layout.architecture}", "{layout.data_model}", "{layout.tech_stack}", "{layout.testing_strategy}", "{layout.adr_dir}**", "{layout.api_contracts_dir}**"]
+    on_fail: changes_requested
+    reason_code: policy
+
+  # Phase B — committed design
+  - id: architecture_diagrams
+    when: "facts.approved and not facts.amend_mode"
+    run: builtin:mermaid_blocks
+    args: {artifact: architecture, min: 2}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: contracts_valid
+    when: "facts.approved or facts.amend_mode"
+    run: builtin:openapi_valid
+    args: {glob: "{layout.api_contracts_dir}*.openapi.yaml"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: adr_structure
+    when: "facts.approved or facts.amend_mode"
+    run: builtin:md_sections
+    args: {path: "{layout.adr_dir}ADR-*.md", required: ["Context", "Decision", "Consequences"], match: contains}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: testing_strategy_tdd
+    when: "facts.approved and not facts.amend_mode"
+    run: builtin:regex_count
+    args: {artifact: testing_strategy, pattern: '(?i)\b(TDD|test[- ]driven|failing tests? first)\b', min: 1}
+    on_fail: advisory
+    reason_code: quality
+  - id: data_model_traces_prd
+    when: "facts.approved and not facts.amend_mode"
+    run: builtin:count_range
+    args: {fact: facts.design_req_refs, min: 1}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+  - id: ui_conventions_when_frontend
+    when: "facts.approved and not facts.amend_mode and facts.has_frontend"
+    run: builtin:file_exists
+    args: {path: "{layout.ui_conventions}"}
+    on_fail: advisory
+    reason_code: missing_artifact
+  - id: no_placeholders
+    when: "facts.approved or facts.amend_mode"
+    run: builtin:md_no_placeholders
+    args: {artifact: architecture}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+
+  # Amend mode
+  - id: amend_adds_new_adr
+    when: "facts.amend_mode"
+    run: builtin:glob_count
+    args: {glob: "{layout.adr_dir}ADR-*.md", min: 1}
+    on_fail: changes_requested
+    reason_code: missing_artifact
+  - id: old_adrs_only_superseded
+    description: An existing ADR may only have its Status line changed (superseded), never be rewritten.
+    when: "facts.amend_mode"
+    run: builtin:diff_modified_lines
+    args: {glob: "{layout.adr_dir}ADR-*.md", allowed_line_regex: '^\*?\*?Status:?\*?\*?.*'}
+    on_fail: changes_requested
+    reason_code: policy
+  - id: no_adrs_deleted
+    run: builtin:files_deleted
+    args: {glob: "{layout.adr_dir}ADR-*.md"}
+    on_fail: changes_requested
+    reason_code: policy
+  - id: docs_only
+    run: builtin:diff_paths
+    args: {allowed: ["docs/**", "AGENTS.md"]}
+    on_fail: changes_requested
+    reason_code: scope
+
+judge:
+  tier: high
+  vendor: prefer_different
+  inputs: [proposal, architecture, data_model, tech_stack, testing_strategy, adrs, context.upstream_handoff]
+  criteria:
+    - id: real_options
+      when: "not facts.amend_mode and not facts.approved"
+      question: "For each major decision (language/framework, architecture style, data stores, deployment, testing, repo shape), does the proposal give 2-3 real options with honest trade-offs and one recommendation?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: right_sized
+      question: "Is the design right-sized for the MVP requirements (no services, stores or infrastructure the PRD does not demand), with seams noted for later?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: nfrs_concrete
+      question: "Is every security, performance and compliance NFR mapped to a specific design choice (auth method, encryption, expected load) rather than restated as an adjective?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: amend_minimal
+      when: "facts.amend_mode"
+      question: "Is the amendment limited to the delta the escalating story needs, without redesigning unrelated parts of the architecture?"
+      on_fail: changes_requested
+      reason_code: scope
+    - id: approval_respected
+      when: "facts.amend_mode"
+      question: "Does the amendment present the delta for approval (options and a recommendation) rather than declaring a decision as already made?"
+      on_fail: escalation_required
+      reason_code: policy

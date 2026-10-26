@@ -1,0 +1,17 @@
+<!-- Discovery hand-off: where code lives in one service. docs/discovery/<SERVICE>/structure-map.md
+     Orientation index; confirms conventional locations against the real repo. -->
+```yaml
+artifact: structure-map
+service: <SERVICE>
+generated: <DATE>
+stack_pack: <pack|none>
+summary: ><2-3 sentences; does the repo follow the framework's conventions, or deviate where?>
+areas:
+  - { area: routes,      path: "<one real path or glob>", purpose: "<one line>", confidence: observed, source: "<dir>" }
+  - { area: models,      path: "<one real path or glob>", purpose: "<one line>", confidence: observed, source: "<dir>" }
+  - { area: config,      path: "<one real path or glob>", purpose: "<one line>", confidence: observed, source: "<dir>" }
+  - { area: tests,       path: "<one real path or glob>", purpose: "<one line>", confidence: observed, source: "<dir>" }
+  - { area: entrypoint,  path: "<one real path or glob>", purpose: "<one line>", confidence: observed, source: "<file>" }
+non_conventional:
+  - { path: "<dir>", purpose: "<why it matters>", confidence: observed|inferred, source: "<dir>", basis: "<required for inferred>" }
+```

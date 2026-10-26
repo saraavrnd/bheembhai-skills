@@ -1,0 +1,194 @@
+version: 1
+skill: sdlc-discovery-consolidate
+summary: >
+  The canonical docs exist at their layout paths with the provenance banner, the SAD has all twelve
+  sections and five parsing diagrams, every service has a valid OpenAPI contract covering its
+  discovered endpoints, the evidence layer is untouched, and confidence survives the rewrite.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+facts:
+  service_ids:
+    kind: yaml_block
+    from: "{layout.services_manifest}"
+    info: "yaml bheembhai:foreach"
+    expr: "$.services[*].id"
+  openapi_services:
+    kind: glob
+    pattern: "{layout.api_contracts_dir}*.openapi.yaml"
+    key: stem
+  discovered_paths:
+    kind: yaml_block
+    from: "{layout.discovery_root}*/api-surface.md"
+    expr: "$.endpoints[*].path"
+  contract_paths:
+    kind: jsonpath
+    from: "{layout.api_contracts_dir}*.openapi.yaml"
+    expr: "$.paths.keys()"
+  uncertain_claims:
+    kind: yaml_block
+    from: "{layout.discovery_root}**/*.md"
+    expr: "$..[?(@.confidence == 'uncertain')]"
+
+preconditions:
+  - id: services_manifest_present
+    run: builtin:file_exists
+    args: {path: "{layout.services_manifest}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: system_notes_present
+    run: builtin:glob_count
+    args: {glob: "{layout.discovery_system_dir}*.md", min: 6}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: sad
+    path: "{layout.architecture}"
+  - id: tech_stack
+    path: "{layout.tech_stack}"
+  - id: data_model
+    path: "{layout.data_model}"
+  - id: testing_strategy
+    path: "{layout.testing_strategy}"
+  - id: contracts
+    glob: "{layout.api_contracts_dir}*.openapi.yaml"
+    min_count: 1
+  - id: agents_md
+    path: "{layout.agents_md}"
+  - id: adrs
+    glob: "{layout.adr_dir}*.md"
+    required: false
+
+checks:
+  - id: evidence_layer_untouched
+    description: docs/discovery/ is the permanent provenance layer; consolidate reads it and never edits or deletes it.
+    run: builtin:diff_paths
+    args: {forbidden: ["{layout.discovery_root}**"]}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: provenance_banner_sad
+    run: builtin:regex_count
+    args: {artifact: sad, pattern: 'Reverse-engineered by BheemBhai Discovery', min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: provenance_banner_tech_stack
+    run: builtin:regex_count
+    args: {artifact: tech_stack, pattern: 'Reverse-engineered by BheemBhai Discovery', min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: provenance_banner_data_model
+    run: builtin:regex_count
+    args: {artifact: data_model, pattern: 'Reverse-engineered by BheemBhai Discovery', min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: provenance_banner_testing_strategy
+    run: builtin:regex_count
+    args: {artifact: testing_strategy, pattern: 'Reverse-engineered by BheemBhai Discovery', min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: sad_sections
+    run: builtin:md_sections
+    args:
+      artifact: sad
+      ordered: true
+      required: ["1. Introduction", "2. Architecture goals", "3. Stakeholders", "4. System context", "5. Architecturally significant", "6. Architecture views", "7. Interfaces", "8. Cross-cutting", "9. Key design decisions", "10. Quality attribute", "11. Risks", "12. Appendices"]
+    on_fail: changes_requested
+    reason_code: structure
+  - id: sad_diagrams
+    description: System context, component, runtime sequence, deployment and data ER diagrams, each parsing.
+    run: builtin:mermaid_blocks
+    args: {artifact: sad, min: 5}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: sad_has_sequence
+    description: The five diagrams must include the runtime sequence view, not five flowcharts.
+    run: builtin:regex_count
+    args: {artifact: sad, pattern: '(?m)^\s*sequenceDiagram\b', min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: sad_has_er
+    run: builtin:regex_count
+    args: {artifact: sad, pattern: '(?m)^\s*erDiagram\b', min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_template_residue_sad
+    run: builtin:md_no_placeholders
+    args: {artifact: sad}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: no_template_residue_tech_stack
+    run: builtin:md_no_placeholders
+    args: {artifact: tech_stack}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: no_template_residue_data_model
+    run: builtin:md_no_placeholders
+    args: {artifact: data_model}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: no_template_residue_testing_strategy
+    run: builtin:md_no_placeholders
+    args: {artifact: testing_strategy}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: contracts_valid
+    run: builtin:openapi_valid
+    args: {glob: "{layout.api_contracts_dir}*.openapi.yaml"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: contract_per_service
+    run: builtin:set_relation
+    args: {left: facts.service_ids, right: facts.openapi_services, relation: subset}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: endpoints_carried
+    description: Every endpoint discovery found appears in an OpenAPI contract.
+    run: builtin:set_relation
+    args: {left: facts.discovered_paths, right: facts.contract_paths, relation: subset}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: agents_layout_resolves
+    description: AGENTS.md's Project Layout table points at files that now exist.
+    run: builtin:links_resolve
+    args: {artifact: agents_md, include_backticks: true}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+  - id: agents_layout_table
+    run: builtin:md_table
+    args: {artifact: agents_md, section: "Project Layout", columns: [Artifact, Path], min_rows: 5}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: adrs_marked
+    when: "exists('{layout.adr_dir}')"
+    run: builtin:regex_count
+    args: {artifact: adrs, pattern: '(?i)reverse-engineered', min: 1}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+
+judge:
+  tier: high
+  vendor: prefer_different
+  inputs: [sad, tech_stack, data_model, testing_strategy, facts.uncertain_claims, "{layout.discovery_system_dir}architecture.md", "{layout.discovery_system_dir}integration-map.md"]
+  criteria:
+    - id: uncertain_not_promoted
+      for_each: facts.uncertain_claims
+      max_items: 15
+      question: "Do the canonical docs keep this uncertain discovery claim hedged (or omit it), rather than stating it as settled fact? Claim: {item}"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: no_new_facts
+      question: "Is every architectural fact in the SAD traceable to the discovery evidence provided, with no component, edge or decision that the evidence does not contain?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: diagrams_match_evidence
+      question: "Do the diagram nodes and edges match the integration-map and architecture evidence, with inferred edges drawn dashed?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: ste_style
+      question: "Is the prose written in Simplified Technical English (active voice, one claim per sentence, short sentences) without dropping any condition or hedge?"
+      on_fail: advisory
+      reason_code: quality
+    - id: contradiction_free
+      question: "Is the SAD free of contradictions between the evidence notes (for example, two services claimed to own the same data) that would need a human to settle?"
+      on_fail: escalation_required
+      reason_code: architecture_conflict

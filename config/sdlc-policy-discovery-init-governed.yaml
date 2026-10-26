@@ -1,0 +1,12 @@
+# Discovery init — gate the service manifest before the fan-out reads it.
+#
+# A wrong topology drives the whole per-service fan-out, so a human confirms
+# services.md before any per-service child is spawned.
+policy: sdlc-policy-discovery-init-governed
+version: 1
+applies_to: sdlc-wf-discovery-init
+gates:
+  sdlc-discovery-init:
+    review: required
+    role: lead
+    on_status: [completed]

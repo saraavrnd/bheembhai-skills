@@ -1,0 +1,38 @@
+# Which shared note is copied into which skills' references/.
+# shared/ is the only editable copy. Run `python tools/build.py sync` after editing it;
+# CI fails if a copy in skills/<name>/references/ differs from its source.
+
+_SHARED-discovery-contract.md:
+  - sdlc-discovery-api-surface
+  - sdlc-discovery-architecture
+  - sdlc-discovery-build-run
+  - sdlc-discovery-conventions
+  - sdlc-discovery-data-model
+  - sdlc-discovery-dependency-inventory
+  - sdlc-discovery-glossary
+  - sdlc-discovery-integration-map
+  - sdlc-discovery-risk-register
+  - sdlc-discovery-security-posture
+  - sdlc-discovery-stack-detect
+  - sdlc-discovery-structure-map
+  - sdlc-discovery-test-coverage-map
+_SHARED-discovery-phase.md:
+  []  # documentation only; not copied into any skill
+_SHARED-discovery-verifiability.md:
+  []  # documentation only; not copied into any skill
+_SHARED-project-layout.md:
+  - sdlc-discovery-api-surface
+  - sdlc-discovery-architecture
+  - sdlc-discovery-build-run
+  - sdlc-discovery-consolidate
+  - sdlc-discovery-conventions
+  - sdlc-discovery-data-model
+  - sdlc-discovery-dependency-inventory
+  - sdlc-discovery-glossary
+  - sdlc-discovery-graph
+  - sdlc-discovery-integration-map
+  - sdlc-discovery-risk-register
+  - sdlc-discovery-security-posture
+  - sdlc-discovery-stack-detect
+  - sdlc-discovery-structure-map
+  - sdlc-discovery-test-coverage-map

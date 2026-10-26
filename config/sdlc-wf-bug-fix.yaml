@@ -1,0 +1,79 @@
+# BheemBhai Bug Fix — one run per Jira bug, ending at an open PR (never merges).
+# Shape: three bug-only skills (triage -> reproduce -> root cause) produce the bug's hand-offs in
+#        docs/product/bugs/<BUG_KEY>/, then the story loop's deliver skills run unchanged:
+#        implement -> verify -> review -> PR. fix-design.md is the bug's design note
+#        ({layout.design_note}), read where a story run reads story-design.md.
+# Routing convention: changes_requested re-runs the same step (visit-capped by BB_MAX_STEP_VISITS),
+# except code-review, whose changes_requested means "fix the code" (same as sdlc-wf-story-delivery).
+workflow: sdlc-wf-bug-fix
+version: 1
+category: Software Delivery
+work_item: bug   # expected Jira issue type; the run is refused if the issue is not a Bug
+description: Fix a reported bug — triage, reproduce as a failing regression test, find the root cause, fix, verify, review, and open a PR.
+start: sdlc-fix-bug-triage
+steps:
+  - id: sdlc-fix-bug-triage
+    skill: sdlc-fix-bug-triage
+    model: low
+    label: Triage the bug
+    deadline: 600
+    "on":
+      completed: sdlc-fix-bug-reproduce
+      changes_requested: sdlc-fix-bug-triage
+      # Duplicate / Not a bug / Needs info: a person closes, links or clarifies the bug.
+      escalation_required: DONE
+  - id: sdlc-fix-bug-reproduce
+    skill: sdlc-fix-bug-reproduce
+    model: medium
+    label: Reproduce it as a failing test
+    deadline: 1200
+    "on":
+      completed: sdlc-fix-rootcause-analyze
+      changes_requested: sdlc-fix-bug-reproduce
+      # Cannot reproduce, or triage was wrong: back to a person with the attempts recorded.
+      escalation_required: DONE
+  - id: sdlc-fix-rootcause-analyze
+    skill: sdlc-fix-rootcause-analyze
+    model: high
+    label: Find the root cause
+    deadline: 1200
+    "on":
+      completed: sdlc-deliver-code-implement
+      changes_requested: sdlc-fix-rootcause-analyze
+      # Architectural scope (contract/ADR/migration/data repair) is a planned change, not a bug fix.
+      escalation_required: DONE
+  - id: sdlc-deliver-code-implement
+    skill: sdlc-deliver-code-implement
+    model: medium
+    label: Fix it
+    deadline: 1800
+    "on":
+      completed: sdlc-deliver-tests-verify
+      changes_requested: sdlc-deliver-code-implement
+      # The fix needs code outside the modules fix-design.md names: the analysis was incomplete.
+      escalation_required: sdlc-fix-rootcause-analyze
+  - id: sdlc-deliver-tests-verify
+    skill: sdlc-deliver-tests-verify
+    model: low
+    label: Verify the tests pass
+    deadline: 900
+    "on":
+      completed: sdlc-deliver-code-review
+      changes_requested: sdlc-deliver-tests-verify
+      BLOCK: sdlc-deliver-code-implement
+  - id: sdlc-deliver-code-review
+    skill: sdlc-deliver-code-review
+    model: medium
+    label: Review the fix
+    deadline: 900
+    "on":
+      completed: sdlc-deliver-pr-open
+      changes_requested: sdlc-deliver-code-implement
+  - id: sdlc-deliver-pr-open
+    skill: sdlc-deliver-pr-open
+    model: low
+    label: Open the pull request
+    deadline: 600
+    "on":
+      completed: DONE
+      changes_requested: sdlc-deliver-pr-open

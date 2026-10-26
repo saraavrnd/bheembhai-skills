@@ -1,0 +1,102 @@
+version: 1
+skill: sdlc-plan-epic-review
+summary: >
+  The review log records the full story set, each cross-story gap, question, answer and the stories
+  it changed; traceability maps stay consistent; existing Jira issues are updated, never created;
+  an architecture conflict escalates.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+facts:
+  epic_req_ids:
+    kind: jsonpath
+    from: "{layout.epic_map}"
+    expr: "$.epics[?(@.epic_key == '{epic}')].requirement_ids[*]"
+  story_req_ids:
+    kind: jsonpath
+    from: "{layout.epic_dir}story-map.json"
+    expr: "$.stories[*].requirement_ids[*]"
+  scenarios:
+    kind: gherkin_scenarios
+    from: "{layout.epic_dir}stories.md"
+    section: "Acceptance Criteria"
+  arch_conflict:
+    kind: regex
+    from: log
+    section: "Architecture impact"
+    pattern: '(?i)\b(sdlc-arch-design|amend|architecture conflict)\b'
+
+preconditions:
+  - id: stories_present
+    run: builtin:file_exists
+    args: {path: "{layout.epic_dir}stories.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: story_map_present
+    run: builtin:file_exists
+    args: {path: "{layout.epic_dir}story-map.json"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: log
+    path: "{layout.epic_dir}epic-review.md"
+  - id: stories_md
+    path: "{layout.epic_dir}stories.md"
+    must_change: false
+    description: Unchanged is a valid outcome when the epic was already clean.
+
+checks:
+  - id: log_sections
+    run: builtin:md_sections
+    args: {artifact: log, required: [["Stories loaded", "Loaded"], ["Gaps", "Findings"], ["Questions", "Interview"], ["Changes", "Stories changed"]], match: contains}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: coverage_still_complete
+    run: builtin:set_relation
+    args: {left: facts.epic_req_ids, right: facts.story_req_ids, relation: subset}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: gherkin_still_parses
+    run: builtin:gherkin_valid
+    args: {fact: facts.scenarios}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: map_schema
+    run: builtin:json_schema
+    args: {path: "{layout.epic_map}", schema: schemas/epic-map.schema.json}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: never_creates_issues
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)create.*issue|createJiraIssue'}
+    on_fail: changes_requested
+    reason_code: policy
+  - id: escalation_reported
+    when: "facts.arch_conflict"
+    run: builtin:self_verdict_consistent
+    args: {fact: facts.arch_conflict, map: {"*": escalation_required}}
+    on_fail: escalation_required
+    reason_code: architecture_conflict
+  - id: product_files_only
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.epic_dir}**", "{layout.epic_map}"]}
+    on_fail: changes_requested
+    reason_code: scope
+
+judge:
+  tier: high
+  vendor: prefer_different
+  inputs: [log, stories_md, "{layout.data_model}", "{layout.architecture}"]
+  criteria:
+    - id: cross_story_only
+      question: "Does every gap in the log involve two or more stories, or the epic's own boundary, rather than a single-story concern that belongs to sdlc-plan-story-review?"
+      on_fail: changes_requested
+      reason_code: scope
+    - id: grounded_questions
+      question: "Does every question cite the concrete doc, section or sibling story that made it necessary (not a generic 'anything unclear?')?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: answers_applied_everywhere
+      question: "Where one answer affects several stories, were all of those stories rewritten consistently with it?"
+      on_fail: changes_requested
+      reason_code: quality

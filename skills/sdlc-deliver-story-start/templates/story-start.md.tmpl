@@ -1,0 +1,19 @@
+# Story start — {{story_key}}
+
+## Story
+- Key: {{story_key}}
+- Summary: {{summary}}
+- Epic: {{epic_key}}
+
+## Sequence
+- Wave: {{wave | "no epic-sequence.json for this epic"}}
+- Prerequisites:
+  - {{prerequisite_key}}: {{jira_status}}
+
+## Jira
+- Status before: {{status_before}}
+- Status after: {{status_after}}
+- Transition applied: {{transition_name | "none, already in progress" | "intended, MCP unavailable"}}
+
+## Notes
+{{notes}}

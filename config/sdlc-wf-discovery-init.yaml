@@ -1,0 +1,21 @@
+# Discovery — init child workflow (ADR-027).
+#
+# The child of sdlc-wf-discovery's `sdlc-discovery-init` node: an ordinary linear
+# walk the engine runs exactly like a user-triggered run. Its job is to detect
+# the services and write docs/discovery/services.md — the fenced
+# `bheembhai:foreach` manifest the parent's foreach node reads.
+workflow: sdlc-wf-discovery-init
+version: 1
+category: Software Delivery
+start: sdlc-discovery-init
+steps:
+  - id: sdlc-discovery-init
+    skill: sdlc-discovery-init
+    model: low
+    label: Detect services & bootstrap the convention
+    deadline: 900
+    "on":
+      completed: DONE
+      changes_requested: sdlc-discovery-init   # revise the manifest in place (visit-capped)
+      BLOCK: DONE                          # a real problem: report it, don't loop
+      escalation_required: DONE

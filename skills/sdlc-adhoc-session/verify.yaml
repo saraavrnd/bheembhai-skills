@@ -1,0 +1,51 @@
+version: 1
+skill: sdlc-adhoc-session
+summary: >
+  Ad-hoc sessions (ADR-016) emit no verdict, so every finding here is advisory: it is attached to
+  the session's reply card, never routed. It checks that the agent left git to the runner, ran what
+  it claims to have verified, and answered with a report.
+verdicts_used: []
+
+facts:
+  claims_tests_ran:
+    kind: regex
+    from: report
+    pattern: '(?i)\b(tests? (pass|passed|green)|ran (the )?tests|build (passes|succeeded))\b'
+
+artifacts:
+  - id: report
+    source: reply
+
+checks:
+  - id: no_git_writes
+    run: builtin:trace_tool_absent
+    args: {tool: Bash, input_pattern: 'git\s+(commit|push|checkout\s+-b|branch\s|reset|rebase)'}
+    on_fail: advisory
+    reason_code: policy
+  - id: report_shape
+    run: builtin:md_sections
+    args: {artifact: report, required: [["did", "Changes", "Summary"], ["Files", "file"], ["Verified", "Verification", "Tests"]], match: contains, min_found: 2}
+    on_fail: advisory
+    reason_code: structure
+  - id: verification_claim_backed
+    description: If the reply says tests passed, a test command must appear in the trace.
+    when: "facts.claims_tests_ran"
+    run: builtin:trace_tool_used
+    args: {tool: Bash, input_pattern: '(pytest|npm (run )?test|pnpm test|yarn test|go test|cargo test|make test|jest|vitest|phpunit|mvn test|gradle test)', min: 1}
+    on_fail: advisory
+    reason_code: unsupported_claim
+  - id: suite_still_green
+    run: builtin:tests_run
+    args: {expect: pass, timeout_s: 900}
+    on_fail: advisory
+    reason_code: regression
+
+judge:
+  tier: low
+  vendor: same_ok
+  inputs: [report, diff, context.query]
+  criteria:
+    - id: did_what_was_asked
+      question: "Does the diff do what the query asked, nothing more and nothing less, with any assumption stated in the report?"
+      on_fail: advisory
+      reason_code: scope

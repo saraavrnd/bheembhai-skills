@@ -1,0 +1,50 @@
+stack: fastapi
+language: python
+manifest: pyproject.toml
+
+detect:
+  - dep_present: fastapi
+  - glob_exists: "**/main.py"
+  - glob_exists: "app/**/router.py"
+version_hint:
+  file: pyproject.toml
+  key: "fastapi"
+
+locations:
+  routes:        [app/, "**/router.py", "**/routers/"]
+  controllers:   [app/, "**/router.py"]          # FastAPI folds controller into router
+  models:        ["**/models.py", app/]           # SQLAlchemy models
+  migrations:    [migrations/versions/, alembic/versions/]
+  config:        [app/config.py, app/settings.py, .env]
+  tests:         [tests/unit/, tests/integration/, tests/e2e/, tests/]
+  env_example:   .env.example
+  entrypoint:    [app/main.py, main.py]
+
+patterns:
+  route:         '@(app|router)\.(get|post|put|patch|delete)\('
+  model:         '(class\s+\w+\(Base\)|Mapped\[|Column\()'
+  auth:          '(Depends\(require_role|Depends\(get_current_user|OAuth2|require_role_cookie)'
+  external_call: '(httpx|requests\.(get|post)|aiohttp|\.request\()'
+
+commands:
+  install: "uv sync"
+  test:    "uv run pytest"
+  run:     "uv run uvicorn app.main:app --reload"
+  migrate: "uv run alembic upgrade head"
+
+risk_hints:
+  - "endpoint with no Depends(auth) = unauthenticated route"
+  - "raw string SQL via text() / execute() = injection surface"
+  - "secrets in settings read from env — confirm not defaulted to a real value in code"
+  - "missing response_model = unvalidated/over-exposed response shape"
+
+glossary_hints:
+  - "**/models.py"
+  - docs/data-model.md
+
+graph:
+  builder: graphify            # sdlc-discovery-graph runs `graphify extract` (multi-language); no per-stack extractor
+  dynamic_caveats:             # stack wiring graphify's static graph does NOT capture — downstream tags these inferred
+    - "FastAPI Depends() wiring is runtime DI — not a static edge"
+    - "APIRouter include_router() can be dynamic/string-driven"
+    - "Prefect/Celery flow & task discovery is runtime, not import-visible"

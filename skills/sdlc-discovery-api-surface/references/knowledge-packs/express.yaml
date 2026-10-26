@@ -1,0 +1,42 @@
+stack: express
+language: javascript
+manifest: package.json
+
+detect:
+  - dep_present: express
+  - glob_exists: "**/routes/*.js"
+version_hint:
+  file: package.json
+  key: dependencies.express
+
+locations:
+  routes:        [routes/, src/routes/, api/]
+  controllers:   [controllers/, src/controllers/]
+  models:        [models/, src/models/, prisma/schema.prisma]
+  migrations:    [migrations/, prisma/migrations/]
+  config:        [config/, .env]
+  tests:         [test/, tests/, __tests__/]
+  env_example:   .env.example
+  entrypoint:    [app.js, server.js, index.js, src/app.js, src/index.js]
+
+patterns:
+  route:         '(app|router)\.(get|post|put|patch|delete)\('
+  model:         '(mongoose\.model|sequelize\.define|class\s+\w+\s+extends\s+Model)'
+  auth:          '(passport|jsonwebtoken|jwt\.verify|requireAuth|isAuthenticated)'
+  external_call: '(axios|fetch\(|http\.request|got\()'
+
+commands:
+  install: "npm install"
+  test:    "npm test"
+  run:     "npm start"
+  migrate: "npx sequelize-cli db:migrate"
+
+risk_hints:
+  - "route with no auth middleware before the handler = open endpoint"
+  - "string-concatenated SQL (not parameterized) = injection surface"
+  - "secrets hardcoded instead of process.env"
+  - "no input validation middleware (express-validator / joi) on body-taking routes"
+
+glossary_hints:
+  - models/
+  - src/models/

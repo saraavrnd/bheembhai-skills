@@ -1,0 +1,41 @@
+<!-- Discovery hand-off (system): risk-register.md -> docs/discovery/_system/risk-register.md
+     SDLC-standard Risk Register. Readable summary + detailed register on top, machine block at the
+     bottom. Every risk keeps a confidence tag + source and a severity. A risk may be `inferred`
+     (a judgment from observed facts) — tag it so; the evidence it rests on stays `observed`. -->
+
+---
+artifact: risk-register
+generated: <DATE>
+status: draft
+confidence_summary: "<n observed, n inferred, n uncertain>"
+---
+
+# Risk & Tech-Debt Register — <SYSTEM / REPO NAME>
+
+## 1. Overview
+<!-- 2-4 sentences: the overall risk picture; the few risks that dominate. -->
+<prose overview>
+
+## 2. Risk Summary
+| Severity | Count | Themes |
+|----------|-------|--------|
+| High | <n> | <...> |
+| Medium | <n> | <...> |
+| Low | <n> | <...> |
+
+## 3. Detailed Register
+<!-- Highest severity first. Evidence cites the artifact/code that establishes the risk. -->
+| ID | Risk | Impact | Likelihood | Severity | Confidence | Evidence | Recommendation |
+|----|------|--------|------------|----------|------------|----------|----------------|
+| R-1 | <risk> | <what breaks> | high/med/low | high/med/low | observed/inferred | <path:line> | <action> |
+
+## 4. Evidence Notes
+- Tags: observed (the fact is cited), inferred (the risk judgment from observed facts — basis stated), uncertain.
+- Coverage: <full | partial — scope of the review>
+
+<!-- ── MACHINE BLOCK ── -->
+```yaml machine
+artifact: risk-register
+risks:
+  - { id: "R-1", risk: "<statement>", impact: "<...>", likelihood: "high|med|low", severity: "high|med|low", confidence: observed, source: "<path:line>", recommendation: "<action>" }
+```
