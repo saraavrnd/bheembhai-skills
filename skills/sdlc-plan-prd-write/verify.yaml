@@ -1,0 +1,132 @@
+version: 1
+skill: sdlc-plan-prd-write
+summary: PRD.md exists, follows the template, and every requirement is uniquely numbered, tagged and testable.
+verdicts_used: [changes_requested, escalation_required]
+
+facts:
+  fr_ids:
+    kind: regex
+    from: prd
+    section: "6. Functional Requirements"
+    pattern: '^\|\s*(FR-\d{3})\s*\|'
+  nfr_ids:
+    kind: regex
+    from: prd
+    section: "7. Non-Functional Requirements"
+    pattern: '^\|\s*(NFR-\d{3})\s*\|'
+  fr_rows_tagged:
+    kind: regex
+    from: prd
+    section: "6. Functional Requirements"
+    pattern: '^\|\s*(FR-\d{3})\s*\|\s*FA-\d+\s*\|[^|]+\|\s*(?:MVP|Later)\s*\|'
+  fa_codes:
+    kind: md_table_column
+    from: prd
+    section: "5. Feature Areas"
+    column: Area code
+  fa_codes_used:
+    kind: regex
+    from: prd
+    section: "6. Functional Requirements"
+    pattern: '^\|\s*FR-\d{3}\s*\|\s*(FA-\d+)\s*\|'
+
+artifacts:
+  - id: prd
+    path: "{layout.prd}"
+
+checks:
+  - id: template_sections
+    run: builtin:md_sections
+    args:
+      artifact: prd
+      required: ["1. Problem", "2. Target Users", "3. Goals", "4. Scope", "5. Feature Areas",
+                 "6. Functional Requirements", "7. Non-Functional Requirements",
+                 "8. Constraints", "9. Open Questions"]
+      ordered: true
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: prd}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: has_requirements
+    run: builtin:count_range
+    args: {fact: facts.fr_ids, min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: fr_unique
+    run: builtin:unique_values
+    args: {fact: facts.fr_ids}
+    on_fail: changes_requested
+    reason_code: duplicate
+  - id: nfr_unique
+    run: builtin:unique_values
+    args: {fact: facts.nfr_ids}
+    on_fail: changes_requested
+    reason_code: duplicate
+  - id: fr_sequential
+    run: builtin:id_sequence
+    args: {fact: facts.fr_ids, prefix: "FR-"}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: every_fr_has_area_and_release
+    description: Each FR row names exactly one FA-N and a release of MVP or Later.
+    run: builtin:set_relation
+    args: {left: facts.fr_ids, right: facts.fr_rows_tagged, relation: equal}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+  - id: areas_are_declared
+    description: Every FA code used by a requirement is declared in the Feature Areas table.
+    run: builtin:set_relation
+    args: {left: facts.fa_codes_used, right: facts.fa_codes, relation: subset}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+  - id: no_empty_areas
+    description: Every declared feature area has at least one requirement.
+    run: builtin:set_relation
+    args: {left: facts.fa_codes, right: facts.fa_codes_used, relation: subset}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: measurable_metric
+    description: Goals section contains at least one metric line with a number.
+    run: builtin:regex_count
+    args: {artifact: prd, section: "3. Goals", pattern: '(?i)metric.*\d', min: 1}
+    on_fail: changes_requested
+    reason_code: quality
+  - id: out_of_scope_stated
+    run: builtin:regex_count
+    args: {artifact: prd, section: "4. Scope", pattern: '(?i)out of scope[^\n]*\n?\s*\S', min: 1}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: security_nfr_present
+    run: builtin:regex_count
+    args: {artifact: prd, section: "7. Non-Functional Requirements", pattern: '(?i)\|\s*NFR-\d{3}\s*\|\s*(security|privacy)', min: 1}
+    on_fail: changes_requested
+    reason_code: missing_requirement
+
+judge:
+  tier: medium
+  vendor: prefer_different
+  inputs: [prd, context.query]
+  criteria:
+    - id: atomic_testable
+      question: "Is every FR and NFR a single capability for which a one-sentence pass/fail acceptance check could be written (no 'and also' hiding a second capability)?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: what_not_how
+      question: "Do the requirements describe WHAT the system must do rather than HOW to implement it (no premature technology or design choices)?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: problem_not_solution
+      question: "Does the Problem & Opportunity section name the user and the pain without describing the solution?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: lifecycle_complete
+      question: "For every actor, entity or state a requirement depends on, does some requirement create it, or is it explicitly marked external or out of scope?"
+      on_fail: changes_requested
+      reason_code: missing_requirement
+    - id: faithful_to_input
+      question: "Does the PRD stay within the product idea given in the input, with any added assumptions stated explicitly rather than presented as given?"
+      on_fail: escalation_required
+      reason_code: wrong_assumption

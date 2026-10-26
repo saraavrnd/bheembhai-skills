@@ -1,0 +1,38 @@
+<!-- Template: the AGENTS.md Project Layout table sdlc-discovery-init seeds at the repo root.
+     Copy the table into AGENTS.md (create the file if absent). The discovery rows are REQUIRED —
+     every downstream skill resolves docs/discovery/ paths through them. The delivery rows are the
+     standard BheemBhai layout later phases use; keep them so the repo is ready for development.
+     If AGENTS.md already carries a Project Layout table, add only the missing rows. -->
+
+# AGENTS.md
+
+## Project Layout
+
+| Artifact | Path |
+|----------|------|
+| AGENTS.md | `AGENTS.md` (repo root) |
+| Architecture | `docs/architecture.md` |
+| Data model | `docs/data-model.md` |
+| Tech stack | `docs/tech-stack.md` |
+| Testing strategy | `docs/testing-strategy.md` |
+| UI conventions | `docs/ui-conventions.md` |
+| ADRs | `docs/adr/ADR-NNN-*.md` |
+| API contracts | `docs/api-contracts/*.openapi.yaml` |
+| Design history (proposals) | `docs/design-history/` |
+| Design changelog | `docs/CHANGELOG-design.md` |
+| PRD | `docs/product/PRD.md` |
+| Epics | `docs/product/epics.md` |
+| Epic map | `docs/product/epic-map.json` |
+| Per-epic folder | `docs/product/epics/<EPIC_KEY>/` |
+| Stories list | `docs/product/epics/<EPIC_KEY>/_epic/stories.md` |
+| Per-story folder | `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/` |
+| Per-bug folder | `docs/product/bugs/<BUG_KEY>/` |
+| Discovery artifacts (root) | `docs/discovery/` |
+| Service list (fan-out input) | `docs/discovery/services.md` |
+| Per-service discovery notes | `docs/discovery/<SERVICE>/` |
+| System-level synthesis | `docs/discovery/_system/` |
+
+<!-- The per-story filename set (story-design.md, test-plan.md, verification.md, code-review.md,
+     design-sync.md) and the per-epic set (story-map.json, epic-sequence.md, epic-review.md)
+     and the per-bug set (bug-triage.md, reproduction.md, fix-design.md plus the shared
+     test-plan.md, verification.md, code-review.md, design-sync.md) live INSIDE their folders — see the delivery skills. -->

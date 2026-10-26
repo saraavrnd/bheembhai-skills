@@ -1,0 +1,177 @@
+version: 1
+skill: sdlc-discovery-api-surface
+summary: >
+  api-surface.md lists every route the pack's route pattern finds, each with handler, auth as written and a source that resolves to the route line.
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  # >>> GENERATED facts (tools/gen_template_checks.py)
+  tmpl_has_endpoints_method:
+    kind: yaml_block
+    from: note
+    expr: "$.endpoints[*].method"
+  # <<< GENERATED
+  stack_pack:
+    kind: yaml_block
+    from: "{layout.discovery_service_dir}stack.md"
+    expr: "$.stack_pack"
+  note_pack:
+    kind: yaml_block
+    from: note
+    expr: "$.stack_pack"
+  inference_mode:
+    kind: yaml_block
+    from: "{layout.discovery_service_dir}stack.md"
+    expr: "$[?(@.stack_pack == 'none')]"
+  endpoints:
+    kind: yaml_block
+    from: note
+    expr: "$.endpoints[*]"
+  partial:
+    kind: yaml_block
+    from: note
+    expr: "$.coverage[?(@.partial == true)]"
+  route_locations:
+    kind: yaml_block
+    from: "{layout.discovery_service_dir}stack.md"
+    expr: "$.embedded_pack.locations.routes[*]"
+  observed_sample:
+    kind: yaml_block
+    from: note
+    expr: "$.endpoints[?(@.confidence == 'observed')]"
+
+preconditions:
+  - id: stack_note_present
+    run: builtin:file_exists
+    args: {path: "{layout.discovery_service_dir}stack.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: note
+    path: "{layout.discovery_service_dir}api-surface.md"
+
+checks:
+  - id: own_service_only
+    description: >
+      A fan-out child writes only under its own service folder (a child that wrote all services'
+      notes made every push-rebase conflict, live 2026-10-17).
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.discovery_service_dir}**"]}
+    on_fail: changes_requested
+    reason_code: scope
+  # >>> GENERATED from templates/api-surface.md.tmpl by tools/gen_template_checks.py: do not edit by hand
+  - id: tmpl_block
+    description: "The machine block parses and has every top-level key the template declares."
+    run: builtin:yaml_block
+    args: {artifact: note, required_keys: ["artifact", "service", "generated", "stack_pack", "summary", "endpoints", "coverage"], artifact_name: "api-surface"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_endpoints_method
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.endpoints[?(!@.method)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_endpoints_path
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.endpoints[?(!@.path)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_endpoints_handler
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.endpoints[?(!@.handler)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_endpoints_auth
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.endpoints[?(!@.auth)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_endpoints_response_shape
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.endpoints[?(!@.response_shape)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_endpoints_method_enum
+    when: "facts.tmpl_has_endpoints_method"
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.endpoints[*].method", op: "in", value: ["GET", "POST", "PUT", "PATCH", "DELETE"]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: tmpl_coverage_routes_found
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.coverage.routes_found", op: ">=", value: 0}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_coverage_partial_bool
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.coverage.partial", op: "in", value: [true, false]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: tmpl_evidence
+    description: "Contract: every entry has confidence; observed needs source, inferred needs basis or note."
+    run: builtin:evidence_entries
+    args: {artifact: note, lists: ["endpoints"]}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  # <<< GENERATED
+  - id: right_service
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.service", op: "==", value: "{item.id}"}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: pack_matches_stack
+    description: Downstream skills trust stack-detect's verdict; they must not re-detect.
+    run: builtin:fact_compare
+    args: {left: facts.note_pack, right: facts.stack_pack, op: "=="}
+    on_fail: changes_requested
+    reason_code: wrong_assumption
+  - id: sources_resolve
+    run: builtin:sources_resolve
+    args: {artifact: note, scope: "{item.root}", sample: all, quote: true}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: inference_mode_declared
+    when: "facts.inference_mode"
+    run: builtin:regex_count
+    args: {artifact: note, pattern: '(?i)inference mode', min: 1}
+    on_fail: changes_requested
+    reason_code: quality
+  - id: routes_in_code
+    description: Count route declarations in the pack's route locations.
+    when: "not facts.inference_mode"
+    run: builtin:regex_count
+    args: {path: "{item.root}/{pack.locations.routes}", pattern: "{pack.patterns.route}", min: 0}
+    on_fail: advisory
+    reason_code: coverage_gap
+  - id: every_route_listed
+    when: "not facts.inference_mode and not facts.partial"
+    run: builtin:fact_compare
+    args: {left: facts.endpoints, right: checks.routes_in_code.count, op: ">="}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: coverage_honest
+    run: builtin:coverage_flag_honest
+    args: {artifact: note, expected_locations: facts.route_locations}
+    on_fail: changes_requested
+    reason_code: quality
+
+judge:
+  tier: low
+  vendor: prefer_different
+  inputs: [note, facts.observed_sample]
+  criteria:
+    - id: cited_line_supports_claim
+      for_each: facts.observed_sample
+      max_items: 12
+      question: "Does the cited source line actually support this claim, exactly as stated (not a stronger version of it)? Claim and source: {item}"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: auth_as_written
+      question: "Is each endpoint's auth field what the code declares at that route (middleware, guard, decorator), with 'no auth declared' only where none is visible?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: routes_unique
+      question: "Is every listed endpoint a distinct method+path pair (no route listed twice under the same method and path)?"
+      on_fail: changes_requested
+      reason_code: duplicate

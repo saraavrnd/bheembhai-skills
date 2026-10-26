@@ -1,0 +1,6 @@
+# For S3/S4 bugs: no gates inside the run. The PR review on the code host is the human check.
+# Close-outs (escalation_required) still end the run at DONE; nothing is merged.
+policy: sdlc-policy-bug-fix-fast
+version: 1
+applies_to: sdlc-wf-bug-fix
+gates: {}

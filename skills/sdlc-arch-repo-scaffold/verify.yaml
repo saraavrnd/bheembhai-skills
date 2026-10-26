@@ -1,0 +1,127 @@
+version: 1
+skill: sdlc-arch-repo-scaffold
+summary: The repository builds, lints, runs its trivial tests per layer, brings the stack up and answers on the walking-skeleton path; AGENTS.md carries the Project Layout table.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+facts:
+  arch_modules:
+    kind: yaml_block
+    from: "{layout.architecture}"
+    info: "yaml machine"
+    expr: "$.components[?(@.kind == 'module')].id"
+    description: Modules declared by the architecture; each needs a mirrored test folder.
+
+preconditions:
+  - id: design_present
+    run: builtin:file_exists
+    args: {path: "{layout.tech_stack}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: architecture_present
+    run: builtin:file_exists
+    args: {path: "{layout.architecture}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: testing_strategy_present
+    run: builtin:file_exists
+    args: {path: "{layout.testing_strategy}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: agents_md
+    path: "AGENTS.md"
+  - id: readme
+    path: "README.md"
+  - id: compose
+    glob: "{docker-compose,compose}.{yml,yaml}"
+  - id: env_example
+    path: ".env.example"
+  - id: gitignore
+    path: ".gitignore"
+  - id: pr_template
+    path: ".github/PULL_REQUEST_TEMPLATE.md"
+  - id: ci
+    glob: ".github/workflows/*.{yml,yaml}"
+  - id: tests_tree
+    glob: "tests/{unit,integration,e2e}/**/*"
+    min_count: 3
+
+checks:
+  - id: layout_table
+    run: builtin:md_sections
+    args: {artifact: agents_md, required: ["Project Layout"], match: contains}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: layout_paths_resolve
+    run: builtin:links_resolve
+    args: {artifact: agents_md, include_backticks: true}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: docs_tree
+    run: builtin:file_exists
+    args: {path: "{layout.adr_dir}"}
+    on_fail: changes_requested
+    reason_code: missing_artifact
+  - id: build
+    run: builtin:cmd_exit_code
+    args: {cmd: "{commands.build}", timeout_s: 900}
+    on_fail: changes_requested
+    reason_code: test_failure
+  - id: lint
+    run: builtin:lint_run
+    on_fail: changes_requested
+    reason_code: lint_failure
+  - id: unit_harness
+    run: builtin:tests_run
+    args: {expect: pass, layer: unit}
+    on_fail: changes_requested
+    reason_code: test_failure
+  - id: integration_harness
+    run: builtin:tests_run
+    args: {expect: pass, layer: integration}
+    on_fail: changes_requested
+    reason_code: test_failure
+  - id: e2e_harness
+    run: builtin:tests_run
+    args: {expect: pass, layer: e2e}
+    on_fail: changes_requested
+    reason_code: test_failure
+  - id: test_per_layer
+    run: builtin:glob_count
+    args: {glob: "tests/{unit,integration,e2e}/**/test_*", min: 3}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: walking_skeleton_up
+    run: builtin:compose_probe
+    args: {compose_file: "{docker-compose,compose}.{yml,yaml}", path: "/health", expect_status: 200, timeout_s: 300}
+    on_fail: changes_requested
+    reason_code: test_failure
+  - id: readme_how_to
+    run: builtin:md_sections
+    args: {artifact: readme, required: [["Run", "Running", "Getting started"], ["Test", "Testing"], ["Contribut"]], match: contains}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_secrets_committed
+    run: builtin:diff_forbids_added
+    args: {paths: ["**/*"], pattern: '(?i)(api[_-]?key|secret|password|token)\s*[:=]\s*["'']?[A-Za-z0-9_\-]{16,}'}
+    on_fail: changes_requested
+    reason_code: policy
+
+judge:
+  tier: medium
+  vendor: prefer_different
+  inputs: [agents_md, readme, diff, context.query]
+  criteria:
+    - id: skeleton_only
+      question: "Does the diff contain only scaffolding (structure, wiring, the walking-skeleton path and trivial tests) and no feature logic from the PRD's requirements?"
+      on_fail: changes_requested
+      reason_code: scope
+    - id: mirrors_architecture
+      question: "Do the top-level source folders mirror the components named in architecture.md, with an empty-but-present home for each module?"
+      on_fail: changes_requested
+      reason_code: design_drift
+    - id: versions_match_stack
+      question: "Do the pinned framework versions in the manifests match tech-stack.md (no silent upgrades or downgrades)?"
+      on_fail: escalation_required
+      reason_code: design_drift

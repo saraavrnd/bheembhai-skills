@@ -1,0 +1,30 @@
+# Publishes a catalog release (ADR-032 §3.1). Push a tag vX.Y.Z that matches catalog.yaml `version`.
+# The platform's admin Catalog page lists these releases and imports the one an admin picks.
+name: release
+on:
+  push:
+    tags: ["v*.*.*"]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-tools.txt
+      - run: python tools/build.py sync --check
+      - run: python tools/check.py
+      - name: Pack (fails if the tag does not match catalog.yaml version)
+        run: python tools/build.py pack --version "${GITHUB_REF_NAME#v}" --git-sha "$GITHUB_SHA"
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            dist/catalog.tgz dist/catalog.tgz.sha256 dist/manifest.json \
+            --title "Catalog $GITHUB_REF_NAME" --generate-notes

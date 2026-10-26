@@ -1,0 +1,134 @@
+version: 1
+skill: sdlc-plan-stories-write
+summary: Every requirement mapped to the epic is covered by a story, every story has parseable Gherkin with unhappy paths, and the stories exist in Jira under the epic.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+facts:
+  epic_req_ids:
+    kind: jsonpath
+    from: "{layout.epic_map}"
+    expr: "$.epics[?(@.epic_key == '{epic}')].requirement_ids[*]"
+  story_req_ids:
+    kind: jsonpath
+    from: story_map
+    expr: "$.stories[*].requirement_ids[*]"
+  story_keys:
+    kind: jsonpath
+    from: story_map
+    expr: "$.stories[*].story_key"
+  story_titles:
+    kind: regex
+    from: stories_md
+    pattern: '^#+\s*STORY:\s*(.+)$'
+  scenarios:
+    kind: gherkin_scenarios
+    from: stories_md
+    section: "Acceptance Criteria"
+
+preconditions:
+  - id: epic_map_present
+    run: builtin:file_exists
+    args: {path: "{layout.epic_map}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: epic_in_map
+    run: builtin:jsonpath_assert
+    args: {path: "{layout.epic_map}", expr: "$.epics[?(@.epic_key == '{epic}')]", op: not_empty}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: stories_md
+    path: "{layout.epic_dir}stories.md"
+  - id: story_map
+    path: "{layout.epic_dir}story-map.json"
+  - id: csv_fallback
+    path: "jira-stories-{epic}-import.csv"
+    required: false
+
+checks:
+  - id: story_map_schema
+    run: builtin:json_schema
+    args: {artifact: story_map, schema: schemas/story-map.schema.json}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: epic_requirements_covered
+    run: builtin:set_relation
+    args: {left: facts.epic_req_ids, right: facts.story_req_ids, relation: subset}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: no_foreign_requirements
+    description: Stories only claim requirements that belong to this epic.
+    run: builtin:set_relation
+    args: {left: facts.story_req_ids, right: facts.epic_req_ids, relation: subset}
+    on_fail: escalation_required
+    reason_code: scope
+  - id: story_keys_unique
+    run: builtin:unique_values
+    args: {fact: facts.story_keys}
+    on_fail: changes_requested
+    reason_code: duplicate
+  - id: one_md_section_per_story
+    run: builtin:set_relation
+    args: {left: facts.story_keys, right: facts.story_titles, relation: equal}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+    when: "not exists('jira-stories-{epic}-import.csv')"
+  - id: story_sections
+    run: builtin:md_sections
+    args:
+      artifact: stories_md
+      required: ["Story", "Acceptance Criteria", "Covered requirements", "Out of scope", "Notes"]
+      match: prefix
+    on_fail: changes_requested
+    reason_code: structure
+  - id: gherkin_parses
+    run: builtin:gherkin_valid
+    args: {fact: facts.scenarios}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: story_statement_form
+    run: builtin:regex_count
+    args: {artifact: stories_md, pattern: '(?i)As an? .+, I want .+, so that .+', min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: stories_md}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: stories_exist_in_jira
+    when: "not exists('jira-stories-{epic}-import.csv')"
+    run: builtin:jira_issues_exist
+    args: {keys: facts.story_keys, issue_type: Story}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: stories_parented_to_epic
+    when: "not exists('jira-stories-{epic}-import.csv')"
+    run: builtin:jira_field
+    args: {keys: facts.story_keys, field: parent, op: "==", value: "{epic}"}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+
+judge:
+  tier: medium
+  vendor: prefer_different
+  inputs: [stories_md, story_map, facts.scenarios]
+  criteria:
+    - id: scenario_executable
+      for_each: facts.scenarios
+      question: "Can this scenario be turned into an automated test without guessing (concrete inputs, exact expected values or messages)? Scenario: {item}"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: unhappy_paths
+      question: "Does every story include at least one unhappy-path scenario (invalid input, permission denied, or empty state) where one plausibly exists?"
+      on_fail: changes_requested
+      reason_code: coverage_gap
+    - id: vertical_slices
+      question: "Is each story a vertical slice of user-visible value rather than a technical layer (for example, not 'build the upload endpoint')?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: prerequisites_exist
+      question: "Does every story whose scenarios assume an existing actor, entity or state have that prerequisite created by another story or requirement, or flagged as a gap?"
+      on_fail: escalation_required
+      reason_code: missing_requirement

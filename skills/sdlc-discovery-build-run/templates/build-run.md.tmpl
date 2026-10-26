@@ -1,0 +1,21 @@
+<!-- Discovery hand-off: how to build/run/test one service. docs/discovery/<SERVICE>/build-run.md.
+     Project's own scripts win over pack defaults. Env var NAMES only, never values.
+     A pack default with no project script is confidence: inferred with a `basis:` naming the
+     pack and the missing project script — never observed. -->
+```yaml
+artifact: build-run
+service: <SERVICE>
+generated: <DATE>
+stack_pack: <pack|none>
+summary: ><2-3 sentences; how to start it, what it needs.>
+commands:
+  install: { cmd: "<cmd>", source: "<where found>", confidence: observed }
+  test:    { cmd: "<cmd>", source: "<where found>", confidence: observed }
+  run:     { cmd: "<cmd>", source: "<where found>", confidence: observed }
+  migrate: { cmd: "<cmd>", source: "<where found>", confidence: observed }
+backing_services:
+  - { name: <postgres|redis|...>, source: "docker-compose.yml:<line>", confidence: observed }
+env_required:
+  - { name: <VAR_NAME>, secret: <bool>, source: ".env.example:<line>", confidence: observed }
+entrypoint: { path: "<file>", confidence: observed, source: "<file>" }
+```

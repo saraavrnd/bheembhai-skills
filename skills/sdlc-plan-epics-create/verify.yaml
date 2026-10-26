@@ -1,0 +1,109 @@
+version: 1
+skill: sdlc-plan-epics-create
+summary: Every PRD requirement lands in exactly one epic, epic-map.json matches its schema, and the epics exist in Jira (or the CSV fallback was produced).
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  prd_req_ids:
+    kind: regex
+    from: "{layout.prd}"
+    pattern: '^\|\s*(N?FR-\d{3})\s*\|'
+  map_req_ids:
+    kind: jsonpath
+    from: epic_map
+    expr: "$.epics[*].requirement_ids[*]"
+  map_epic_keys:
+    kind: jsonpath
+    from: epic_map
+    expr: "$.epics[*].epic_key"
+  epics_md_req_ids:
+    kind: regex
+    from: epics_md
+    pattern: '\b(N?FR-\d{3})\b'
+
+preconditions:
+  - id: prd_present
+    run: builtin:file_exists
+    args: {path: "{layout.prd}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: prd_has_ids
+    run: builtin:regex_count
+    args: {path: "{layout.prd}", pattern: '^\|\s*N?FR-\d{3}\s*\|', min: 1}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: epics_md
+    path: "{layout.epics}"
+  - id: epic_map
+    path: "{layout.epic_map}"
+  - id: csv_fallback
+    path: "jira-epics-import.csv"
+    required: false
+
+checks:
+  - id: epic_map_schema
+    run: builtin:json_schema
+    args: {artifact: epic_map, schema: templates/epic-map.schema.json}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: every_req_in_exactly_one_epic
+    run: builtin:set_relation
+    args: {left: facts.prd_req_ids, right: facts.map_req_ids, relation: equal, exactly_once: true}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: epics_md_matches_map
+    description: The reviewable plan and the machine map list the same requirement IDs.
+    run: builtin:set_relation
+    args: {left: facts.map_req_ids, right: facts.epics_md_req_ids, relation: subset}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+  - id: epic_keys_unique
+    run: builtin:unique_values
+    args: {fact: facts.map_epic_keys}
+    on_fail: changes_requested
+    reason_code: duplicate
+  - id: epic_sections
+    run: builtin:md_sections
+    args:
+      artifact: epics_md
+      required: ["Description", "Functional scope", "Implementation guidance", "Goal", "Covered requirements"]
+      match: contains
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: epics_md}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: epics_exist_in_jira
+    when: "not exists('jira-epics-import.csv')"
+    run: builtin:jira_issues_exist
+    args: {keys: facts.map_epic_keys, issue_type: Epic}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: csv_has_all_epics
+    when: "exists('jira-epics-import.csv')"
+    run: builtin:regex_count
+    args: {artifact: csv_fallback, pattern: ',\s*Epic\s*,', min: 1}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+
+judge:
+  tier: medium
+  vendor: prefer_different
+  inputs: [epics_md, epic_map]
+  criteria:
+    - id: self_contained
+      question: "Could a Jira reader who sees only one epic's body understand the feature, the users, the implementation shape and the build order, without reading the PRD?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: sensible_boundaries
+      question: "Is each epic one coherent theme of roughly a few sprints, with no epic bundling two clearly separable themes or more than about 15 requirements?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: dependencies_explicit
+      question: "Where an epic depends on an actor, entity or state another epic creates, is that dependency written in the epic body?"
+      on_fail: changes_requested
+      reason_code: missing_requirement

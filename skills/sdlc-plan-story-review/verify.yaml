@@ -1,0 +1,85 @@
+version: 1
+skill: sdlc-plan-story-review
+summary: >
+  The review log exists in the story folder, the story's acceptance criteria still parse and cover
+  its requirements, the Jira issue is updated (never a new one), and an architecture conflict
+  escalates to sdlc-arch-design instead of being resolved in the interview.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+facts:
+  scenarios:
+    kind: gherkin_scenarios
+    from: "{layout.epic_dir}stories.md"
+    section: "Acceptance Criteria"
+  arch_conflict:
+    kind: regex
+    from: log
+    section: "Architecture impact"
+    pattern: '(?i)\b(sdlc-arch-design|amend|architecture conflict)\b'
+
+preconditions:
+  - id: stories_present
+    run: builtin:file_exists
+    args: {path: "{layout.epic_dir}stories.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: log
+    path: "{layout.story_dir}story-review.md"
+  - id: stories_md
+    path: "{layout.epic_dir}stories.md"
+    must_change: false
+    description: A clean story is a valid outcome; then only the log is new.
+
+checks:
+  - id: log_sections
+    run: builtin:md_sections
+    args: {artifact: log, required: [["Gaps", "Findings"], ["Questions", "Interview"], ["Answers", "Resolved"], ["Changes", "What changed"]], match: contains}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: gherkin_parses
+    run: builtin:gherkin_valid
+    args: {fact: facts.scenarios}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: story_map_schema
+    run: builtin:json_schema
+    args: {path: "{layout.epic_dir}story-map.json", schema: schemas/story-map.schema.json}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: never_creates_issues
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)create.*issue|createJiraIssue'}
+    on_fail: changes_requested
+    reason_code: policy
+  - id: only_this_story
+    description: Only this story's section of stories.md, its folder and the story map may change.
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.epic_dir}stories.md", "{layout.epic_dir}story-map.json", "{layout.story_dir}**"]}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: escalation_reported
+    when: "facts.arch_conflict"
+    run: builtin:self_verdict_consistent
+    args: {fact: facts.arch_conflict, map: {"*": escalation_required}}
+    on_fail: escalation_required
+    reason_code: architecture_conflict
+
+judge:
+  tier: medium
+  vendor: prefer_different
+  inputs: [log, stories_md, context.story, "{layout.data_model}"]
+  criteria:
+    - id: grounded_questions
+      question: "Does every question in the log point at something concrete in architecture.md, data-model.md, contracts or a sibling story that does not line up?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: only_target_story_rewritten
+      question: "Were only the target story's statement, acceptance criteria and out-of-scope rewritten in stories.md (sibling stories untouched)?"
+      on_fail: changes_requested
+      reason_code: scope
+    - id: rewritten_ac_executable
+      question: "Is every rewritten acceptance criterion executable as a test with no further interpretation (concrete values, messages, thresholds)?"
+      on_fail: changes_requested
+      reason_code: quality

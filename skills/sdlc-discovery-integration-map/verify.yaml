@@ -1,0 +1,212 @@
+version: 1
+skill: sdlc-discovery-integration-map
+summary: >
+  integration-map.md has every service as a node, every edge sourced and pointing at declared nodes, and external systems listed with the evidence that reveals them.
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  # >>> GENERATED facts (tools/gen_template_checks.py)
+  tmpl_has_nodes_kind:
+    kind: yaml_block
+    from: note
+    info: "yaml machine"
+    expr: "$.nodes[*].kind"
+  # <<< GENERATED
+  service_ids:
+    kind: yaml_block
+    from: "{layout.services_manifest}"
+    info: "yaml bheembhai:foreach"
+    expr: "$.services[*].id"
+  have_api_surface:
+    kind: glob
+    pattern: "{layout.discovery_root}*/api-surface.md"
+    key: parent_dir
+  have_structure_map:
+    kind: glob
+    pattern: "{layout.discovery_root}*/structure-map.md"
+    key: parent_dir
+  have_dependency_inventory:
+    kind: glob
+    pattern: "{layout.discovery_root}*/dependency-inventory.md"
+    key: parent_dir
+  have_stack:
+    kind: glob
+    pattern: "{layout.discovery_root}*/stack.md"
+    key: parent_dir
+  observed_sample:
+    kind: yaml_block
+    from: note
+    info: "yaml machine"
+    expr: "$..[?(@.confidence == 'observed')]"
+  node_ids:
+    kind: yaml_block
+    from: note
+    info: "yaml machine"
+    expr: "$.nodes[*].id"
+  edge_ends:
+    kind: yaml_block
+    from: note
+    info: "yaml machine"
+    expr: "$.edges[*]['from','to']"
+
+preconditions:
+  - id: services_manifest_present
+    run: builtin:file_exists
+    args: {path: "{layout.services_manifest}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: every_service_has_api_surface
+    run: builtin:set_relation
+    args: {left: facts.service_ids, right: facts.have_api_surface, relation: subset}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: every_service_has_structure_map
+    run: builtin:set_relation
+    args: {left: facts.service_ids, right: facts.have_structure_map, relation: subset}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: every_service_has_dependency_inventory
+    run: builtin:set_relation
+    args: {left: facts.service_ids, right: facts.have_dependency_inventory, relation: subset}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: every_service_has_stack
+    run: builtin:set_relation
+    args: {left: facts.service_ids, right: facts.have_stack, relation: subset}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: note
+    path: "{layout.discovery_system_dir}integration-map.md"
+
+checks:
+  - id: own_file_only
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.discovery_system_dir}integration-map.md"]}
+    on_fail: changes_requested
+    reason_code: scope
+  # >>> GENERATED from templates/integration-map.md.tmpl by tools/gen_template_checks.py: do not edit by hand
+  - id: tmpl_block
+    description: "The machine block parses and has every top-level key the template declares."
+    run: builtin:yaml_block
+    args: {artifact: note, info: "yaml machine", required_keys: ["artifact", "nodes", "edges", "external_dependencies"], artifact_name: "integration-map"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_sections
+    run: builtin:md_sections
+    args:
+      artifact: note
+      ordered: true
+      required: ["1. Overview", "2. System Context", "3. Nodes (Inventory)", "4. Interfaces & Integrations", "5. External Dependencies", "6. Evidence Notes"]
+    on_fail: changes_requested
+    reason_code: structure
+  - id: tmpl_nodes_id
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.nodes[?(!@.id)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_nodes_kind
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.nodes[?(!@.kind)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_nodes_kind_enum
+    when: "facts.tmpl_has_nodes_kind"
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.nodes[*].kind", op: "in", value: ["service", "datastore", "queue", "external-api"]}
+    on_fail: advisory
+    reason_code: structure
+  - id: tmpl_edges_from
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.edges[?(!@.from)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_edges_to
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.edges[?(!@.to)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_edges_via
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.edges[?(!@.via)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_edges_detail
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.edges[?(!@.detail)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_external_dependencies_service
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.external_dependencies[?(!@.service)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_external_dependencies_system
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.external_dependencies[?(!@.system)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_external_dependencies_purpose
+    run: builtin:jsonpath_assert
+    args: {artifact: note, info: "yaml machine", expr: "$.external_dependencies[?(!@.purpose)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_evidence
+    description: "Contract: every entry has confidence; observed needs source, inferred needs basis or note."
+    run: builtin:evidence_entries
+    args: {artifact: note, info: "yaml machine", lists: ["nodes", "edges", "external_dependencies"]}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  # <<< GENERATED
+  - id: prose_tagged
+    description: Every factual line in the prose carries an observed/inferred/uncertain tag.
+    run: builtin:inline_evidence_tags
+    args: {artifact: note, exempt_sections: ["1. Overview", "Evidence Notes"]}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: confidence_summary_true
+    run: builtin:confidence_summary_matches
+    args: {artifact: note, info: "yaml machine"}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: sources_resolve
+    run: builtin:sources_resolve
+    args: {artifact: note, info: "yaml machine", sample: 40, follow_artifacts: true, quote: true}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: note}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: every_service_is_a_node
+    run: builtin:set_relation
+    args: {left: facts.service_ids, right: facts.node_ids, relation: subset}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: edges_reference_nodes
+    run: builtin:set_relation
+    args: {left: facts.edge_ends, right: facts.node_ids, relation: subset}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+
+judge:
+  tier: medium
+  vendor: prefer_different
+  inputs: [note, facts.observed_sample]
+  criteria:
+    - id: cited_evidence_supports_claim
+      for_each: facts.observed_sample
+      max_items: 15
+      question: "Does the cited per-service artifact entry or code line support this claim exactly as stated? Claim and source: {item}"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: synthesis_labelled
+      question: "Is every judgment or synthesis claim (not directly visible in one source) tagged inferred with its basis stated?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: no_missed_integration
+      question: "Does every external SDK in the dependency inventories that implies an outbound integration (payments, email, storage, AI APIs) appear as an external dependency or an edge?"
+      on_fail: changes_requested
+      reason_code: coverage_gap

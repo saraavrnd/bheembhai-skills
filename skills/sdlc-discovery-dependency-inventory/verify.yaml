@@ -1,0 +1,198 @@
+version: 1
+skill: sdlc-discovery-dependency-inventory
+summary: >
+  dependency-inventory.md lists exactly the dependencies the manifest declares, states whether a lockfile exists, and flags risks with sources.
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  # >>> GENERATED facts (tools/gen_template_checks.py)
+  tmpl_has_dependencies_risk:
+    kind: yaml_block
+    from: note
+    expr: "$.dependencies[*].risk"
+  # <<< GENERATED
+  stack_pack:
+    kind: yaml_block
+    from: "{layout.discovery_service_dir}stack.md"
+    expr: "$.stack_pack"
+  note_pack:
+    kind: yaml_block
+    from: note
+    expr: "$.stack_pack"
+  inference_mode:
+    kind: yaml_block
+    from: "{layout.discovery_service_dir}stack.md"
+    expr: "$[?(@.stack_pack == 'none')]"
+  manifest_deps:
+    kind: manifest_deps
+    from: "{item.root}/{item.manifest}"
+  inventory_deps:
+    kind: yaml_block
+    from: note
+    expr: "$.dependencies[*].name"
+  dep_entries:
+    kind: yaml_block
+    from: note
+    expr: "$.dependencies[*]"
+  lockfile_claim:
+    kind: yaml_block
+    from: note
+    expr: "$.manager.lockfile"
+
+preconditions:
+  - id: stack_note_present
+    run: builtin:file_exists
+    args: {path: "{layout.discovery_service_dir}stack.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: note
+    path: "{layout.discovery_service_dir}dependency-inventory.md"
+
+checks:
+  - id: own_service_only
+    description: >
+      A fan-out child writes only under its own service folder (a child that wrote all services'
+      notes made every push-rebase conflict, live 2026-10-17).
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.discovery_service_dir}**"]}
+    on_fail: changes_requested
+    reason_code: scope
+  # >>> GENERATED from templates/dependency-inventory.md.tmpl by tools/gen_template_checks.py: do not edit by hand
+  - id: tmpl_block
+    description: "The machine block parses and has every top-level key the template declares."
+    run: builtin:yaml_block
+    args: {artifact: note, required_keys: ["artifact", "service", "generated", "stack_pack", "summary", "manager", "dependencies"], artifact_name: "dependency-inventory"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_dependencies_name
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.dependencies[?(!@.name)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_dependencies_version
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.dependencies[?(!@.version)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_dependencies_risk
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.dependencies[?(!@.risk)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_dependencies_risk_enum
+    when: "facts.tmpl_has_dependencies_risk"
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.dependencies[*].risk", op: "in", value: ["none", "outdated", "known-cve", "deprecated"]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: tmpl_manager_tool
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$[?(!@.manager.tool)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_manager_lockfile
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$[?(!@.manager.lockfile)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_manager_source
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$[?(!@.manager.source)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_evidence
+    description: "Contract: every entry has confidence; observed needs source, inferred needs basis or note."
+    run: builtin:evidence_entries
+    args: {artifact: note, lists: ["dependencies"]}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  # <<< GENERATED
+  - id: right_service
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.service", op: "==", value: "{item.id}"}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: pack_matches_stack
+    description: Downstream skills trust stack-detect's verdict; they must not re-detect.
+    run: builtin:fact_compare
+    args: {left: facts.note_pack, right: facts.stack_pack, op: "=="}
+    on_fail: changes_requested
+    reason_code: wrong_assumption
+  - id: sources_resolve
+    run: builtin:sources_resolve
+    args: {artifact: note, scope: "{item.root}", sample: all}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: inference_mode_declared
+    when: "facts.inference_mode"
+    run: builtin:regex_count
+    args: {artifact: note, pattern: '(?i)inference mode', min: 1}
+    on_fail: changes_requested
+    reason_code: quality
+  - id: inventory_complete
+    description: Every dependency the manifest declares is inventoried.
+    run: builtin:set_relation
+    args: {left: facts.manifest_deps, right: facts.inventory_deps, relation: subset}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: nothing_invented
+    run: builtin:set_relation
+    args: {left: facts.inventory_deps, right: facts.manifest_deps, relation: subset}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: lockfile_claim_true
+    description: Only a real lockfile claim is resolved; the honest "MISSING" string is not a path.
+    when: "facts.lockfile_claim != 'MISSING'"
+    run: builtin:paths_exist
+    args: {fact: facts.lockfile_claim, base: "{item.root}"}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+
+judge:
+  tier: low
+  vendor: prefer_different
+  inputs: [note, "{item.root}/{item.manifest}"]
+  criteria:
+    - id: cited_line_supports_claim
+      for_each: facts.dep_entries
+      max_items: 12
+      question: >-
+        Check only the entry's NAME and DECLARED VERSION against its `source` citation.
+        `source` is a `<manifest>:<line>` pointer to where the package is declared; `risk`,
+        `confidence` and `note` describe a separate risk signal, so never judge them against
+        that line (a manifest line cannot show an audit result, and `confidence` describes the
+        risk signal's evidence, not this citation). If `source` points at the manifest staged
+        as an input, verify that line declares this package with the stated version or range
+        (accept the extras-parent form, e.g. passlib[bcrypt] -> passlib) and answer "pass" when
+        it does, or "fail" when the package is absent there or the stated version contradicts
+        the line. If `source` points at the lockfile, an audit or a registry report instead,
+        answer "unsure" — this criterion grades manifest citations only, and those files are
+        not inputs. If the entry has no `source` at all, answer "fail": every listed dependency
+        must be sourced to its manifest line. Cite the manifest itself as evidence: `path` is
+        the staged manifest path and `line_start` is the cited line — never put `:line` inside
+        `path` — with a verbatim `quote` of the declaration. Entry: {item}
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: risk_flags_justified
+      question: >-
+        Grade every dependency entry's `risk` against that entry's own `note`; the note is the
+        evidence you have, and the cited `source` line only shows where the package is
+        declared, never a risk. `risk` must be one of the four values the contract allows:
+        none, outdated, known-cve, deprecated — "unpinned", "abandoned" and "known-vulnerable"
+        are not values, and a floating tag such as "latest" is a reproducibility observation
+        that belongs in the note, never a reason to fail an entry. Judge each label by its own
+        signal: outdated needs the resolved version beside a newer latest/current version;
+        known-cve needs an advisory named or an audit/registry report stating an advisory with
+        an affected version or range; deprecated needs a deprecation or replacement notice;
+        none must not contradict the entry's own note (if that note reports an advisory, a
+        newer major, or a deprecation for this package, the label is wrong). `confidence:
+        uncertain` is the honest form of an unverified hypothesis and passes when the note says
+        what the signal was. The raw npm-audit or registry output is NOT an input: do not lower
+        confidence or answer "unsure" because it cannot be re-run — grade whether the label and
+        the note agree. Do not invent risks, CVE ids or sources the note does not contain.
+        Fail only an entry whose label contradicts its own note, or a known-cve entry with no
+        advisory and no affected version anywhere in its note.
+      on_fail: changes_requested
+      reason_code: unsupported_claim

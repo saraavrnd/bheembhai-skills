@@ -1,0 +1,67 @@
+version: 1
+skill: sdlc-deliver-story-start
+summary: >
+  The story is ready before any tokens are spent (repo scaffolded, acceptance criteria present,
+  prerequisites merged), and afterwards the start note exists in the story folder and the Jira
+  story is In Progress. Takes over the preconditions of the retired story-implement orchestrator (removed 2026-10-25).
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  scenarios:
+    kind: gherkin_scenarios
+    from: context.story.acceptance_criteria
+  prerequisites:
+    kind: jsonpath
+    from: "{layout.epic_dir}epic-sequence.json"
+    expr: "$.stories[?(@.story_key == '{story}')].depends_on[*]"
+  has_jira:
+    kind: context
+    key: integrations.jira
+
+preconditions:
+  - id: repo_scaffolded
+    run: builtin:file_exists
+    args: {path: "{layout.agents_md}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: architecture_present
+    run: builtin:file_exists
+    args: {path: "{layout.architecture}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: story_has_criteria
+    run: builtin:count_range
+    args: {fact: facts.scenarios, min: 1}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: prerequisites_merged
+    when: "exists('{layout.epic_dir}epic-sequence.json') and facts.prerequisites"
+    run: builtin:jira_field
+    args: {keys: facts.prerequisites, field: status, op: in, value: ["Done", "Closed", "Merged"]}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: note
+    path: "{layout.story_dir}story-start.md"
+
+checks:
+  - id: note_sections
+    run: builtin:md_sections
+    args:
+      artifact: note
+      required: ["Story", "Sequence", "Jira", "Notes"]
+    on_fail: changes_requested
+    reason_code: structure
+  - id: note_only
+    description: The start step writes nothing but its note.
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.story_dir}story-start.md"]}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: jira_in_progress
+    when: "facts.has_jira"
+    run: builtin:jira_field
+    args: {keys: "{story}", field: status, op: in, value: ["In Progress", "In Dev", "In Development"]}
+    on_fail: changes_requested
+    reason_code: external_action_missing

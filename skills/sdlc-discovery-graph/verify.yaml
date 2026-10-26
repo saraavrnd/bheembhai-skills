@@ -1,0 +1,89 @@
+version: 1
+skill: sdlc-discovery-graph
+summary: >
+  graphify built a non-trivial, per-service graph store (or graph.md honestly says it did not), the
+  smoke-test verb was really run, and the store was produced by graphify rather than hand-edited.
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  status_built:
+    kind: regex
+    from: index
+    pattern: '(?i)\*\*Status:\*\*\s*(built|partial)\b'
+  stated_nodes:
+    kind: yaml_block
+    from: index
+    expr: "$.nodes"
+  store_nodes:
+    kind: jsonpath
+    from: store
+    expr: "$.nodes[*]"
+
+preconditions:
+  - id: stack_note_present
+    run: builtin:file_exists
+    args: {path: "{layout.discovery_service_dir}stack.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: index
+    path: "{layout.discovery_service_dir}graph.md"
+  - id: store
+    path: "{layout.discovery_service_dir}graphify-out/graph.json"
+    when: "facts.status_built"
+
+checks:
+  - id: own_service_only
+    description: Per-service GRAPHIFY_OUT is required; the shared default graphify-out/ would be clobbered across the fan-out.
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.discovery_service_dir}**"]}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: machine_block
+    run: builtin:yaml_block
+    args: {artifact: index, required_keys: [artifact, service, generated, nodes], artifact_name: graph}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: right_service
+    run: builtin:jsonpath_assert
+    args: {artifact: index, expr: "$.service", op: "==", value: "{item.id}"}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: index_sections
+    run: builtin:md_sections
+    args: {artifact: index, required: ["Scale", "Smoke test", "How downstream skills query this graph", "Evidence note"]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: store_non_trivial
+    when: "facts.status_built"
+    run: builtin:count_range
+    args: {fact: facts.store_nodes, min: 2}
+    on_fail: changes_requested
+    reason_code: missing_artifact
+  - id: scale_matches_store
+    when: "facts.status_built and facts.stated_nodes"
+    run: builtin:fact_compare
+    args: {left: facts.stated_nodes, right: facts.store_nodes, op: "=="}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: graphify_ran
+    description: graphify extract was run with this service's own GRAPHIFY_OUT.
+    run: builtin:trace_tool_used
+    args: {tool: Bash, input_pattern: 'GRAPHIFY_OUT=\S*{item.id}/graphify-out\s+graphify\s+extract', min: 1}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: store_not_hand_edited
+    description: The store is produced by graphify; the agent never writes it directly.
+    when: "facts.status_built"
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)^(Write|Edit|NotebookEdit)$', input_pattern: 'graphify-out/graph\.json'}
+    on_fail: changes_requested
+    reason_code: unsafe_action
+  - id: store_replays
+    description: The platform re-runs the documented smoke-test verb; it must return nodes with source refs.
+    when: "facts.status_built"
+    run: builtin:cmd_exit_code
+    args: {cmd: "graphify query \"entry points\" --budget 200 --graph {layout.discovery_service_dir}graphify-out/graph.json", timeout_s: 120}
+    on_fail: changes_requested
+    reason_code: missing_artifact

@@ -1,0 +1,13 @@
+<!-- Discovery hand-off: third-party dependencies of one service.
+     docs/discovery/<SERVICE>/dependency-inventory.md. Direct deps + risk-flagged transitives. -->
+```yaml
+artifact: dependency-inventory
+service: <SERVICE>
+generated: <DATE>
+stack_pack: <pack|none>
+summary: ><2-3 sentences; manager, lockfile present?, any notable risk flags.>
+manager: { tool: "<composer|npm|uv|...>", lockfile: "<file|MISSING>", source: "<path>" }
+dependencies:   # quote every value; put extras (passlib[bcrypt] -> bcrypt) in note
+  - { name: "<package name as the manifest declares it, without extras or version>", version: "<pinned/resolved>", risk: "<none|outdated|known-cve|deprecated>",
+      confidence: observed|uncertain, source: "<manifest:line>", note: "<what the risk signal was>" }
+```

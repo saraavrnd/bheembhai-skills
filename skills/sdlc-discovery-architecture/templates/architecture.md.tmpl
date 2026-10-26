@@ -1,0 +1,82 @@
+<!-- Discovery hand-off (system): architecture.md  ->  docs/discovery/_system/architecture.md
+     SDLC-standard Architecture Overview document: human-readable headers/sections on top, with a
+     machine block (frontmatter + structured component/edge data) that downstream skills and
+     sdlc-discovery-consolidate still query. Keep the evidence discipline INLINE: every factual line
+     carries a confidence tag [observed|inferred|uncertain] and, when observed, a `source:` pointer.
+     Omit a section only if genuinely N/A — then write "None observed." Do not drop the tags. -->
+
+---
+artifact: architecture
+generated: <DATE>
+status: draft
+confidence_summary: "<n observed, n inferred, n uncertain>"
+---
+
+# Architecture Overview — <SYSTEM / REPO NAME>
+
+## 1. Overview
+<!-- 2-4 sentences: what the system is, how many services, the single most important honest
+     caveat (e.g. scaffold vs implemented). Mirror the old `summary`. -->
+<prose overview>
+
+## 2. Context & Scope
+<!-- What this document covers and the evidence base it was synthesized from. -->
+- Scope: <services and boundaries covered>
+- Synthesized from: <which per-service artifacts + integration-map>
+- Topology: <single | multi — n first-party services>  _[observed — source: docs/discovery/services.md]_
+
+## 3. Component Inventory
+<!-- One row per deployable/service/datastore/significant module. Kind = service|datastore|module|external -->
+| Component | Kind | Responsibility | Confidence | Source |
+|-----------|------|----------------|------------|--------|
+| <name> | <kind> | <one line> | observed | <path:line> |
+
+## 4. Component Relationships
+<!-- Directed relationships / call edges. "PLANNED/NOT WIRED" belongs here with confidence: uncertain. -->
+| From | To | Via | Detail | Confidence | Source |
+|------|----|----|--------|------------|--------|
+| <a> | <b> | http/sdk/shared-db | <what> | observed | <path:line> |
+
+## 5. Data & Persistence
+<!-- Datastores, what each holds, ownership, schema authority. -->
+- <datastore — what it stores, who owns it> _[observed — source: <...>]_
+
+## 6. Cross-Cutting Concerns
+<!-- AuthN/Z, config, deployment, tenancy, health/observability, quality gates — one subsection each as relevant. -->
+### Authentication & Authorization
+- <...> _[observed — source: <...>]_
+### Configuration
+- <...> _[observed — source: <...>]_
+### Health & Observability
+- <...> _[observed — source: <...>]_
+
+## 7. Deployment & Runtime
+<!-- How it is built and run; profiles; startup ordering. -->
+- <...> _[observed — source: <...>]_
+
+## 8. Architecture Style
+<!-- Style labels are usually INFERRED from verified layout — tag them so and cite the structural basis. -->
+- <style statement> _[inferred — basis: <structural evidence + source>]_
+
+## 9. Gaps & Known Limitations
+<!-- The real system vs the declared one: stubs, unwired seams, missing pieces. -->
+- <gap> _[observed — source: <...>]_
+
+## 10. Evidence Notes
+<!-- How to read the tags; what is uncertain and why; coverage/partiality. -->
+- Confidence tags: `observed` (cited to a per-service artifact or code `path:line`), `inferred`
+  (synthesis — basis stated), `uncertain` (declared-only / not verifiable from code).
+- Coverage: <full | partial — what was not reachable>
+
+<!-- ── MACHINE BLOCK (downstream skills & consolidate parse this; keep in sync with the prose) ── -->
+```yaml machine
+artifact: architecture
+components:
+  - { id: "<name>", kind: "service|datastore|module|external", confidence: observed, source: "<path:line>" }
+edges:
+  - { from: "<a>", to: "<b>", via: "http|sdk|shared-db|queue", confidence: observed, source: "<path:line>" }
+style:
+  - { claim: "<style>", confidence: inferred, basis: "<source>" }
+gaps:
+  - { claim: "<gap>", confidence: observed, source: "<path:line>" }
+```

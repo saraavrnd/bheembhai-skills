@@ -1,0 +1,4 @@
+policy: sdlc-policy-story-delivery-fast
+version: 1
+applies_to: sdlc-wf-story-delivery
+gates: {}

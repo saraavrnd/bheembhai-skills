@@ -1,0 +1,30 @@
+# Test Plan — {{bug_key}}: {{bug_summary}}
+
+**Work item:** bug · **Date:** {{date}} · **Runners:** {{runners}}
+
+## Scenario → test mapping
+Every regression scenario fails now with the signature in reproduction.md; every guard passes
+now. Both must pass after the fix.
+
+| # | Scenario | Layer | Test file::test name | Type |
+|---|----------|-------|----------------------|------|
+| 1 | <the reported case, expected behaviour> | integration | | regression |
+| 2 | <minimal case at a lower layer> | unit | | regression |
+| 3 | <nearest case that works today> | unit | | guard |
+
+## Coverage check
+- [ ] The reported case has a regression test at the layer the user saw.
+- [ ] Regression tests assert the expected behaviour from bug-triage.md, not the current one.
+- [ ] Guard tests cover the nearest working cases.
+
+## Red-phase verification
+<!-- Regression tests FAIL with the signature; guard tests PASS. -->
+```
+<test run output>
+```
+
+## Traceability
+**Bug:** {{bug_key}} · **Expected behaviour from:** {{source story/contract}} · **Requirements:** {{FR IDs, if any}}
+
+---
+*Next: `sdlc-fix-rootcause-analyze` explains why these fail; `sdlc-deliver-code-implement` makes them pass.*

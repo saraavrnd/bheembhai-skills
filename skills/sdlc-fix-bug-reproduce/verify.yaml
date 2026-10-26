@@ -1,0 +1,156 @@
+version: 1
+skill: sdlc-fix-bug-reproduce
+summary: >
+  Triage said Fix and the harness is green before any tokens are spent. Afterwards the regression
+  tests in test-plan.md exist and fail with the recorded symptom signature, the guard tests pass,
+  the existing suite is untouched, and only tests and the bug's notes changed.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+facts:
+  plan_test_ids:
+    kind: md_table_column
+    from: test_plan
+    section: "Scenario → test mapping"
+    column: Test
+  regression_test_ids:
+    kind: md_table_column
+    from: test_plan
+    section: "Scenario → test mapping"
+    column: Test
+    where: {Type: regression}
+  guard_test_ids:
+    kind: md_table_column
+    from: test_plan
+    section: "Scenario → test mapping"
+    column: Test
+    where: {Type: guard}
+  symptom_signature:
+    kind: regex
+    from: reproduction
+    section: "Observed symptom"
+    pattern: '\*\*Signature:\*\*\s*`([^`]+)`'
+
+snapshot: [test_inventory]
+
+preconditions:
+  - id: triage_present
+    run: builtin:file_exists
+    args: {path: "{layout.bug_dir}bug-triage.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: triage_says_fix
+    run: builtin:report_verdict
+    args: {path: "{layout.bug_dir}bug-triage.md", pattern: '(?im)^\**\s*Decision\s*:?\**\s*\**(Fix|Duplicate|Not a bug|Needs info)\b', allowed: [Fix]}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: harness_green
+    description: The suite passes before the regression test is added, so a red later means "bug present".
+    run: builtin:tests_run
+    args: {expect: pass, layer: unit}
+    on_fail: failed_execution
+    reason_code: env_infra
+
+artifacts:
+  - id: reproduction
+    path: "{layout.bug_dir}reproduction.md"
+  - id: test_plan
+    path: "{layout.bug_dir}test-plan.md"
+  - id: new_tests
+    glob: "tests/**/test_*"
+    min_count: 1
+
+checks:
+  - id: reproduction_sections
+    run: builtin:md_sections
+    args: {artifact: reproduction, required: ["Bug", "Reproduction", "Observed symptom", "Minimal failing case", "Regression tests", "Red-phase verification", "Notes"]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: plan_sections
+    description: Same sections sdlc-deliver-tests-write produces, so the shared deliver skills read it unchanged.
+    run: builtin:md_sections
+    args: {artifact: test_plan, required: ["Scenario → test mapping", "Coverage check", "Red-phase verification", "Traceability"]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: signature_recorded
+    run: builtin:count_range
+    args: {fact: facts.symptom_signature, min: 1, max: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: reproduction}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: has_regression_row
+    run: builtin:count_range
+    args: {fact: facts.regression_test_ids, min: 1}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: planned_tests_exist
+    run: builtin:tests_exist
+    args: {fact: facts.plan_test_ids}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: regression_is_red_with_symptom
+    description: Fails now, and the failure output shows the reported symptom.
+    run: builtin:tests_run
+    args: {expect: fail, select: facts.regression_test_ids, output_contains: facts.symptom_signature}
+    on_fail: changes_requested
+    reason_code: bad_red
+  - id: good_red_only
+    run: builtin:tests_fail_reason
+    args: {select: facts.regression_test_ids}
+    on_fail: changes_requested
+    reason_code: bad_red
+  - id: guards_green
+    when: "facts.guard_test_ids"
+    run: builtin:tests_run
+    args: {expect: pass, select: facts.guard_test_ids}
+    on_fail: changes_requested
+    reason_code: bad_red
+  - id: existing_suite_untouched
+    run: builtin:tests_compare_baseline
+    args: {no_removed: true, no_new_skips: true, no_assertion_drop: true}
+    on_fail: changes_requested
+    reason_code: regression
+  - id: tests_and_notes_only
+    description: No production code in the red phase.
+    run: builtin:diff_paths
+    args: {allowed: ["tests/**", "{layout.bug_dir}**"], min_changed: 3}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: not_flat
+    run: builtin:diff_paths
+    args: {forbidden: ["tests/unit/test_*", "tests/integration/test_*"]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_skip_markers
+    run: builtin:diff_forbids_added
+    args: {paths: ["tests/**"], pattern: '(@pytest\.mark\.(skip|xfail)|\b(it|test|describe)\.skip\(|\bxit\(|@Disabled)'}
+    on_fail: changes_requested
+    reason_code: faked_green
+  - id: bug_key_in_tests
+    description: Regression tests name the bug key so git grep finds them.
+    run: builtin:diff_requires_added
+    args: {paths: ["tests/**"], pattern: '{story}'}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+
+judge:
+  tier: medium
+  vendor: prefer_different
+  inputs: [reproduction, test_plan, new_tests, "{layout.bug_dir}bug-triage.md"]
+  criteria:
+    - id: asserts_expected_not_actual
+      critical: true
+      question: "Do the regression tests assert the EXPECTED behaviour from bug-triage.md (so they pass once fixed), rather than the current buggy output?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: same_bug
+      question: "Do the regression tests exercise the triage steps' inputs and path (or a narrowed version of them), not a different failure that happens to share the signature?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: user_layer_covered
+      question: "Is there at least one regression test at the layer the reporter observed (endpoint or UI), not only a unit test?"
+      on_fail: changes_requested
+      reason_code: coverage_gap

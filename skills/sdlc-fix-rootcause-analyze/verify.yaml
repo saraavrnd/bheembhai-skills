@@ -1,0 +1,137 @@
+version: 1
+skill: sdlc-fix-rootcause-analyze
+summary: >
+  The bug is reproduced (regression tests red) before any tokens are spent. Afterwards
+  fix-design.md names a root cause at a real file:line, a causal chain ending in the recorded
+  signature, target modules that exist, a domain tag and a scope; an architectural scope
+  escalates, and no code or test changed.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+facts:
+  regression_test_ids:
+    kind: md_table_column
+    from: "{layout.bug_dir}test-plan.md"
+    section: "Scenario → test mapping"
+    column: Test
+    where: {Type: regression}
+  symptom_signature:
+    kind: regex
+    from: "{layout.bug_dir}reproduction.md"
+    section: "Observed symptom"
+    pattern: '\*\*Signature:\*\*\s*`([^`]+)`'
+  scope:
+    kind: regex
+    from: design
+    section: "Fix scope"
+    pattern: '(?im)\*\*Scope:\*\*\s*(local|cross-module|architectural)\b'
+
+preconditions:
+  - id: reproduction_present
+    run: builtin:file_exists
+    args: {path: "{layout.bug_dir}reproduction.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: test_plan_present
+    run: builtin:file_exists
+    args: {path: "{layout.bug_dir}test-plan.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: still_red
+    description: Root-cause a bug that is reproduced now, not one already fixed on the branch.
+    run: builtin:tests_run
+    args: {expect: fail, select: facts.regression_test_ids}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: design
+    path: "{layout.bug_dir}fix-design.md"
+
+checks:
+  - id: template_sections
+    run: builtin:md_sections
+    args:
+      artifact: design
+      required: ["Root cause", "Causal chain", "How it got in", "Fix approach", "Target module", "Interfaces",
+                 "Data-model deltas", "Blast radius", "Fix scope", "Test surface", "Out of scope", "Traceability"]
+    on_fail: changes_requested
+    reason_code: structure
+  - id: domain_tag
+    description: sdlc-deliver-code-implement loads its lens from this tag.
+    run: builtin:regex_count
+    args: {artifact: design, pattern: '(?i)\*\*Domain:\*\*\s*(backend|frontend|full-stack)\b', min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: cause_located
+    run: builtin:regex_count
+    args: {artifact: design, section: "Root cause", pattern: '`[\w./-]+:\d+`', min: 1}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: chain_lines_resolve
+    description: Every path:line in the root cause and chain exists at HEAD.
+    run: builtin:path_line_resolves
+    args: {artifact: design, sections: ["Root cause", "Causal chain"]}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: chain_ends_in_signature
+    run: builtin:regex_count
+    args: {artifact: design, section: "Causal chain", pattern: '{facts.symptom_signature}', min: 1}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: scope_classified
+    run: builtin:count_range
+    args: {fact: facts.scope, min: 1, max: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: outcome_matches_scope
+    run: builtin:self_verdict_consistent
+    args: {fact: facts.scope, map: {"local": completed, "cross-module": completed, "architectural": escalation_required}}
+    on_fail: escalation_required
+    reason_code: architecture_conflict
+  - id: modules_exist
+    when: "facts.scope != 'architectural'"
+    run: builtin:links_resolve
+    args: {artifact: design, section: "Target module", include_backticks: true}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: design}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: size_bound
+    run: builtin:regex_count
+    args: {artifact: design, pattern: '\n', max: 120}
+    on_fail: advisory
+    reason_code: scope
+  - id: note_only
+    description: Analysis is read-only; debug edits are never committed.
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.bug_dir}fix-design.md"]}
+    on_fail: changes_requested
+    reason_code: scope
+
+judge:
+  tier: high
+  vendor: prefer_different
+  inputs: [design, "{layout.bug_dir}reproduction.md", "{layout.bug_dir}bug-triage.md", "diff:cited_lines"]
+  criteria:
+    - id: chain_explains_symptom
+      critical: true
+      question: "Reading the cited lines, does each link of the causal chain follow from the previous one and end in the observed signature, with no unproven leap?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: fixes_cause_not_symptom
+      critical: true
+      question: "After the proposed fix, would every caller of the faulty code get the expected behaviour (cause removed), rather than only the path in the test (symptom hidden by a catch, retry or special case)?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: fits_architecture
+      when: "facts.scope != 'architectural'"
+      question: "Does the fix stay inside the existing architecture, contracts and data model (no contract change, migration, new dependency or ADR change), as its scope claims?"
+      on_fail: escalation_required
+      reason_code: architecture_conflict
+    - id: blast_radius_complete
+      question: "Does Blast radius list the callers of the changed code that the cited lines show, and say what happens to each?"
+      on_fail: changes_requested
+      reason_code: coverage_gap

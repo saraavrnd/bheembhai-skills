@@ -1,0 +1,102 @@
+version: 1
+skill: sdlc-discovery-stack-detect
+summary: >
+  stack.md names one shipped knowledge pack (or none = inference mode), carries a verbatim copy of
+  that pack's data for downstream skills, and every detection finding resolves to the marker that
+  proves it.
+verdicts_used: [changes_requested]
+
+facts:
+  stack_pack:
+    kind: yaml_block
+    from: note
+    expr: "$.stack_pack"
+  is_none:
+    kind: yaml_block
+    from: note
+    expr: "$[?(@.stack_pack == 'none')]"
+  observed_sample:
+    kind: yaml_block
+    from: note
+    expr: "$.findings[?(@.confidence == 'observed')]"
+
+artifacts:
+  - id: note
+    path: "{layout.discovery_service_dir}stack.md"
+
+checks:
+  - id: own_service_only
+    description: A fan-out child writes only under its own service folder.
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.discovery_service_dir}**"]}
+    on_fail: changes_requested
+    reason_code: scope
+  # >>> GENERATED from templates/stack.md.tmpl by tools/gen_template_checks.py: do not edit by hand
+  - id: tmpl_block
+    description: "The machine block parses and has every top-level key the template declares."
+    run: builtin:yaml_block
+    args: {artifact: note, required_keys: ["artifact", "service", "generated", "stack_pack", "summary", "findings", "embedded_pack"], artifact_name: "stack"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_findings_claim
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.findings[?(!@.claim)]", op: "empty"}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: tmpl_evidence
+    description: "Contract: every entry has confidence; observed needs source, inferred needs basis or note."
+    run: builtin:evidence_entries
+    args: {artifact: note, lists: ["findings"]}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  # <<< GENERATED
+  - id: right_service
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.service", op: "==", value: "{item.id}"}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: known_pack
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.stack_pack", op: in, value: [laravel, nestjs, express, fastapi, none]}
+    on_fail: changes_requested
+    reason_code: wrong_assumption
+  - id: pack_embedded_verbatim
+    description: Downstream skills cannot reach the pack files, so the embedded copy must equal the pack's data keys the template embeds (locations, patterns, commands, risk_hints, glossary_hints, graph). The pack's identity keys (stack, language, manifest, version_hint) and detect block are not embedded.
+    when: "not facts.is_none"
+    run: builtin:data_equals
+    args: {artifact: note, expr: "$.embedded_pack", reference_path: "references/knowledge-packs/{facts.stack_pack}.yaml", ignore_keys: [detect, pack, stack, language, manifest, version_hint]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: none_means_no_pack
+    when: "facts.is_none"
+    run: builtin:jsonpath_assert
+    args: {artifact: note, expr: "$.embedded_pack", op: "==", value: none}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: inference_mode_declared
+    when: "facts.is_none"
+    run: builtin:regex_count
+    args: {artifact: note, pattern: '(?i)inference mode', min: 1}
+    on_fail: changes_requested
+    reason_code: quality
+  - id: sources_resolve
+    run: builtin:sources_resolve
+    args: {artifact: note, scope: "{item.root}", sample: all, quote: true}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+
+judge:
+  tier: low
+  vendor: prefer_different
+  inputs: [note, facts.observed_sample, "references/knowledge-packs/{facts.stack_pack}.yaml"]
+  criteria:
+    - id: pack_choice_supported
+      when: "not facts.is_none"
+      question: "Do the cited markers (manifest dependencies, framework files) satisfy the selected pack's detect rules, rather than a weaker resemblance?"
+      on_fail: changes_requested
+      reason_code: wrong_assumption
+    - id: no_forced_match
+      when: "facts.is_none"
+      question: "Is it true that none of the shipped packs (laravel, nestjs, express, fastapi) matches the cited markers, so inference mode is the honest choice?"
+      on_fail: changes_requested
+      reason_code: wrong_assumption

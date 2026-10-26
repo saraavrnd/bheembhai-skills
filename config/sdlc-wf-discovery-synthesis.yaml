@@ -1,0 +1,58 @@
+# Discovery — synthesis child workflow (ADR-027).
+#
+# The child of sdlc-wf-discovery's `synthesis` node: fan-in. It runs AFTER
+# every per-service child is terminal and reads all of their artifacts from the
+# shared run branch to produce the system-wide view and the canonical docs.
+workflow: sdlc-wf-discovery-synthesis
+version: 1
+category: Software Delivery
+start: sdlc-discovery-integration-map
+steps:
+  - id: sdlc-discovery-integration-map
+    skill: sdlc-discovery-integration-map
+    model: medium
+    label: Map integrations across services
+    deadline: 900
+    "on": {completed: sdlc-discovery-architecture, changes_requested: sdlc-discovery-integration-map, BLOCK: DONE, escalation_required: DONE}
+
+  - id: sdlc-discovery-architecture
+    skill: sdlc-discovery-architecture
+    model: high
+    label: Synthesize the sdlc-discovery-architecture
+    deadline: 1800
+    "on": {completed: sdlc-discovery-security-posture, changes_requested: sdlc-discovery-architecture, BLOCK: DONE, escalation_required: DONE}
+
+  - id: sdlc-discovery-security-posture
+    skill: sdlc-discovery-security-posture
+    model: high
+    label: Synthesize the security posture
+    deadline: 1200
+    "on": {completed: sdlc-discovery-conventions, changes_requested: sdlc-discovery-security-posture, BLOCK: DONE, escalation_required: DONE}
+
+  - id: sdlc-discovery-conventions
+    skill: sdlc-discovery-conventions
+    model: medium
+    label: Extract house sdlc-discovery-conventions
+    deadline: 900
+    "on": {completed: sdlc-discovery-risk-register, changes_requested: sdlc-discovery-conventions, BLOCK: DONE, escalation_required: DONE}
+
+  - id: sdlc-discovery-risk-register
+    skill: sdlc-discovery-risk-register
+    model: medium
+    label: Compile the risk & tech-debt register
+    deadline: 900
+    "on": {completed: sdlc-discovery-glossary, changes_requested: sdlc-discovery-risk-register, BLOCK: DONE, escalation_required: DONE}
+
+  - id: sdlc-discovery-glossary
+    skill: sdlc-discovery-glossary
+    model: medium
+    label: Extract the domain sdlc-discovery-glossary
+    deadline: 900
+    "on": {completed: sdlc-discovery-consolidate, changes_requested: sdlc-discovery-glossary, BLOCK: DONE, escalation_required: DONE}
+
+  - id: sdlc-discovery-consolidate
+    skill: sdlc-discovery-consolidate
+    model: high
+    label: Produce the canonical project docs
+    deadline: 1800
+    "on": {completed: DONE, changes_requested: sdlc-discovery-consolidate, BLOCK: DONE, escalation_required: DONE}

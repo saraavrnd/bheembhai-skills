@@ -1,0 +1,7 @@
+# BheemBhai skills catalog (ADR-032). A release tag vX.Y.Z must match `version`.
+version: 0.1.0
+# The instance must satisfy both, or the Catalog page disables this release.
+# 0.1.0 ships the bug-fix skills, which need ADR-031's engine features; set the real
+# platform version that implements them before the first deploy.
+requires_platform: ">=0.0.0"
+requires_verify: ">=0.1,<1"

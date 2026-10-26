@@ -1,0 +1,129 @@
+version: 1
+skill: sdlc-plan-epic-sequence
+summary: >
+  The sequence covers exactly the epic's stories, is acyclic with waves that respect every edge,
+  labels provisional edges, and after approval mirrors approved edges as Jira links without
+  removing human-set ones. A detected cycle escalates instead of being hidden.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+facts:
+  map_story_keys:
+    kind: jsonpath
+    from: "{layout.epic_dir}story-map.json"
+    expr: "$.stories[*].story_key"
+  seq_story_keys:
+    kind: jsonpath
+    from: seq_json
+    expr: "$.stories[*].story_key"
+  edges:
+    kind: jsonpath
+    from: seq_json
+    expr: "$.stories[*]"
+    description: "{story_key: depends_on[]} pairs; graph builtins accept this shape."
+  waves:
+    kind: jsonpath
+    from: seq_json
+    expr: "$.stories[*]"
+  cycles:
+    kind: jsonpath
+    from: seq_json
+    expr: "$.cycles[*]"
+  provisional_edges:
+    kind: jsonpath
+    from: seq_json
+    expr: "$.stories[*].edge_sources.*[?(@.confidence == 'provisional')]"
+  approved:
+    kind: jsonpath
+    from: seq_json
+    expr: "$.approved"
+  human_links:
+    kind: context
+    key: baseline.jira_state.links
+    description: Jira "blocks" links that existed before this run (captured by the jira_state snapshot).
+
+snapshot: [jira_state]
+
+preconditions:
+  - id: story_map_present
+    run: builtin:file_exists
+    args: {path: "{layout.epic_dir}story-map.json"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: seq_md
+    path: "{layout.epic_dir}epic-sequence.md"
+  - id: seq_json
+    path: "{layout.epic_dir}epic-sequence.json"
+
+checks:
+  - id: json_schema
+    run: builtin:json_schema
+    args: {artifact: seq_json, schema: templates/epic-sequence.schema.json}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: covers_exactly_the_epic
+    run: builtin:set_relation
+    args: {left: facts.map_story_keys, right: facts.seq_story_keys, relation: equal, exactly_once: true}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: acyclic
+    run: builtin:graph_acyclic
+    args: {edges: facts.edges}
+    on_fail: escalation_required
+    reason_code: scope
+  - id: waves_consistent
+    run: builtin:waves_respect_edges
+    args: {edges: facts.edges, waves: facts.waves}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: cycles_escalate
+    description: A flagged cycle needs a human re-slice; it cannot be reported as completed.
+    when: "facts.cycles and self_verdict == 'completed'"
+    run: builtin:count_range
+    args: {fact: facts.cycles, max: 0}
+    on_fail: escalation_required
+    reason_code: scope
+  - id: provisional_labelled
+    when: "facts.provisional_edges"
+    run: builtin:regex_count
+    args: {artifact: seq_md, pattern: '(?i)\bprovisional\b', min: 1}
+    on_fail: changes_requested
+    reason_code: quality
+  - id: links_set_after_approval
+    when: "facts.approved"
+    run: builtin:jira_links_exist
+    args: {edges: facts.edges, link_type: Blocks}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: no_links_before_approval
+    when: "not facts.approved"
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)(create|add).*(issue)?_?link'}
+    on_fail: changes_requested
+    reason_code: policy
+  - id: human_links_preserved
+    when: "facts.human_links"
+    run: builtin:jira_links_exist
+    args: {edges: facts.human_links, link_type: Blocks}
+    on_fail: changes_requested
+    reason_code: policy
+  - id: epic_files_only
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.epic_dir}sdlc-plan-epic-sequence.*"]}
+    on_fail: changes_requested
+    reason_code: scope
+
+judge:
+  tier: medium
+  vendor: prefer_different
+  inputs: [seq_md, seq_json, "{layout.epic_dir}stories.md"]
+  criteria:
+    - id: dependencies_plausible
+      question: "Is every dependency edge supported by its stated source (a Jira link, a sdlc-deliver-story-design produces/consumes line, a requirement, or acceptance-criteria text that names another story's output)?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: no_missed_producer
+      question: "Is there no story whose acceptance criteria consume something (an endpoint, table or uploaded item) that a later-wave or same-wave story produces?"
+      on_fail: changes_requested
+      reason_code: coverage_gap

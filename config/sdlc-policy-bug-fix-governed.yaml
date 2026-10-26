@@ -1,0 +1,38 @@
+# Default governance for bug fixes. A human confirms every triage close-out, approves the fix
+# design before code is written, sees a failed honest-green gate, and approves the PR.
+# changes_requested loops are deliberately NOT gated (same as sdlc-policy-story-delivery-governed).
+policy: sdlc-policy-bug-fix-governed
+version: 1
+applies_to: sdlc-wf-bug-fix
+gates:
+  sdlc-fix-bug-triage:
+    review: required
+    role: any
+    # Duplicate / Not a bug / Needs info ends the run; a person confirms before it does.
+    on_status: [escalation_required]
+
+  sdlc-fix-bug-reproduce:
+    review: required
+    role: any
+    # "Cannot reproduce" ends the run; a person confirms or supplies the missing detail.
+    on_status: [escalation_required]
+
+  sdlc-fix-rootcause-analyze:
+    review: required
+    role: lead
+    # Approve the fix design (like story-design), or confirm it is an architectural change.
+    on_status: [completed, escalation_required]
+
+  sdlc-deliver-tests-verify:
+    review: required
+    role: lead
+    on_status: [BLOCK]
+
+  sdlc-deliver-code-review:
+    review: required
+    role: lead
+    on_status: [completed]
+
+  sdlc-deliver-pr-open:
+    review: required
+    role: lead

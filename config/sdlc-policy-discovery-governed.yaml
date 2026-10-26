@@ -1,0 +1,24 @@
+# Discovery policy: gate where a wrong artifact would silently mislead every future feature.
+# Gates the PARENT's own steps only. The per-service chain runs as CHILD runs under
+# `sdlc-policy-discovery-service-governed` (the foreach node's policy) — its checkpoints (sdlc-discovery-stack-detect, ...)
+# live there, and naming a child step here would be a PairingError at the parent's first init.
+policy: sdlc-policy-discovery-governed
+version: 1
+applies_to: sdlc-wf-discovery
+gates:
+  sdlc-discovery-init:
+    review: required           # topology drives the whole fan-out — confirm services
+    role: lead
+    on_status: [completed]
+  sdlc-discovery-architecture:
+    review: required
+    role: lead
+    on_status: [completed]
+  sdlc-discovery-security-posture:
+    review: required
+    role: lead
+    on_status: [completed]
+  sdlc-discovery-consolidate:
+    review: required           # the hardest gate — ratifies reverse-engineered knowledge as truth
+    role: lead
+    on_status: [completed]

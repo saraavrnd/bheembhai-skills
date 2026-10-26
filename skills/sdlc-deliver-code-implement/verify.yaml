@@ -1,0 +1,128 @@
+version: 1
+skill: sdlc-deliver-code-implement
+summary: The story's tests pass, the full suite and lint stay green, no test was weakened, and code stays inside the design's modules.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+facts:
+  plan_test_ids:
+    kind: md_table_column
+    from: "{layout.story_dir}test-plan.md"
+    section: "Scenario → test mapping"
+    column: Test
+  stateful_story:
+    kind: regex
+    from: "{layout.design_note}"
+    section: "Data-model deltas"
+    pattern: '(?i)\b(table|migration|column|model|entity)\b'
+
+snapshot: [test_inventory, assertion_counts, junit]
+
+preconditions:
+  - id: design_present
+    run: builtin:file_exists
+    args: {path: "{layout.design_note}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: test_plan_present
+    run: builtin:file_exists
+    args: {path: "{layout.story_dir}test-plan.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: tests_exist_before
+    run: builtin:tests_exist
+    args: {fact: facts.plan_test_ids}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: summary
+    source: reply
+    description: The implementation summary (what changed, which tests pass, requirements) in the final reply.
+
+checks:
+  - id: code_changed
+    run: builtin:diff_paths
+    args: {allowed: ["**"], min_changed: 1}
+    on_fail: changes_requested
+    reason_code: missing_artifact
+  - id: story_tests_green
+    run: builtin:tests_run
+    args: {expect: pass, select: facts.plan_test_ids}
+    on_fail: changes_requested
+    reason_code: test_failure
+  - id: full_suite_green
+    run: builtin:tests_run
+    args: {expect: pass}
+    on_fail: changes_requested
+    reason_code: regression
+  - id: lint_clean
+    run: builtin:lint_run
+    on_fail: changes_requested
+    reason_code: lint_failure
+  - id: coverage
+    run: builtin:coverage_gate
+    on_fail: changes_requested
+    reason_code: coverage_below_gate
+  - id: tests_not_weakened
+    description: Test-creator's tests are protected; no removal, skip, xfail or assertion drop anywhere.
+    run: builtin:tests_compare_baseline
+    args: {no_removed: true, no_new_skips: true, no_assertion_drop: true, protected: facts.plan_test_ids}
+    on_fail: changes_requested
+    reason_code: faked_green
+  - id: no_skip_markers
+    run: builtin:diff_forbids_added
+    args: {paths: ["tests/**"], pattern: '(@pytest\.mark\.(skip|xfail)|\b(it|test|describe)\.skip\(|\bxit\(|@Disabled|assert\s+True\b)'}
+    on_fail: changes_requested
+    reason_code: faked_green
+  - id: no_swallowed_errors
+    run: builtin:diff_forbids_added
+    args: {paths: ["**/*.py"], pattern: 'except(\s+\w+)?\s*:\s*(pass|\.\.\.)\s*$'}
+    on_fail: changes_requested
+    reason_code: faked_green
+  - id: test_plan_untouched
+    description: The plan lists the protected tests; only the step that wrote the tests may change it.
+    run: builtin:diff_paths
+    args: {forbidden: ["{layout.story_dir}test-plan.md"]}
+    on_fail: changes_requested
+    reason_code: faked_green
+  - id: no_design_doc_edits
+    description: Architecture, contracts and ADRs change only through sdlc-arch-design (amend) or sdlc-deliver-docs-sync.
+    run: builtin:diff_paths
+    args: {forbidden: ["{layout.architecture}", "{layout.api_contracts_dir}**", "{layout.adr_dir}**", "{layout.data_model}"]}
+    on_fail: escalation_required
+    reason_code: design_drift
+  - id: no_git_by_agent
+    description: The platform commits; the agent must not push or rewrite branches.
+    run: builtin:trace_tool_absent
+    args: {tool: "Bash", input_pattern: 'git\s+(push|reset\s+--hard|rebase|commit\s+--amend)'}
+    on_fail: changes_requested
+    reason_code: unsafe_action
+
+judge:
+  tier: medium
+  vendor: prefer_different
+  inputs: [diff, "{layout.design_note}", "{layout.story_dir}test-plan.md", summary]
+  criteria:
+    - id: no_fixture_special_casing
+      critical: true
+      question: "Does the production code implement the behaviour in general, with no branch that special-cases a test's exact input or returns a hard-coded value the test expects?"
+      on_fail: changes_requested
+      reason_code: faked_green
+    - id: real_persistence
+      when: "facts.stateful_story"
+      critical: true
+      question: "Does the code write the story's state to the durable store the design names, not to a file, in-memory collection or container-local sidecar?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: within_design
+      question: "Does the code live in the modules the design note names, without introducing a new service, external integration or cross-cutting concern?"
+      on_fail: escalation_required
+      reason_code: architecture_conflict
+    - id: unhappy_paths_real
+      question: "Do the unhappy paths have real handling (validation, status codes, no side effects on rejection) rather than errors swallowed so the test stops failing?"
+      on_fail: changes_requested
+      reason_code: faked_green
+    - id: minimal
+      question: "Is the change the minimum that satisfies the tests and acceptance criteria, without speculative code for future stories?"
+      on_fail: advisory
+      reason_code: quality

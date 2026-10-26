@@ -1,0 +1,139 @@
+version: 1
+skill: sdlc-fix-bug-triage
+summary: >
+  The bug report is non-empty before any tokens are spent, and afterwards bug-triage.md exists in
+  the bug folder with expected vs actual pinned to a source, numbered steps, a rubric severity and
+  exactly one decision; the decision agrees with the outcome, and on Fix the Jira bug is In Progress.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+facts:
+  bug_text:
+    kind: context
+    key: bug.description
+  has_jira:
+    kind: context
+    key: integrations.jira
+  decision:
+    kind: regex
+    from: note
+    section: "Decision"
+    pattern: '(?im)^\**\s*Decision\s*:?\**\s*\**(Fix|Duplicate|Not a bug|Needs info)\b'
+
+preconditions:
+  - id: repo_scaffolded
+    run: builtin:file_exists
+    args: {path: "{layout.agents_md}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: architecture_present
+    run: builtin:file_exists
+    args: {path: "{layout.architecture}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: report_has_text
+    description: A bug with an empty description cannot be triaged; it goes back to the reporter, not to an agent.
+    run: builtin:count_range
+    args: {fact: facts.bug_text, min: 1}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: note
+    path: "{layout.bug_dir}bug-triage.md"
+
+checks:
+  - id: note_sections
+    run: builtin:md_sections
+    args:
+      artifact: note
+      required: ["Bug", "Expected vs actual", "Steps to reproduce", "Severity", "Affected area", "Decision", "Jira", "Notes"]
+    on_fail: changes_requested
+    reason_code: structure
+  - id: one_decision
+    run: builtin:count_range
+    args: {fact: facts.decision, min: 1, max: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: severity_from_rubric
+    run: builtin:regex_count
+    args: {artifact: note, section: "Severity", pattern: '(?m)\*\*Severity:\*\*\s*S[1-4]\b', min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: expected_has_source
+    description: The expectation is quoted from a document, cited by path.
+    run: builtin:regex_count
+    args: {artifact: note, section: "Expected vs actual", pattern: '\*\*Source:\*\*\s*`[^`]+`', min: 1}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+    when: "facts.decision == 'Fix' or facts.decision == 'Not a bug'"
+  - id: source_resolves
+    run: builtin:links_resolve
+    args: {artifact: note, section: "Expected vs actual", include_backticks: true}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+    when: "facts.decision == 'Fix' or facts.decision == 'Not a bug'"
+  - id: numbered_steps
+    when: "facts.decision == 'Fix'"
+    run: builtin:regex_count
+    args: {artifact: note, section: "Steps to reproduce", pattern: '(?m)^\s*\d+\.\s+\S', min: 2}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: affected_area_resolves
+    when: "facts.decision == 'Fix'"
+    run: builtin:links_resolve
+    args: {artifact: note, section: "Affected area", include_backticks: true}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: duplicate_names_key
+    when: "facts.decision == 'Duplicate'"
+    run: builtin:regex_count
+    args: {artifact: note, section: "Decision", pattern: '\b[A-Z][A-Z0-9]+-\d+\b', min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: note}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: note_only
+    description: Triage writes nothing but its note.
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.bug_dir}bug-triage.md"]}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: outcome_matches_decision
+    run: builtin:self_verdict_consistent
+    args: {fact: facts.decision, map: {"Fix": completed, "Duplicate": escalation_required, "Not a bug": escalation_required, "Needs info": escalation_required}}
+    on_fail: changes_requested
+    reason_code: report_inconsistent
+  - id: jira_in_progress
+    when: "facts.has_jira and facts.decision == 'Fix'"
+    run: builtin:jira_field
+    args: {keys: "{story}", field: status, op: in, value: ["In Progress", "In Dev", "In Development"]}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: jira_commented_when_not_fix
+    when: "facts.has_jira and facts.decision != 'Fix'"
+    run: builtin:jira_field
+    args: {keys: "{story}", field: comments, op: contains, value: "{facts.decision}"}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+
+judge:
+  tier: low
+  vendor: same_ok
+  inputs: [note, context.bug]
+  criteria:
+    - id: actual_is_observed
+      question: "Does 'Actual' state only what the report observed (error text, status, UI state), with the reporter's guesses about the cause kept out of it?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: steps_followable
+      when: "facts.decision == 'Fix'"
+      question: "Could an engineer who never saw the report follow the numbered steps and know what result to look for, with every filled-in detail marked as assumed?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: severity_justified
+      question: "Does the severity follow the rubric's impact × reach rule given the report (security or data loss is S1; a workaround lowers it by at most one level)?"
+      on_fail: changes_requested
+      reason_code: quality

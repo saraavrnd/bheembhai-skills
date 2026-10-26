@@ -1,0 +1,66 @@
+workflow: sdlc-wf-story-delivery
+version: 1
+category: Software Delivery
+description: End-to-end governed story delivery — design, tests, implementation, verification, review, and PR.
+start: sdlc-deliver-story-design
+steps:
+  - id: sdlc-deliver-story-design
+    skill: sdlc-deliver-story-design
+    model: high   # per-step model (backend-enforced)
+    label: Design the story
+    deadline: 900
+    "on":
+      completed: sdlc-deliver-tests-write
+      changes_requested: sdlc-deliver-story-design
+      escalation_required: sdlc-arch-design
+      # A BLOCK verdict (design found a real problem) loops back with the
+      # failure hand-off — policy-governed gates this for a human review.
+      # Visit cap (BB_MAX_STEP_VISITS) breaks a runaway loop.
+      BLOCK: sdlc-deliver-story-design
+  - id: sdlc-arch-design
+    skill: sdlc-arch-design
+    model: high   # per-step model (backend-enforced)
+    label: Revisit the architecture
+    deadline: 900
+    "on":
+      completed: sdlc-deliver-story-design
+  - id: sdlc-deliver-tests-write
+    skill: sdlc-deliver-tests-write
+    model: low   # per-step model (backend-enforced)
+    label: Write the tests
+    deadline: 900
+    "on":
+      completed: sdlc-deliver-code-implement
+  - id: sdlc-deliver-code-implement
+    skill: sdlc-deliver-code-implement
+    model: medium   # per-step model (backend-enforced)
+    label: Build it
+    deadline: 1800
+    "on":
+      completed: sdlc-deliver-tests-verify
+  - id: sdlc-deliver-tests-verify
+    skill: sdlc-deliver-tests-verify
+    model: low   # per-step model (backend-enforced)
+    label: Verify the tests pass
+    deadline: 900
+    "on":
+      completed: sdlc-deliver-code-review
+      # A failed honest-green check sends the story back to implementation. Routing lives
+      # in the workflow (backend-authoritative), not in what the agent names — the agent
+      # only reports the BLOCK verdict; the workflow decides where it goes.
+      BLOCK: sdlc-deliver-code-implement
+  - id: sdlc-deliver-code-review
+    skill: sdlc-deliver-code-review
+    model: medium   # per-step model (backend-enforced)
+    label: Review the code
+    deadline: 900
+    "on":
+      completed: sdlc-deliver-pr-open
+      changes_requested: sdlc-deliver-code-implement
+  - id: sdlc-deliver-pr-open
+    skill: sdlc-deliver-pr-open
+    model: low   # per-step model (backend-enforced)
+    label: Open the pull request
+    deadline: 600
+    "on":
+      completed: DONE
