@@ -148,7 +148,7 @@ checks:
     on_fail: changes_requested
     reason_code: coverage_gap
   - id: agents_layout_resolves
-    description: AGENTS.md's Project Layout table points at files that now exist.
+    description: The conventions file's Project Layout table points at files that now exist.
     run: builtin:links_resolve
     args: {artifact: agents_md, include_backticks: true}
     on_fail: changes_requested

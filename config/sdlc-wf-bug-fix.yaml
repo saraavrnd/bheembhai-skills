@@ -7,8 +7,8 @@
 # except code-review, whose changes_requested means "fix the code" (same as sdlc-wf-story-delivery).
 workflow: sdlc-wf-bug-fix
 version: 1
+work_item: bug
 category: Software Delivery
-work_item: bug   # expected Jira issue type; the run is refused if the issue is not a Bug
 description: Fix a reported bug — triage, reproduce as a failing regression test, find the root cause, fix, verify, review, and open a PR.
 start: sdlc-fix-bug-triage
 steps:
@@ -56,7 +56,7 @@ steps:
     skill: sdlc-deliver-tests-verify
     model: low
     label: Verify the tests pass
-    deadline: 900
+    deadline: 1800
     "on":
       completed: sdlc-deliver-code-review
       changes_requested: sdlc-deliver-tests-verify

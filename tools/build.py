@@ -92,6 +92,11 @@ def pack(version, git_sha, out_dir):
         "skills": {d.name: content_sha256(d) for d in sorted(SKILLS.iterdir()) if d.is_dir()},
         "config": {f.name: file_sha256(f) for f in sorted(CONFIG.glob("*.yaml"))},
     }
+    # Optional: the verifier version this release's manifests were exercised
+    # against (ADR-032). The platform shows it on the Releases pane; absence is
+    # fine, so only carry the key when catalog.yaml declares it.
+    if catalog.get("verify_tested"):
+        manifest["verify_tested"] = str(catalog["verify_tested"])
     files = [ROOT / "catalog.yaml"]
     files += sorted(p for p in SKILLS.rglob("*") if p.is_file())
     files += sorted(CONFIG.glob("*.yaml"))

@@ -21,7 +21,7 @@ model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
 
 > **Artifact paths:** Resolve all project-artifact locations (architecture, data model, PRD,
 > epics, stories, ADRs, API contracts, per-story notes, etc.) from the **Project Layout** table
-> in `AGENTS.md` at the repo root. Do not hardcode paths; the
+> in the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths; the
 > current layout places these under `docs/` (e.g. `docs/architecture.md`, `docs/adr/`,
 > `docs/api-contracts/`, `docs/product/`). **Per-story artifacts live in that story's own
 > folder** `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/` with short, un-suffixed
@@ -99,12 +99,9 @@ docs/
 ├── api-contracts/            # *.openapi.yaml (the interface specs — the source of truth)
 ├── design-history/           # tech-design-proposal.md
 └── product/                  # PRD.md, epics.md, epic-map.json
-    ├── epics/<EPIC_KEY>/      #   _epic/ (stories.md, story-map.json, sdlc-plan-epic-sequence.*)
-    │   └── stories/<STORY_KEY>/   #   story-design.md, test-plan.md, verification.md, …
-    └── bugs/<BUG_KEY>/        #   bug-triage.md, reproduction.md, fix-design.md, test-plan.md, …
+    └── epics/<EPIC_KEY>/      #   _epic/ (stories.md, story-map.json, sdlc-plan-epic-sequence.*)
+        └── stories/<STORY_KEY>/   #   story-design.md, test-plan.md, verification.md, …
 ```
-Add the matching **Per-bug folder** row (`docs/product/bugs/<BUG_KEY>/`) to the Project Layout
-table next to the Per-story folder row, so the bug-fix workflow has a home from day one.
 API contracts live under `docs/api-contracts/` as the spec source of truth. If the stack also
 needs generated/shared types as a code package, generate them FROM those specs into the app's
 own package at build time — don't hand-maintain a second copy. Keep `AGENTS.md` at the repo root

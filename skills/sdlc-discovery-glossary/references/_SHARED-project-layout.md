@@ -4,15 +4,19 @@
 
 All PDLC skills read and write **project artifacts** (architecture, data model, PRD, epics,
 stories, ADRs, API contracts, per-story notes, etc.) at locations declared in the **Project
-Layout** table inside `AGENTS.md` at the repo root.
+Layout** table inside the repo's conventions file — `AGENTS.md` at the repo root, or `CLAUDE.md`
+when the repo has no `AGENTS.md`. When both exist, `AGENTS.md` wins.
 
 ## The rule
-1. Before reading or writing any project artifact, open `AGENTS.md` (repo root) and read its
+1. Before reading or writing any project artifact, open the conventions file — `AGENTS.md` (repo
+   root), or `CLAUDE.md` when the repo has no `AGENTS.md` — and read its
    **## Project Layout** table to resolve the artifact's current path.
 2. Use that resolved path. Do NOT hardcode a path from memory or from a skill's prose — the
    table is the single source of truth, and layouts move.
-3. If `AGENTS.md` or the Project Layout table is missing (e.g. very first run before
+3. If neither file exists, or the Project Layout table is missing (e.g. very first run before
    `sdlc-arch-repo-scaffold`), fall back to the default layout below and create artifacts there.
+   Create `AGENTS.md`; only when the repo already carries `CLAUDE.md` without a table, add the
+   table to `CLAUDE.md` instead of creating a second conventions file.
 
 ## Default layout (used only until AGENTS.md exists)
 | Artifact | Default path |
@@ -31,6 +35,7 @@ Layout** table inside `AGENTS.md` at the repo root.
 | Epics | `docs/product/epics.md` |
 | Epic map | `docs/product/epic-map.json` |
 | Per-epic folder | `docs/product/epics/<EPIC_KEY>/` |
+| Per-epic artifacts | `docs/product/epics/<EPIC_KEY>/_epic/` |
 | Stories list | `docs/product/epics/<EPIC_KEY>/_epic/stories.md` |
 | Story map | `docs/product/epics/<EPIC_KEY>/_epic/story-map.json` |
 | Epic sequence | `docs/product/epics/<EPIC_KEY>/_epic/epic-sequence.md` and `.json` |
@@ -68,7 +73,7 @@ at `docs/product/`. To locate a story's folder you need its epic key — resolve
 ## Work items: stories and bugs
 A delivery run works on one Jira issue, its **work item**: a story (`sdlc-wf-story-delivery`) or a
 bug (`sdlc-wf-bug-fix`). The deliver skills that both workflows share (`sdlc-deliver-code-implement`,
-`-tests-verify`, `-code-review`, `-docs-sync`, `-pr-open`) work on either, because the platform
+`-tests-verify`, `-code-review`, `-docs-sync`, `-pr-open`) work on either, because the verifier
 binds these names per run:
 
 | Name | Story run | Bug run |

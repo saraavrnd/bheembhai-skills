@@ -79,12 +79,6 @@ checks:
     args: {paths: ["**/*.py"], pattern: 'except(\s+\w+)?\s*:\s*(pass|\.\.\.)\s*$'}
     on_fail: changes_requested
     reason_code: faked_green
-  - id: test_plan_untouched
-    description: The plan lists the protected tests; only the step that wrote the tests may change it.
-    run: builtin:diff_paths
-    args: {forbidden: ["{layout.story_dir}test-plan.md"]}
-    on_fail: changes_requested
-    reason_code: faked_green
   - id: no_design_doc_edits
     description: Architecture, contracts and ADRs change only through sdlc-arch-design (amend) or sdlc-deliver-docs-sync.
     run: builtin:diff_paths

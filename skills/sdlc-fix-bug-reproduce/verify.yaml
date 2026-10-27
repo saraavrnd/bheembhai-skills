@@ -1,5 +1,6 @@
 version: 1
 skill: sdlc-fix-bug-reproduce
+work_items: [bug]
 summary: >
   Triage said Fix and the harness is green before any tokens are spent. Afterwards the regression
   tests in test-plan.md exist and fail with the recorded symptom signature, the guard tests pass,
@@ -76,6 +77,20 @@ checks:
     args: {fact: facts.symptom_signature, min: 1, max: 1}
     on_fail: changes_requested
     reason_code: structure
+  - id: reproduced_reports_completed
+    description: A recorded signature means the symptom reproduced (possibly at a lower layer), so the step completes rather than escalates.
+    when: "facts.symptom_signature"
+    run: builtin:self_verdict_consistent
+    args: {fact: facts.symptom_signature, map: {"*": completed}}
+    on_fail: changes_requested
+    reason_code: report_inconsistent
+  - id: unreproduced_escalates
+    description: With no recorded signature the symptom never reproduced, so escalation is the honest outcome (both escalation cases in SKILL.md).
+    when: "not facts.symptom_signature"
+    run: builtin:self_verdict_consistent
+    args: {fact: facts.symptom_signature, map: {"*": escalation_required}}
+    on_fail: changes_requested
+    reason_code: report_inconsistent
   - id: no_template_residue
     run: builtin:md_no_placeholders
     args: {artifact: reproduction}

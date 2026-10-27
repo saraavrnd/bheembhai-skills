@@ -1,5 +1,6 @@
 version: 1
 skill: sdlc-fix-rootcause-analyze
+work_items: [bug]
 summary: >
   The bug is reproduced (regression tests red) before any tokens are spent. Afterwards
   fix-design.md names a root cause at a real file:line, a causal chain ending in the recorded

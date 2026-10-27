@@ -12,7 +12,7 @@ compatibility: >
   Tool-agnostic skill body (Claude Code or Codex). Uses the Atlassian (Jira) MCP to read the bug
   and transition it. Reads architecture.md, the stories/contracts that define the expected
   behaviour, and recent bugs in the same component. Resolves artifact paths from the Project
-  Layout table in AGENTS.md.
+  Layout table in the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none).
 model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
 
 ---
@@ -20,7 +20,7 @@ model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
 # sdlc-fix-bug-triage — Decide What the Bug Is
 
 > **Artifact paths:** Resolve all project-artifact locations from the **Project Layout** table in
-> `AGENTS.md` at the repo root. Do not hardcode paths. **Per-bug
+> the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths. **Per-bug
 > artifacts live in that bug's own folder** `docs/product/bugs/<BUG_KEY>/` (`{layout.bug_dir}`),
 > with short filenames: bug-triage.md, reproduction.md, test-plan.md, fix-design.md,
 > verification.md, code-review.md, design-sync.md.
@@ -38,7 +38,7 @@ fixing as a bug at all?**
 
 ## Input it expects
 - A bug key (the run's work item), with a summary and description in Jira (`context.bug`).
-- `AGENTS.md` with the Project Layout table, and `docs/architecture.md`.
+- The repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none) with the Project Layout table, and `docs/architecture.md`.
 - Where they exist: the story whose acceptance criteria cover this behaviour, the API contract,
   `docs/ui-conventions.md` for UI bugs.
 

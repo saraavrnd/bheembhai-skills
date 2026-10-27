@@ -19,7 +19,7 @@ model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
 # sdlc-fix-bug-reproduce — Make the Bug Fail on Demand
 
 > **Artifact paths:** Resolve all project-artifact locations from the **Project Layout** table in
-> `AGENTS.md` at the repo root. Do not hardcode paths. **Per-bug
+> the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths. **Per-bug
 > artifacts live in that bug's own folder** `docs/product/bugs/<BUG_KEY>/` (`{layout.bug_dir}`).
 > Tests go in the project's test tree, never in the bug folder.
 

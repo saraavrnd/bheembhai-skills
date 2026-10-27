@@ -25,7 +25,7 @@ model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
 
 > **Artifact paths:** Resolve all project-artifact locations (architecture, data model, PRD,
 > epics, stories, ADRs, API contracts, per-story notes, etc.) from the **Project Layout** table
-> in `AGENTS.md` at the repo root. Do not hardcode paths; the
+> in the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths; the
 > current layout places these under `docs/` (e.g. `docs/architecture.md`, `docs/adr/`,
 > `docs/api-contracts/`, `docs/product/`). **Per-story artifacts live in that story's own
 > folder** `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/` with short, un-suffixed

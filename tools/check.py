@@ -166,6 +166,10 @@ def check_catalog():
     for key in ("requires_platform", "requires_verify"):
         if not c.get(key):
             err(f"catalog.yaml: {key} missing")
+    # Optional, but a non-string (YAML reads a bare 1.3 as a float) makes the
+    # platform refuse the release at parse time instead of showing it.
+    if "verify_tested" in c and not isinstance(c["verify_tested"], str):
+        err(f"catalog.yaml: verify_tested '{c['verify_tested']}' must be a quoted string, e.g. \"1.3.0\"")
     pin = None
     req = ROOT / "requirements-verify.txt"
     if req.is_file():

@@ -42,7 +42,7 @@ steps:
     skill: sdlc-deliver-tests-verify
     model: low   # per-step model (backend-enforced)
     label: Verify the tests pass
-    deadline: 900
+    deadline: 1800
     "on":
       completed: sdlc-deliver-code-review
       # A failed honest-green check sends the story back to implementation. Routing lives

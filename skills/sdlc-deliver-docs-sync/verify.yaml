@@ -29,9 +29,9 @@ artifacts:
 
 checks:
   - id: docs_only
-    description: Docs and AGENTS.md only; never production code or tests.
+    description: Docs and the conventions file only; never production code or tests.
     run: builtin:diff_paths
-    args: {allowed: ["docs/**", "AGENTS.md"]}
+    args: {allowed: ["docs/**", "{layout.agents_md}"]}
     on_fail: changes_requested
     reason_code: scope
   - id: changelog_append_only

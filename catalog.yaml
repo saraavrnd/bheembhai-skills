@@ -1,7 +1,13 @@
 # BheemBhai skills catalog (ADR-032). A release tag vX.Y.Z must match `version`.
-version: 0.1.0
+version: 0.2.0
 # The instance must satisfy both, or the Catalog page disables this release.
-# 0.1.0 ships the bug-fix skills, which need ADR-031's engine features; set the real
-# platform version that implements them before the first deploy.
-requires_platform: ">=0.0.0"
-requires_verify: ">=0.1,<1"
+# 0.2.0 carries ADR-031's work-item bindings (the bug-fix skills plus the
+# `work_items:` / `{layout.bug_*}` checks) and ADR-030's verify.yaml v2
+# manifests, so it needs a platform that implements them (0.1.0 does) and a
+# 2.x verifier contract. 0.1.0 shipped a stale pre-ADR-031 copy of the tree.
+requires_platform: ">=0.1.0"
+requires_verify: ">=2.0"
+# Optional metadata: the verifier version these manifests were exercised
+# against (the platform tree's strict v2 validator: 36 manifests, 0 errors).
+# Shown on the Releases pane; `requires_verify` is the gate.
+verify_tested: "2.0"

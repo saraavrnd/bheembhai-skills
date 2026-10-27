@@ -2,7 +2,7 @@ version: 1
 skill: sdlc-discovery-init
 summary: >
   services.md carries a valid bheembhai:foreach block of first-party services with unique,
-  filesystem-safe ids whose roots and manifests exist, and AGENTS.md has the Project Layout table
+  filesystem-safe ids whose roots and manifests exist, and the repo's conventions file has the Project Layout table
   with the discovery rows.
 verdicts_used: [changes_requested, escalation_required]
 
@@ -38,7 +38,7 @@ artifacts:
   - id: services
     path: "{layout.services_manifest}"
   - id: agents_md
-    path: "AGENTS.md"
+    path: "{layout.agents_md}"
     must_change: false
 
 checks:
@@ -126,7 +126,7 @@ checks:
     reason_code: structure
   - id: bootstrap_files_only
     run: builtin:diff_paths
-    args: {allowed: ["AGENTS.md", "{layout.discovery_root}**"]}
+    args: {allowed: ["{layout.agents_md}", "{layout.discovery_root}**"]}
     on_fail: changes_requested
     reason_code: scope
 

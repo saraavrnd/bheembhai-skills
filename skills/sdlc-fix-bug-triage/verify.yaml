@@ -1,5 +1,6 @@
 version: 1
 skill: sdlc-fix-bug-triage
+work_items: [bug]
 summary: >
   The bug report is non-empty before any tokens are spent, and afterwards bug-triage.md exists in
   the bug folder with expected vs actual pinned to a source, numbered steps, a rubric severity and

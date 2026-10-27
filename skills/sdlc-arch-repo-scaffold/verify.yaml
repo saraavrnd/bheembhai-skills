@@ -1,6 +1,6 @@
 version: 1
 skill: sdlc-arch-repo-scaffold
-summary: The repository builds, lints, runs its trivial tests per layer, brings the stack up and answers on the walking-skeleton path; AGENTS.md carries the Project Layout table.
+summary: The repository builds, lints, runs its trivial tests per layer, brings the stack up and answers on the walking-skeleton path; The repo's conventions file carries the Project Layout table.
 verdicts_used: [failed_execution, changes_requested, escalation_required]
 
 facts:
@@ -30,7 +30,7 @@ preconditions:
 
 artifacts:
   - id: agents_md
-    path: "AGENTS.md"
+    path: "{layout.agents_md}"
   - id: readme
     path: "README.md"
   - id: compose

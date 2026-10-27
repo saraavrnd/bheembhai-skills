@@ -41,7 +41,10 @@ checks:
     reason_code: missing_artifact
   - id: right_branch
     run: builtin:branch_matches
-    args: {pattern: '(feat|fix)/{story}\b'}
+    # (?i): {story} is the raw Jira key (LEARN-21); derive_run_branch lowercases
+    # it into the branch name, so a case-sensitive pattern never matches (ADR-031
+    # §Defects 2).
+    args: {pattern: '(?i)(feat|fix)/{story}\b'}
     on_fail: changes_requested
     reason_code: wrong_assumption
   - id: pr_open
