@@ -174,13 +174,28 @@ def check_catalog():
     req = ROOT / "requirements-verify.txt"
     if req.is_file():
         for line in req.read_text().splitlines():
-            m = re.match(r"\s*bheembhai-verify\s*==\s*([\d.]+)", line)
+            # Exact full semver only: an open range would let CI install a
+            # version the release assets were never published for, and a
+            # two-part "==2.0" is not a valid PEP 440 pin either.
+            m = re.match(r"^\s*bheembhai-verify\s*==\s*(\d+\.\d+\.\d+)\s*$", line)
             if m:
                 pin = m.group(1)
     if pin is None:
-        print("note: requirements-verify.txt has no active bheembhai-verify pin yet; tier 2 is skipped")
-    elif c.get("requires_verify") and satisfies(pin, c["requires_verify"]) is False:
-        err(f"requirements-verify.txt pins bheembhai-verify {pin}, outside catalog.yaml requires_verify '{c['requires_verify']}'")
+        err(
+            "requirements-verify.txt has no exact bheembhai-verify==X.Y.Z pin — tier 2 "
+            "cannot install the verifier, so the manifest gate never runs"
+        )
+    else:
+        requirement = c.get("requires_verify")
+        if requirement:
+            verdict = satisfies(pin, requirement)
+            if verdict is False:
+                err(f"requirements-verify.txt pins bheembhai-verify {pin}, outside catalog.yaml requires_verify '{requirement}'")
+            elif verdict is None:
+                # Fail CLOSED: a range this parser does not understand is not a
+                # range the pin satisfies. (This is the one place the skills repo
+                # deliberately differs from the platform's own parser.)
+                err(f"catalog.yaml requires_verify '{requirement}' is not a range this checker can read — fix the range, not the checker")
 
 
 def main():

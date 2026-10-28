@@ -1,14 +1,20 @@
 # Publishes a catalog release (ADR-032 §3.1). Push a tag vX.Y.Z that matches catalog.yaml `version`.
 # The platform's admin Catalog page lists these releases and imports the one an admin picks.
+# Tier 2 (the platform's own manifest gate) runs here WITHOUT the fork-PR guard:
+# a release must never ship manifests the platform would refuse to save.
 name: release
 on:
   push:
     tags: ["v*.*.*"]
 permissions:
+  # `gh release create` publishes into this repo; the tier-2 download reads the
+  # platform repo with PLATFORM_REPO_TOKEN, not this permission.
   contents: write
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      PLATFORM_REPO_TOKEN: ${{ secrets.PLATFORM_REPO_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,6 +25,25 @@ jobs:
       - run: pip install -r requirements-tools.txt
       - run: python tools/build.py sync --check
       - run: python tools/check.py
+      - name: Install the verifier (tier 2)
+        env:
+          GH_TOKEN: ${{ env.PLATFORM_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${GH_TOKEN:-}" || { echo "PLATFORM_REPO_TOKEN is not configured"; exit 1; }
+          PIN=$(sed -n 's/^bheembhai-verify==\([0-9.]*\)$/\1/p' requirements-verify.txt)
+          test -n "$PIN" || { echo "no bheembhai-verify pin in requirements-verify.txt"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/verify-pkg"
+          gh release download "verify-v$PIN" -R saraavrnd/bheembhai-mvp \
+            -p '*.whl' -p 'SHA256SUMS' -D "$RUNNER_TEMP/verify-pkg"
+          cd "$RUNNER_TEMP/verify-pkg"
+          WHEEL=$(ls ./*.whl)
+          grep -qF "$(basename "$WHEEL")" SHA256SUMS
+          sha256sum -c SHA256SUMS --ignore-missing
+          pip install "$WHEEL"
+          bheembhai-verify --version
+      - name: Verifier lint (tier 2)
+        run: bheembhai-verify lint skills/ --require-all
       - name: Pack (fails if the tag does not match catalog.yaml version)
         run: python tools/build.py pack --version "${GITHUB_REF_NAME#v}" --git-sha "$GITHUB_SHA"
       - name: Create the GitHub Release

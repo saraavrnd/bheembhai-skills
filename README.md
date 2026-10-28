@@ -25,6 +25,31 @@ Catalog page.
 Naming: skills `sdlc-<phase>-<object>-<action>`, workflows `sdlc-wf-*`, policies `sdlc-policy-*`;
 a workflow step's id equals its skill name.
 
+## The verifier (tier 2)
+
+`verify.yaml` is parsed by **the platform's own gate**, not a re-implementation: the
+`bheembhai-verify` package from `saraavrnd/bheembhai-mvp` (ADR-032 §2a). `requirements-verify.txt`
+pins the exact release; `tools/check.py` refuses an unpinned or mis-ranged value, and CI/locally
+you run it as:
+
+```bash
+pip install -r requirements-tools.txt
+python tools/check.py                      # tier 1 — pin, ranges, folder names
+bheembhai-verify lint skills/ --require-all # tier 2 — the platform's own save gate
+```
+
+Locally, without a release downloaded: `pip install -e ../bheembhai-mvp/packages/bheembhai-verify`
+(or the matching checkout) and run the same two commands.
+
+In CI, tier 2 is installed from the platform repo's `verify-v<pin>` release assets, which is a
+**private** repo — so the workflow needs a `PLATFORM_REPO_TOKEN` secret (fine-grained PAT,
+*Contents: read* on `saraavrnd/bheembhai-mvp`). A fork PR cannot read secrets: tier 2 is skipped
+there with a CI notice, and the release workflow (which always has the secret) refuses to run
+without it.
+
+Updating the pin: tag a release in the platform repo (`verify-vX.Y.Z`), set
+`bheembhai-verify==X.Y.Z` here, and keep `catalog.yaml`'s `requires_verify` satisfied.
+
 ## Releasing
 
 1. Bump `version` in `catalog.yaml` (and `requires_platform` / `requires_verify` if the skills need
