@@ -102,8 +102,10 @@ would otherwise have to copy, and what would drift. The step kit packages it:
 - **Shared auth and secrets helpers:** the `CognitoProvider` token verification (ADR-010) and the
   `SecureStorage` protocol with its Secrets Manager implementation (ADR-012).
 
-The platform's engine imports the same package from its own folder (a path dependency, as with
-`bheembhai-verify`), so it isn't a second implementation. The step kit and the agent image change
+The platform's engine is refactored to run on the same package: the code moves out of the engine
+into the kit and the engine imports it back from its own folder (a path dependency, as with
+`bheembhai-verify`), proven unchanged by golden tests (platform ADR-033 §1a). So it isn't a second
+implementation. The step kit and the agent image change
 together when the env contract changes, so a stepkit release names the image versions it
 supports, and the skilltester refuses a mismatched pair.
 
