@@ -69,7 +69,7 @@ materials listing the package versions, the agent image digest and the env contr
 The skilltester pins **one kit version** in `skilltester/kit.txt` and installs and pulls exactly
 what `kit.json` lists, a set the platform tested together. (The catalog's own CI keeps pinning
 only `bheembhai-verify` in `requirements-verify.txt`, since that version is part of the catalog
-contract.) The table's "How it's pinned" column becomes "through `kit.json`" for all three.
+contract.)
 
 **Pulling the image from ECR.** The skilltester host has a read-only AWS identity allowed
 `ecr:GetAuthorizationToken`, `ecr:BatchGetImage` and `ecr:GetDownloadUrlForLayer` on the agent
