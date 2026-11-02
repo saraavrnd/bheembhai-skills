@@ -10,7 +10,7 @@ the skilltester to consume) is the platform's **ADR-033**.
 **Builds on (platform ADRs):** ADR-010 (pluggable auth, Cognito), ADR-012 (secure storage, Secrets
 Manager), ADR-013 §3 (content-addressed skill bundles), ADR-014 (results over object storage),
 ADR-019 (phase service, not built yet; not required), ADR-032 (skills catalog repo, `bheembhai-verify`, testbed tiers 3–4),
-ADR-033 (shared runtime kit for external runners).
+ADR-033 (shared runtime kit for external runners), ADR-034 (skill security scanning).
 
 ## Context
 
@@ -212,6 +212,34 @@ platform verifier release. Before packing, the runner runs `bheembhai-verify lin
 `selftest` on the skill and refuses to start if they fail, and checks that `catalog.yaml`'s
 `requires_verify` accepts the pinned version.
 
+### 6b. Security scan (platform ADR-034)
+
+A test run hands the skill real Jira, GitHub and model credentials, so the skilltester scans a
+skill before it runs it, with the same two SkillSpector stages and the same pinned
+`bheembhai-skillscan` package the platform uses (ADR-034 §7). A skill gets the same verdict here,
+in this repo's CI and in the platform.
+
+- **Static check** on every save of a skill in the web app, and again before every run on the exact
+  bundle the run will use. Cached by content sha. `DO_NOT_INSTALL`, a CRITICAL finding or
+  incomplete coverage refuses the run, with the findings shown. There is no override: fix the
+  skill and save.
+- **LLM check** starts automatically when the static check passes, once per content sha. The author
+  picks the model from the test project's **AI models** profiles (§4); the choice is the project's
+  default, and the key comes from Secrets Manager like any other run. The LLM check never refuses
+  a run. Its findings are shown for the author to act on; there is no human-review step here.
+- **Security tab** on the skill and run pages, next to the verify results (§6): score,
+  recommendation, each finding with severity, rule, file and line, and which model ran the LLM
+  check.
+- **CLI:** `python -m skilltester.runner scan --project <p> --skill <s> --skills-ref <branch>`
+  runs both stages without a test run; `--static-only` skips the model.
+- **Not a gate for the platform.** The skilltester never writes to the platform (§8). Its scan is
+  advice for the author; this repo's CI and the platform scan again.
+
+This repo's CI (`ci.yml`) also runs the static check on every PR, through the same package, with
+SARIF uploaded so findings show on the PR. It skips the LLM check, because the platform runs both
+stages at import (ADR-034 §6). Accepted findings live in `.skillspector-baseline.yaml`, each with a
+reason, and need a CODEOWNERS review.
+
 ### 7. The CLI
 
 `python -m skilltester.runner run --project <p> --skill <s> --skills-ref <branch> --input <branch>`
@@ -305,6 +333,10 @@ and out of scope here.
 - Secret values never appear in the database, logs, results or run pages.
 - Re-verify calls no model and grades with the new commit's verify.yaml.
 - Jira seeding replaces aliases with real keys, and cleanup leaves no issues behind.
+- A skill whose static check is `DO_NOT_INSTALL` never starts a run; the LLM check is never called
+  for it.
+- The skilltester and the platform give the same scan verdict for the same bundle (both pin
+  `bheembhai-skillscan`).
 - The platform engine and the skilltester build the same `BB_CONTEXT` for the same workflow step
   (both import the step kit).
 
@@ -314,3 +346,4 @@ and out of scope here.
 - `skill-verification/skill-verification-design.md`
 - `skill-verification/discovery-fix/tools/` (`run_examples.py`, `build_fixture.py`)
 - Platform ADR-033: shared runtime kit for external runners (the platform half of this decision)
+- Platform ADR-034: skill security scanning and approved revisions (§6b)
