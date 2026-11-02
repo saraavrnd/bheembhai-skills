@@ -219,14 +219,17 @@ skill before it runs it, with the same two SkillSpector stages and the same pinn
 `bheembhai-skillscan` package the platform uses (ADR-034 §7). A skill gets the same verdict here,
 in this repo's CI and in the platform.
 
-- **Static check** on every save of a skill in the web app, and again before every run on the exact
-  bundle the run will use. Cached by content sha. `DO_NOT_INSTALL`, a CRITICAL finding or
-  incomplete coverage refuses the run, with the findings shown. There is no override: fix the
-  skill and save.
-- **LLM check** starts automatically when the static check passes, once per content sha. The author
-  picks the model from the test project's **AI models** profiles (§4); the choice is the project's
-  default, and the key comes from Secrets Manager like any other run. The LLM check never refuses
-  a run. Its findings are shown for the author to act on; there is no human-review step here.
+- **No scan on save**, as in the platform (ADR-034 §2). Scans run when the author asks for them
+  and before every run.
+- **Static check** before every run on the exact bundle the run will use, and from a **Security
+  check** button on the skill page. Cached by content sha. `DO_NOT_INSTALL`, a CRITICAL finding or
+  incomplete coverage refuses the run, with the findings shown. Accepted findings cannot clear a
+  block (ADR-034 §7). There is no override: fix the skill and save.
+- **LLM check** is queued by the **Security check** button only after the static check passes for
+  that content sha; a run never waits for it. The author picks the model from the test project's
+  **AI models** profiles (§4); only the project owner changes the default, and the key comes from
+  Secrets Manager like any other run. The LLM check never refuses a run. Its findings are shown for
+  the author to act on; there is no human-review step here.
 - **Security tab** on the skill and run pages, next to the verify results (§6): score,
   recommendation, each finding with severity, rule, file and line, and which model ran the LLM
   check.
