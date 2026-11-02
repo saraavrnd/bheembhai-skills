@@ -15,6 +15,7 @@ Catalog page.
 | `requirements-verify.txt` | Exact pin of the shared verifier `bheembhai-verify` (ADR-032 §2a) |
 | `tools/` | `check.py` (tier-1 checks), `build.py` (sync shared notes, pack a release), `known-issues.txt` |
 | `docs/skill-chain.md` | How the skills chain into workflows |
+| `docs/adr/` | Decision records for this repo (`SK-*`; platform ADRs are referenced by plain number) |
 
 ## Changing a skill
 
