@@ -41,8 +41,7 @@ bheembhai-skills/
 └── skilltester/
     ├── app/                            # web app: login, projects, runs, results
     ├── runner/                         # drives the agent container (also usable from the CLI)
-    ├── agent-image.txt                 # pinned agent image digest (§2)
-    ├── requirements.txt                # pins bheembhai-verify, bheembhai-stepkit
+    ├── kit.txt                         # pinned platform kit version (§2)
     └── docker-compose.yml              # app + database, local or on one host
 ```
 
@@ -60,14 +59,22 @@ pinned versions, and records them on every run.
 
 | Component | What it is | How it's pinned | Source |
 |---|---|---|---|
-| **Agent image** | The container the platform runs for every step: phase service (ADR-019), `run_skill.sh` prompt rendering, `.mcp.json` rendering, Claude Code | Image **digest** in `skilltester/agent-image.txt`, pulled from the platform's **ECR** repo | Platform image build |
-| **`bheembhai-verify`** | verify.yaml loader, builtin checks, verdict precedence | `requirements.txt`, same as tier 2 | `verify-vX.Y.Z` releases (ADR-032 §2a) |
-| **`bheembhai-stepkit`** (new) | The engine-side code that runs before a container starts (§2a) | `requirements.txt` | `stepkit-vX.Y.Z` releases from the platform repo |
+| **Agent image** | The container the platform runs for every step: phase service (ADR-019), `run_skill.sh` prompt rendering, `.mcp.json` rendering, Claude Code | Image **digest** from `kit.json`, pulled from the platform's **ECR** repo | Platform image build |
+| **`bheembhai-verify`** | verify.yaml loader, builtin checks, verdict precedence | Via the kit (below) | Platform kit releases (ADR-032 §2a, platform ADR-033 §3) |
+| **`bheembhai-stepkit`** (new) | The engine-side code that runs before a container starts (§2a) | Via the kit (below) | Platform kit releases |
+
+**One pin: the platform kit.** The platform releases its exported parts together as a kit
+(`kit-vN`, platform ADR-033 §3), each part with its own version, plus a `kit.json` bill of
+materials listing the package versions, the agent image digest and the env contract version.
+The skilltester pins **one kit version** in `skilltester/kit.txt` and installs and pulls exactly
+what `kit.json` lists, a set the platform tested together. (The catalog's own CI keeps pinning
+only `bheembhai-verify` in `requirements-verify.txt`, since that version is part of the catalog
+contract.) The table's "How it's pinned" column becomes "through `kit.json`" for all three.
 
 **Pulling the image from ECR.** The skilltester host has a read-only AWS identity allowed
 `ecr:GetAuthorizationToken`, `ecr:BatchGetImage` and `ecr:GetDownloadUrlForLayer` on the agent
 image repository only. The runner logs in with the ECR token and pulls by digest. Updating the
-image is a one-line change to `agent-image.txt`, in a PR like any other.
+image, the verifier or the stepkit is a one-line change to `kit.txt`, in a PR like any other.
 
 ### 2a. The step kit
 
@@ -245,7 +252,7 @@ and out of scope here.
 
 | Phase | What | Size |
 |---|---|---|
-| S0 | Platform (tracked in platform ADR-033): extract `bheembhai-stepkit` (context builder, env contract, phase client, Cognito and Secrets Manager helpers), release job, image ↔ stepkit compatibility | 1–2 weeks |
+| S0 | Platform (tracked in platform ADR-033): extract `bheembhai-stepkit` (context builder, env contract, phase client, Cognito and Secrets Manager helpers), `kit-v*` release job with `kit.json`, image ↔ stepkit compatibility | 1–2 weeks |
 | S1 | Runner + CLI: ECR pull, bundle packing, phase-driven run, results to S3 and DB, re-verify | 2 weeks |
 | S2 | Web app: Cognito login, projects, integrations with Secrets Manager, run form, run page | 2–3 weeks |
 | S3 | Jira seeding and cleanup, skill history, compare, suites, nightly CI run | 2 weeks |
@@ -263,7 +270,7 @@ and out of scope here.
 
 ## Rollout
 
-1. S0 in the platform repo (platform ADR-033); first `stepkit-v*` release and an image digest to pin.
+1. S0 in the platform repo (platform ADR-033); first `kit-v*` release to pin.
 2. S1 in `bheembhai-skills/skilltester`; pilot with the CLI on the bug-fix skills.
 3. S2 web app; create the Cognito app client and group, the S3 bucket, the IAM role.
 4. S3 and a nightly suite run in CI.
