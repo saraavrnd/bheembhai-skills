@@ -9,7 +9,7 @@ the skilltester to consume) is the platform's **ADR-033**.
 
 **Builds on (platform ADRs):** ADR-010 (pluggable auth, Cognito), ADR-012 (secure storage, Secrets
 Manager), ADR-013 §3 (content-addressed skill bundles), ADR-014 (results over object storage),
-ADR-019 (phase service), ADR-032 (skills catalog repo, `bheembhai-verify`, testbed tiers 3–4),
+ADR-019 (phase service, not built yet; not required), ADR-032 (skills catalog repo, `bheembhai-verify`, testbed tiers 3–4),
 ADR-033 (shared runtime kit for external runners).
 
 ## Context
@@ -59,7 +59,7 @@ pinned versions, and records them on every run.
 
 | Component | What it is | How it's pinned | Source |
 |---|---|---|---|
-| **Agent image** | The container the platform runs for every step: phase service (ADR-019), `run_skill.sh` prompt rendering, `.mcp.json` rendering, Claude Code | Image **digest** from `kit.json`, pulled from the platform's **ECR** repo | Platform image build |
+| **Agent image** | The container the platform runs for every step: `run_skill.sh` (clone, skill bundle, prompt, Claude Code, commit, push, result upload), in one go | Image **digest** from `kit.json`, pulled from the platform's **ECR** repo | Platform image build |
 | **`bheembhai-verify`** | verify.yaml loader, builtin checks, verdict precedence | Via the kit (below) | Platform kit releases (ADR-032 §2a, platform ADR-033 §3) |
 | **`bheembhai-stepkit`** (new) | The engine-side code that runs before a container starts (§2a) | Via the kit (below) | Platform kit releases |
 
@@ -78,19 +78,27 @@ image, the verifier or the stepkit is a one-line change to `kit.txt`, in a PR li
 
 ### 2a. The step kit
 
-Most of what makes a run faithful already lives inside the agent image: the prompt
-(`run_skill.sh`), `.mcp.json` rendering and the verify phase (phase service). What lives in the
-**engine**, outside the image, is the code that prepares a step. That is what the skilltester
+Most of what makes a run faithful already lives inside the agent image: `run_skill.sh` clones the
+run branch, installs the skill bundle, renders the prompt, runs Claude Code, commits, pushes and
+uploads the result, in one go. ADR-019's phase service is not built yet, so nothing here depends
+on it. What lives in the **engine**, outside the image, is the code that prepares, launches and
+reads back a step. That is what the skilltester
 would otherwise have to copy, and what would drift. The step kit packages it:
 
 - **Context builder:** the engine's `build_step_context`: `allowed_result_statuses`,
   `result_status_meanings`, `gate_follows` / `gate_role`, `reviewer_feedback`, `upstream_handoff`,
   rendered to `BB_CONTEXT`.
-- **Env contract:** which variables the image expects (`BB_*`, model credentials and base URL,
-  MCP tokens, `BB_SKILL_URL` / `BB_SKILL_SHA256`, `BB_RESULT_PUT_URL`) and how they are built from
-  a project's integrations.
-- **Phase client:** calls `/provision`, `/checkout`, `/run`, `/status`, `/verify`, `/commit`, with
-  idempotency keys and the response envelope (ADR-019 D2a).
+- **Env contract:** which variables `run_skill.sh` reads (git coordinates and `RUN_BRANCH`,
+  `BB_MODEL` from the tier, vendor key and base URL, `BB_MCP_CONFIG` from the selected MCP
+  servers, `BB_SKILL_URL` / `BB_SKILL_SHA256`, run and step ids, `BB_CONTEXT`, the ADR-014
+  presigned PUT URLs) and how they are built from a project's integrations.
+- **Branch:** create the run branch from a source branch through the GitHub API, as `_init_run`
+  does.
+- **Launch:** the engine's container launch spec and a launcher that runs it and waits for exit.
+- **Outcome:** the reconciler's join of exit status and `bb_step_result.json` into a result
+  status, so a run is classified exactly as in the platform.
+- **Later, phases:** when ADR-019 ships, a phase client joins the kit and the runner can use it.
+  The env contract version says which mode an image supports.
 - **Shared auth and secrets helpers:** the `CognitoProvider` token verification (ADR-010) and the
   `SecureStorage` protocol with its Secrets Manager implementation (ADR-012).
 
@@ -148,12 +156,22 @@ A run tests **one skill**. The user picks:
 4. **Model profile and tier:** the skill's `model:` tier by default, or a fixed cheaper tier for
    smoke runs. Turn and spend caps per run.
 
-The runner then drives the pinned agent image through the phase service:
-`provision → checkout → run → verify → commit`.
+The runner then does what the engine does for one step today, using the step kit:
 
-- `checkout` cuts a **new run branch** `skilltest/<run-id>` from the input branch. The input
-  branch is never written to, so test data can't be overwritten.
-- `commit` pushes the skill's output to the run branch.
+1. **Branch:** create a **new run branch** `skilltest/<run-id>` from the input branch's head
+   through the GitHub API, and record that head SHA as the baseline. The input branch is never
+   written to, so test data can't be overwritten.
+2. **Launch:** build the env (presigned URLs point at the skilltester's own S3 bucket), start the
+   pinned agent image with Docker, and follow `progress.json` and `agent.log` while it runs.
+   `run_skill.sh` clones the run branch, runs the skill, commits and pushes to it, and uploads
+   `bb_step_result.json`.
+3. **Outcome:** on exit, classify the result exactly as the engine's reconciler does.
+4. **Verify (in the skilltester):** check out the run branch and run the pinned
+   `bheembhai-verify` on it, with the baseline SHA for `must_change` and preconditions, and the
+   skill's `verify.yaml` from the pinned skills commit. Verification runs outside the agent
+   container, so the agent can't edit what grades it. If verification later moves into the image
+   (skill-verification design §7), the runner reads its result instead, and the skilltester's
+   verifier stays for re-verify.
 - **Chaining by hand:** a run's output branch can be the next run's input branch. That's how a
   sequence (triage → reproduce → root cause → implement) is tested one skill at a time, with each
   step's result kept.
@@ -252,8 +270,8 @@ and out of scope here.
 
 | Phase | What | Size |
 |---|---|---|
-| S0 | Platform (tracked in platform ADR-033): extract `bheembhai-stepkit` (context builder, env contract, phase client, Cognito and Secrets Manager helpers), `kit-v*` release job with `kit.json`, image ↔ stepkit compatibility | 1–2 weeks |
-| S1 | Runner + CLI: ECR pull, bundle packing, phase-driven run, results to S3 and DB, re-verify | 2 weeks |
+| S0 | Platform (tracked in platform ADR-033): extract `bheembhai-stepkit` (context builder, env contract, branch, launch, outcome, Cognito and Secrets Manager helpers), `kit-v*` release job with `kit.json`, image ↔ stepkit compatibility | 1–2 weeks |
+| S1 | Runner + CLI: ECR pull, bundle packing, branch + launch + outcome via the step kit, verification with `bheembhai-verify`, results to S3 and DB, re-verify | 2 weeks |
 | S2 | Web app: Cognito login, projects, integrations with Secrets Manager, run form, run page | 2–3 weeks |
 | S3 | Jira seeding and cleanup, skill history, compare, suites, nightly CI run | 2 weeks |
 | — | Input branches for the bug-fix chain in the sandbox repo, Jira fixture data | 1 week, alongside |
@@ -261,9 +279,9 @@ and out of scope here.
 ## Open questions
 
 1. Jira isolation: a fresh project per run, or one shared project with run labels?
-2. Does the agent image's phase service already have the `verify` phase writing the
-   `verification` block? If not, the runner runs `bheembhai-verify` on the output branch itself
-   until it does.
+2. Should verification stay in the skilltester for good, or move into the agent image later
+   (skill-verification design §7)? Either way the runner works; this decides only where the
+   result comes from.
 3. Where does the skilltester run: a laptop with Docker, one EC2 host, or ECS? (Docker access is
    needed for the runtime.)
 4. One stepkit package, or split auth/secrets helpers into their own package?
