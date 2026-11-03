@@ -1,22 +1,21 @@
 ---
 name: sdlc-plan-epics-create
+role: author   # ADR-035: author | reviewer | integration
 description: >
-  Decompose a Product Requirements Document (PRD) into well-formed Jira EPICS and create them
-  in a Jira project using the connected Atlassian MCP. Use this as the SECOND step of the PDLC
-  chain, right after the `sdlc-plan-prd-write` skill. Trigger this even when the user just says "break the PRD
-  into epics", "decompose the PRD", "create the epics in Jira", "import epics", or "set up the
-  Jira project from the PRD". This skill reads a PRD.md, groups requirements into epics along
-  feature-area boundaries, and creates them via Atlassian MCP tools (it does NOT call the Jira
-  REST API directly).
+  Decompose a Product Requirements Document (PRD) into well-formed EPICS — written to `epics.md`
+  with the traceability map `epic-map.json`. Use this as the SECOND step of the PDLC chain, right
+  after the `sdlc-plan-prd-write` skill. Trigger this even when the user just says "break the PRD into
+  epics", "decompose the PRD", or "plan the epics". This skill reads a PRD.md and groups its
+  requirements into epics along feature-area boundaries. Authoring only: it never writes to
+  Jira — `sdlc-tracker-sync` publishes the approved epics (ADR-035).
 compatibility: >
-  Tool-agnostic skill body (Claude Code or Codex). Requires the Atlassian (Jira) MCP server to
-  be connected so the agent can search projects and create epic issues. If the MCP is not
-  connected, the skill falls back to emitting a Jira-importable file the user can upload.
+  Tool-agnostic skill body (Claude Code or Codex). Reads `PRD.md`; writes only `epics.md` and
+  `epic-map.json`. No Jira access needed.
 model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
 
 ---
 
-# sdlc-plan-epics-create — PRD to Jira Epics
+# sdlc-plan-epics-create — PRD to Epics
 
 > **Artifact paths:** Resolve all project-artifact locations (architecture, data model, PRD,
 > epics, stories, ADRs, API contracts, per-story notes, etc.) from the **Project Layout** table
@@ -36,13 +35,13 @@ model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
 > session — keep them small.
 
 
-Second link in the chain. It turns a structured PRD into epics and puts them in Jira via the
-**Atlassian MCP**. Epics are the unit of planning; getting their boundaries right is what
-makes the later `sdlc-plan-stories-write` step clean.
+Second link in the chain. It turns a structured PRD into epics. Epics are the unit of
+planning; getting their boundaries right is what makes the later `sdlc-plan-stories-write` step clean.
 
-> Do not call the Jira REST API from a script here. Issue creation happens through the
-> connected Atlassian MCP tools. This skill's job is to (a) produce correct epic content and
-> (b) drive the MCP calls in the right order.
+> **Single responsibility (ADR-035):** this is an `author` skill. It writes epic content only.
+> It does not create Jira issues — `sdlc-tracker-sync` (an `integration` step) publishes the
+> epics after review, swaps the draft keys `<FA-N>-PENDING` for the real Jira keys in
+> `epic-map.json` and `epics.md`, and confirms the target project.
 
 ## Input it expects
 A `PRD.md` produced by the `sdlc-plan-prd-write` skill (numbered FR/NFR requirements grouped under feature
@@ -50,9 +49,10 @@ areas FA-N). If given a free-form PRD, first normalise it into that shape before
 
 ## Output it produces
 1. `epics.md` — the proposed epics with their mapped requirements (the reviewable plan).
-2. Created Jira epics in the target project (via Atlassian MCP).
-3. `epic-map.json` — a machine-readable map of `{epic_key -> [requirement IDs]}` so the next
+2. `epic-map.json` — a machine-readable map of `{epic_key -> [requirement IDs]}` so the next
    skill (`sdlc-plan-stories-write`) knows which requirements each epic must cover. Traceability lives here.
+   New epics use draft keys `<FA-N>-PENDING` (e.g. `FA-3-PENDING`); `project_key` is the target
+   Jira project if the user named it, else `PENDING`.
 
 ## Procedure
 
@@ -91,29 +91,10 @@ Each epic needs:
 - **Release** — MVP or Later (or "mixed", with the MVP subset listed).
 - **Labels** — feature-area code + release, for filtering in Jira.
 
-### Step 3 — Confirm the target Jira project
-Before creating anything:
-- Use the Atlassian MCP to **list/search accessible Jira projects**.
-- Confirm the target project key with the user if it's not already specified (e.g. "LEARN").
-- Confirm the epic issue type name in that project (often "Epic"; some projects rename it).
-
-### Step 4 — Create the epics via Atlassian MCP
-For each epic, call the MCP issue-creation tool with: project key, issue type = Epic,
-summary, description (paste the epic body), and labels. After each creation:
-- Capture the returned **issue key** (e.g. LEARN-12).
-- Record it in `epic-map.json` against the requirement IDs that epic covers.
-Create epics one at a time and verify each succeeds before continuing; do not fire a batch
-blindly. If a creation fails, stop, report which epic failed and why, and let the user decide.
-
-### Step 5 — Hand off
-Write `epics.md` and `epic-map.json`. Tell the user: N epics created in project <KEY>, here
-are the keys, and the next step is the `sdlc-plan-stories-write` skill to break each epic into stories
-with acceptance criteria.
-
-## If the Atlassian MCP is not connected
-Fall back gracefully: produce `jira-epics-import.csv` (columns: Summary, Issue Type,
-Description, Labels) that the user can import via Jira's CSV importer, and still write
-`epics.md` / `epic-map.json`. Tell the user the MCP wasn't available and how to import.
+### Step 3 — Write the map and hand off
+Write `epics.md` and `epic-map.json` (draft keys). Tell the user: N epics planned, every PRD
+requirement lands in exactly one epic, and the next steps are `sdlc-tracker-sync` (publish the
+epics to Jira) and then `sdlc-plan-stories-write` for each epic.
 
 ## Boundary heuristics (quick reference)
 - One feature area → usually one epic.
@@ -133,5 +114,4 @@ Description, Labels) that the user can import via Jira's CSV importer, and still
 ## Reference files
 - `templates/epic.md.tmpl` — epic structure.
 - `templates/epic-map.schema.json` — the shape of the traceability map.
-- `references/atlassian-mcp-usage.md` — how to drive the MCP tools (project lookup, create).
 - `examples/` — epics decomposed from the sample PRD, with the resulting map.

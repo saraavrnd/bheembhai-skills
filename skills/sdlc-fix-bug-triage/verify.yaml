@@ -4,16 +4,13 @@ work_items: [bug]
 summary: >
   The bug report is non-empty before any tokens are spent, and afterwards bug-triage.md exists in
   the bug folder with expected vs actual pinned to a source, numbered steps, a rubric severity and
-  exactly one decision; the decision agrees with the outcome, and on Fix the Jira bug is In Progress.
+  exactly one decision; the decision agrees with the outcome, and nothing is written to Jira (tracker-sync applies the action, ADR-035).
 verdicts_used: [failed_execution, changes_requested, escalation_required]
 
 facts:
   bug_text:
     kind: context
     key: bug.description
-  has_jira:
-    kind: context
-    key: integrations.jira
   decision:
     kind: regex
     from: note
@@ -107,18 +104,12 @@ checks:
     args: {fact: facts.decision, map: {"Fix": completed, "Duplicate": escalation_required, "Not a bug": escalation_required, "Needs info": escalation_required}}
     on_fail: changes_requested
     reason_code: report_inconsistent
-  - id: jira_in_progress
-    when: "facts.has_jira and facts.decision == 'Fix'"
-    run: builtin:jira_field
-    args: {keys: "{story}", field: status, op: in, value: ["In Progress", "In Dev", "In Development"]}
+  - id: no_tracker_writes
+    description: Authoring only — Jira writes belong to sdlc-tracker-sync (ADR-035).
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)(create|edit|update|transition|delete|comment).*(issue|jira)|addCommentToJiraIssue|transitionJiraIssue|editJiraIssue'}
     on_fail: changes_requested
-    reason_code: external_action_missing
-  - id: jira_commented_when_not_fix
-    when: "facts.has_jira and facts.decision != 'Fix'"
-    run: builtin:jira_field
-    args: {keys: "{story}", field: comments, op: contains, value: "{facts.decision}"}
-    on_fail: changes_requested
-    reason_code: external_action_missing
+    reason_code: policy
 
 judge:
   tier: low

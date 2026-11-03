@@ -1,16 +1,18 @@
 ---
 name: sdlc-fix-bug-triage
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Triage a reported bug before anyone tries to fix it: restate the report as expected vs actual
   behaviour with concrete reproduction steps, assign a severity from the rubric, name the affected
   module, and decide whether it is a real bug to fix, a duplicate, works-as-designed, or missing
-  information. On a Fix decision, move the Jira bug to In Progress. Use this as the FIRST step of
+  information. It records the tracker action the decision implies (on Fix: move the bug to In
+  Progress) for `sdlc-tracker-sync` to apply; it does not write to Jira itself (ADR-035). Use this as the FIRST step of
   the bug-fix workflow, before sdlc-fix-bug-reproduce. Trigger this even when the user just says
   "triage LEARN-87", "look at this bug", "is this a real bug?", or "pick up bug <KEY>". It writes
   bug-triage.md only. It does NOT reproduce the bug in code, find the root cause, or fix anything.
 compatibility: >
-  Tool-agnostic skill body (Claude Code or Codex). Uses the Atlassian (Jira) MCP to read the bug
-  and transition it. Reads architecture.md, the stories/contracts that define the expected
+  Tool-agnostic skill body (Claude Code or Codex). Reads the bug from the run context (or
+  read-only via the Atlassian MCP). Reads architecture.md, the stories/contracts that define the expected
   behaviour, and recent bugs in the same component. Resolves artifact paths from the Project
   Layout table in the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none).
 model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
@@ -44,9 +46,14 @@ fixing as a bug at all?**
 
 ## Output it produces
 - `bug-triage.md` in the bug's folder, from `templates/bug-triage.md.tmpl`.
-- On a **Fix** decision: the Jira bug transitioned to **In Progress** (or left there), with
-  severity and component set if the project uses those fields.
-- On any other decision: a Jira comment with the decision and its reason. The bug is not moved.
+- The note's **Jira** section records the intended tracker action: on **Fix**, move the bug to
+  the project's "work started" status and set severity/component if the project uses those
+  fields; on any other decision, a comment with the decision and its reason, status unchanged.
+  `sdlc-tracker-sync` applies a Fix action as the next step; a non-Fix decision escalates, and the
+  person handling it acts on the bug.
+
+> **Single responsibility (ADR-035):** this is an `author` skill. It decides and writes
+> `bug-triage.md`; it never transitions or comments on the Jira bug.
 
 ## Procedure
 
@@ -87,10 +94,11 @@ Pick exactly one decision and record it on the `**Decision:**` line:
 
 See `references/triage-decisions.md` for the borderline cases.
 
-### Step 7 — Update Jira and commit the note
-On Fix, apply the project's "work started" transition (names vary: "In Progress", "In Dev"). On
-any other decision, add a comment with the decision and its reason, and leave the status alone.
-If the Atlassian MCP is unavailable, record the intended action under Jira. Commit the note.
+### Step 7 — Record the tracker action and commit the note
+Fill the note's **Jira** section: status now, the intended action (on Fix, the project's "work
+started" transition, e.g. "In Progress" / "In Dev", plus severity/component if those fields exist;
+otherwise a comment with the decision and its reason), and `Applied: no — sdlc-tracker-sync`.
+Commit the note. Do not call any Jira write tool.
 
 ## Outcomes
 

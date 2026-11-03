@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-structure-map
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Map where the important code lives in one service — the directory layout and what each key area
   is for (routes, controllers, models, config, tests, entrypoint) — into a reviewable structure

@@ -1,0 +1,13 @@
+# Governance for sdlc-wf-planning (ADR-035). A person approves the PRD and the epic plan before
+# anything is published to Jira; tracker-sync itself is not gated (it publishes what was approved).
+policy: sdlc-policy-planning-governed
+version: 1
+applies_to: sdlc-wf-planning
+gates:
+  sdlc-plan-prd-write:
+    review: required
+    role: any
+    on_status: [completed, escalation_required]
+  sdlc-plan-epics-create:
+    review: required
+    role: any

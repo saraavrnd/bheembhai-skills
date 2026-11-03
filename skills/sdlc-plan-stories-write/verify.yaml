@@ -1,6 +1,6 @@
 version: 1
 skill: sdlc-plan-stories-write
-summary: Every requirement mapped to the epic is covered by a story, every story has parseable Gherkin with unhappy paths, and the stories exist in Jira under the epic.
+summary: Every requirement mapped to the epic is covered by a story, every story has parseable Gherkin with unhappy paths, only the epic's story files change, and nothing is written to Jira (tracker-sync publishes, ADR-035).
 verdicts_used: [failed_execution, changes_requested, escalation_required]
 
 facts:
@@ -42,9 +42,6 @@ artifacts:
     path: "{layout.epic_dir}stories.md"
   - id: story_map
     path: "{layout.epic_dir}story-map.json"
-  - id: csv_fallback
-    path: "jira-stories-{epic}-import.csv"
-    required: false
 
 checks:
   - id: story_map_schema
@@ -73,7 +70,6 @@ checks:
     args: {left: facts.story_keys, right: facts.story_titles, relation: equal}
     on_fail: changes_requested
     reason_code: traceability_gap
-    when: "not exists('jira-stories-{epic}-import.csv')"
   - id: story_sections
     run: builtin:md_sections
     args:
@@ -97,18 +93,17 @@ checks:
     args: {artifact: stories_md}
     on_fail: changes_requested
     reason_code: placeholder_left
-  - id: stories_exist_in_jira
-    when: "not exists('jira-stories-{epic}-import.csv')"
-    run: builtin:jira_issues_exist
-    args: {keys: facts.story_keys, issue_type: Story}
+  - id: no_tracker_writes
+    description: Authoring only — Jira writes belong to sdlc-tracker-sync (ADR-035).
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)(create|edit|update|transition|delete).*(issue|jira)|createJiraIssue|editJiraIssue|transitionJiraIssue'}
     on_fail: changes_requested
-    reason_code: external_action_missing
-  - id: stories_parented_to_epic
-    when: "not exists('jira-stories-{epic}-import.csv')"
-    run: builtin:jira_field
-    args: {keys: facts.story_keys, field: parent, op: "==", value: "{epic}"}
+    reason_code: policy
+  - id: story_files_only
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.epic_dir}stories.md", "{layout.epic_dir}story-map.json", "{layout.epic_dir}revisions.md"]}
     on_fail: changes_requested
-    reason_code: external_action_missing
+    reason_code: scope
 
 judge:
   tier: medium

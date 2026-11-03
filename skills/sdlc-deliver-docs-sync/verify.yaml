@@ -1,7 +1,7 @@
 version: 1
 skill: sdlc-deliver-docs-sync
 summary: >
-  The sync note classifies the change and lists flagged stories, only docs changed, the design
+  The sync note classifies the change, only docs changed, nothing was written to Jira, the design
   changelog was appended (never rewritten), and a structural change escalates instead of being
   written up as a sync.
 verdicts_used: [changes_requested, escalation_required]
@@ -11,11 +11,6 @@ facts:
     kind: regex
     from: note
     pattern: '(?i)\b(no system-level change|incremental|structural)\b'
-  flagged_stories:
-    kind: regex
-    from: note
-    section: "Flagged"
-    pattern: '\b([A-Z][A-Z0-9]+-\d+)\b'
   contracts_changed:
     kind: glob
     pattern: "{layout.api_contracts_dir}*.openapi.yaml"
@@ -72,12 +67,12 @@ checks:
     args: {path: "{layout.agents_md}", required: ["Project Layout"], match: contains}
     on_fail: changes_requested
     reason_code: structure
-  - id: flagged_stories_notified
-    when: "facts.flagged_stories"
-    run: builtin:jira_field
-    args: {keys: facts.flagged_stories, field: comments, op: contains, value: "{story}"}
+  - id: no_tracker_writes
+    description: Docs only — notifying overlapping stories is sdlc-deliver-impact-flag (ADR-035).
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)(create|edit|update|transition|delete|comment).*(issue|jira)|addCommentToJiraIssue'}
     on_fail: changes_requested
-    reason_code: external_action_missing
+    reason_code: policy
 
 judge:
   tier: medium

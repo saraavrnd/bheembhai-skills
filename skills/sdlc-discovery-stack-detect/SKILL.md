@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-stack-detect
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Detect the tech stack / framework of one service from its code and select the matching
   knowledge pack, writing a thin, reviewable stack note that every downstream discovery skill

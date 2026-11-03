@@ -17,14 +17,9 @@
 - [x] `AGENTS.md` — added the endpoint to "Current endpoints", `material` to "Data entities".
 - [x] `docs/CHANGELOG-design.md` — entry: "LEARN-21: material upload endpoint + material table."
 
-## Affected in-progress stories (flagged for design re-check)
-| Story | Overlap (module / entity) | Action |
-|-------|---------------------------|--------|
-| LEARN-22 (Prepare materials for retrieval) | depends on `material` table + status field | commented on LEARN-22: "material table is now live with `status`; re-check your sdlc-deliver-story-design before implementing — your prep job should transition this exact status field" |
-
 ## Structural-change check
 None — incremental, fully within the existing architecture. No sdlc-arch-design amendment needed.
 
 ---
-*Docs committed to the branch; `sdlc-deliver-pr-open` proceeds to merge them atomically with the code.
-LEARN-22's owner has been notified to re-check design against the now-live `material` table.*
+*Docs committed to the branch; `sdlc-deliver-impact-flag` runs next (see its LEARN-21 example: it
+flags LEARN-22), then `sdlc-deliver-pr-open` opens the PR.*

@@ -1,5 +1,6 @@
 ---
 name: sdlc-adhoc-session
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Free-form agent work on a user-named branch: the user hands you a query through the
   platform's ad-hoc session, you check out their branch and just do the work — the feel of

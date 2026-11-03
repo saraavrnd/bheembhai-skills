@@ -1,0 +1,118 @@
+version: 1
+skill: sdlc-tracker-sync
+summary: >
+  Integration only (ADR-035): every epic and story in the plan has a real Jira key and exists in
+  Jira (stories parented to their epic), the sequence's edges exist as Blocks links (the gate before this step approved them), human-set
+  links survive, a Fix bug is in its work-started status, and the repo change is limited to the
+  tracker-key swap in the plan files.
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  has_jira:
+    kind: context
+    key: integrations.jira
+  is_bug:
+    kind: context
+    key: work_item.is_bug
+  epic_keys:
+    kind: jsonpath
+    from: "{layout.epic_map}"
+    expr: "$.epics[*].epic_key"
+    when: "exists('{layout.epic_map}')"
+  story_keys:
+    kind: jsonpath
+    from: "{layout.epic_dir}story-map.json"
+    expr: "$.stories[*].story_key"
+    when: "exists('{layout.epic_dir}story-map.json')"
+  edges:
+    kind: jsonpath
+    from: "{layout.epic_dir}epic-sequence.json"
+    expr: "$.stories[*]"
+    when: "exists('{layout.epic_dir}epic-sequence.json')"
+  bug_decision:
+    kind: regex
+    from: "{layout.bug_dir}bug-triage.md"
+    section: "Decision"
+    pattern: '(?im)^\**\s*Decision\s*:?\**\s*\**(Fix|Duplicate|Not a bug|Needs info)\b'
+    when: "facts.is_bug"
+  human_links:
+    kind: context
+    key: baseline.jira_state.links
+    description: Jira "blocks" links that existed before this run (captured by the jira_state snapshot).
+
+snapshot: [jira_state]
+
+artifacts:
+  - id: handoff
+    source: reply
+
+checks:
+  - id: keys_only
+    description: The only repo change is swapping draft keys for Jira keys in the plan files.
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.epic_map}", "{layout.epics}", "{layout.epic_dir}story-map.json", "{layout.epic_dir}stories.md"]}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: no_pending_epic_keys
+    when: "facts.epic_keys"
+    run: builtin:regex_count
+    args: {path: "{layout.epic_map}", pattern: '-PENDING\b', max: 0}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: epics_exist
+    when: "facts.epic_keys"
+    run: builtin:jira_issues_exist
+    args: {keys: facts.epic_keys, issue_type: Epic}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: no_pending_story_keys
+    when: "facts.story_keys"
+    run: builtin:regex_count
+    args: {path: "{layout.epic_dir}story-map.json", pattern: '-PENDING-\d+', max: 0}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: stories_exist
+    when: "facts.story_keys"
+    run: builtin:jira_issues_exist
+    args: {keys: facts.story_keys, issue_type: Story}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: stories_parented
+    when: "facts.story_keys"
+    run: builtin:jira_field
+    args: {keys: facts.story_keys, field: parent, op: "==", value: "{epic}"}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: links_set
+    when: "facts.edges"
+    run: builtin:jira_links_exist
+    args: {edges: facts.edges, link_type: Blocks}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: human_links_preserved
+    when: "facts.human_links"
+    run: builtin:jira_links_exist
+    args: {edges: facts.human_links, link_type: Blocks}
+    on_fail: changes_requested
+    reason_code: policy
+  - id: never_deletes_issues
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)delete.*issue|deleteJiraIssue'}
+    on_fail: changes_requested
+    reason_code: unsafe_action
+  - id: fix_bug_started
+    when: "facts.is_bug and facts.bug_decision == 'Fix'"
+    run: builtin:jira_field
+    args: {keys: "{story}", field: status, op: in, value: ["In Progress", "In Dev", "In Development"]}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+
+judge:
+  tier: low
+  vendor: same_ok
+  inputs: [handoff, "{layout.epic_map}", "{layout.epic_dir}story-map.json"]
+  criteria:
+    - id: actions_match_artifacts
+      question: "Does every action in the hand-off table correspond to an epic, story, approved edge or bug action named in the artifacts, with nothing added that no artifact names?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim

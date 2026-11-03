@@ -36,9 +36,9 @@ A documented format is rejected based on file-name case; the steps are concrete 
 expected behaviour is defined by LEARN-21.
 
 ## Jira
-- Status before: To Do
-- Status after: In Progress
-- Action: transition "Start Progress" applied; severity S3 and component "ingestion" set.
+- Status now: To Do
+- Intended action: transition "Start Progress" (→ In Progress); set severity S3 and component "ingestion".
+- Applied: no — sdlc-tracker-sync applies it (ADR-035)
 
 ## Notes
 - Reporter suspects "the virus scanner"; there is no virus scanner in the upload path per

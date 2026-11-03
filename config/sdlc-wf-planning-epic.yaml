@@ -1,0 +1,52 @@
+# BheemBhai Planning — CHILD workflow, one run per epic (ADR-035).
+#   stories-write (author, primary model)
+#   -> epic-review (reviewer, reviewer model; changes_requested -> stories-write in revise mode)
+#   -> epic-sequence (author) -> tracker-sync (integration: stories + blocks links)
+# epic-review reviews stories-write: its changes_requested edge says so (ADR-035 §3).
+# sdlc-plan-story-review stays on demand for a single story that still feels underspecified.
+workflow: sdlc-wf-planning-epic
+version: 1
+category: Software Delivery
+description: Write one epic's stories, review them on a different model family, sequence them and publish them to Jira.
+start: sdlc-plan-stories-write
+
+steps:
+  - id: sdlc-plan-stories-write
+    skill: sdlc-plan-stories-write
+    model: medium
+    label: Write the stories
+    deadline: 1200
+    "on":
+      completed: sdlc-plan-epic-review
+      changes_requested: sdlc-plan-stories-write
+      escalation_required: DONE
+
+  - id: sdlc-plan-epic-review
+    skill: sdlc-plan-epic-review
+    model: high
+    label: Review the stories across the epic
+    deadline: 900
+    "on":
+      completed: sdlc-plan-epic-sequence
+      changes_requested: sdlc-plan-stories-write    # revise mode applies the report
+      escalation_required: DONE                     # architecture conflict: sdlc-arch-design (amend) first
+
+  - id: sdlc-plan-epic-sequence
+    skill: sdlc-plan-epic-sequence
+    model: low
+    label: Sequence the stories
+    deadline: 600
+    "on":
+      completed: sdlc-tracker-sync
+      changes_requested: sdlc-plan-epic-sequence
+      escalation_required: DONE                     # a cycle needs a human re-slice
+
+  # Publishes the stories (parented to the epic) and the approved blocks links.
+  - id: sdlc-tracker-sync
+    skill: sdlc-tracker-sync
+    model: low
+    label: Publish stories and links to Jira
+    deadline: 600
+    "on":
+      completed: DONE
+      changes_requested: sdlc-tracker-sync

@@ -1,5 +1,6 @@
 ---
 name: sdlc-arch-design
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Produce the technical design for a GREENFIELD product before any code exists: propose a tech
   stack, architecture, service boundaries, data model, and API contracts derived from the PRD
@@ -73,9 +74,10 @@ the location given in the Project Layout table in `AGENTS.md`; the current layou
 6. `docs/tech-stack.md` — the final stack with versions, pinned and justified.
 7. `docs/testing-strategy.md` — how the project tests (defaults to **TDD**: tests are written from
    acceptance criteria before implementation). This guides `sdlc-deliver-tests-write` and `sdlc-deliver-code-implement`.
-8. `docs/ui-conventions.md` — **if the project has any UI** — a thin starter set of frontend
-   conventions (see Step 4.5). This is the UI source of truth that `sdlc-deliver-code-implement`'s frontend lens
-   reads, so UI stories come out consistent instead of ad hoc. Skip only for pure-backend projects.
+
+> **Single responsibility (ADR-035):** this skill writes the system design (create and amend
+> modes). The UI-conventions starter (`docs/ui-conventions.md`) is its own `author` skill,
+> `sdlc-arch-ui-conventions`, run next when the architecture includes a frontend.
 
 ## Procedure
 
@@ -119,28 +121,10 @@ system behavior obvious to future implementers. Prefer at least:
 - a deployment / topology diagram when runtime layout matters
 Add other diagrams when they clarify the design better than prose alone.
 
-### Step 4.5 — Propose a thin UI conventions starter (if the project has any UI)
-If the architecture includes a frontend, the project needs `docs/ui-conventions.md` — the UI
-source of truth `sdlc-deliver-code-implement`'s frontend lens reads. Most projects START with no design system, so
-this skill PROPOSES a thin, sensible starter for the user to approve (same propose→approve gate),
-covering the decisions that otherwise get made inconsistently per-story:
-- **Component framework & structure** — the chosen frontend stack and how components are organized
-  (mirroring the source-tree convention).
-- **Design tokens (minimal)** — a starting spacing scale, color roles (primary/surface/text/
-  error/etc.), and typography, so stories don't each invent their own values.
-- **State & data-loading pattern** — where state lives (local vs shared store) and how API data is
-  fetched/loaded, so every UI story follows one approach.
-- **Required UI states** — loading / error / empty / success must all be handled.
-- **Accessibility bar** — semantic HTML, labels, keyboard operability, contrast.
-- **Responsive expectations** — the breakpoints to support.
-Keep it THIN — a starter that creates baseline consistency, not an exhaustive design system. It is
-designed to GROW: `sdlc-deliver-docs-sync` promotes patterns that UI stories establish into this file over
-time, so an initially ad-hoc UI becomes systematic. Present it for approval alongside the rest of
-Phase B; on approval write `docs/ui-conventions.md`.
-
 ### Step 5 — Hand off
 Tell the user the committed design is ready and the next step is `sdlc-arch-repo-scaffold`, which
-turns this design into a runnable repository skeleton. Note that `sdlc-arch-repo-scaffold` reads
+turns this design into a runnable repository skeleton — preceded by `sdlc-arch-ui-conventions` if the
+architecture includes a frontend. Note that `sdlc-arch-repo-scaffold` reads
 `tech-stack.md`, `architecture.md`, and `testing-strategy.md` directly.
 
 ## Design principles for greenfield (keep it honest)
@@ -193,6 +177,5 @@ is injected at run time.
 - `templates/tech-design-proposal.md.tmpl` — the Phase A proposal structure.
 - `templates/ADR.md.tmpl` — Architecture Decision Record format.
 - `templates/architecture.md.tmpl` — committed architecture doc.
-- `templates/ui-conventions.md.tmpl` — thin UI conventions starter (Step 4.5, projects with UI).
 - `references/stack-selection-guide.md` — how to choose and justify, with the approval gate.
 - `examples/` — a worked proposal + committed design for the Learn Portal MVP.

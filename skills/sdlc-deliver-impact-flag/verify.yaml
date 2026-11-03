@@ -1,0 +1,55 @@
+version: 1
+skill: sdlc-deliver-impact-flag
+summary: >
+  Integration only (ADR-035): impact-flags.md lists the stories checked and every flag with
+  evidence, each flagged story carries a comment naming this work item, and nothing else in the
+  repo changed.
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  has_jira:
+    kind: context
+    key: integrations.jira
+  flagged_stories:
+    kind: regex
+    from: note
+    section: "Flags"
+    pattern: '(?m)^\|\s*([A-Z][A-Z0-9]+-\d+)\s*\|'
+
+artifacts:
+  - id: note
+    path: "{layout.story_dir}impact-flags.md"
+
+checks:
+  - id: note_sections
+    run: builtin:md_sections
+    args: {artifact: note, required: ["Stories checked", "Flags"], match: contains}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: note_only
+    description: Integration step — it writes only its own record.
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.story_dir}impact-flags.md"]}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: flagged_stories_notified
+    when: "facts.has_jira and facts.flagged_stories"
+    run: builtin:jira_field
+    args: {keys: facts.flagged_stories, field: comments, op: contains, value: "{story}"}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: never_edits_other_stories
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)(edit|update|transition|delete).*(issue|jira)|editJiraIssue|transitionJiraIssue'}
+    on_fail: changes_requested
+    reason_code: unsafe_action
+
+judge:
+  tier: low
+  vendor: prefer_different
+  inputs: [note, diff]
+  criteria:
+    - id: flags_evidenced
+      question: "Does every flag cite a concrete change in this diff (path:line, entity or endpoint) and a specific line of the other story's design that relies on it?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim

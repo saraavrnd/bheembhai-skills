@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-glossary
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Extract the domain vocabulary — the business nouns and terms the code uses — from entity/model names and the per-service artifacts, so a feature agent understands the domain language. Use during Discovery after data-model. Trigger on "domain glossary", "what do these terms mean", "domain vocabulary". RECORDS terms with where they appear; definitions are inferred from usage, flagged as such.
 compatibility: >

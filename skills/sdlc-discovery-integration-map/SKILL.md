@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-integration-map
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Map how the services and external systems connect — who calls whom, over what (HTTP, queue,
   shared DB), and which third-party/external APIs each service talks to — into a system-level

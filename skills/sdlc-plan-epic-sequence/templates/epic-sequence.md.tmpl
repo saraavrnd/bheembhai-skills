@@ -2,7 +2,7 @@
 
 **Status:** AWAITING APPROVAL · **Date:** {{date}} · **Stories:** {{n_stories}}
 
-> Proposed build order by dependency. Review and approve before Jira "blocks" links are written.
+> Proposed build order by dependency. Review and approve at the gate; `sdlc-tracker-sync` then mirrors the approved edges as Jira "blocks" links.
 > Inferred edges are marked by source so you can scrutinise them; explicit Jira links are ground
 > truth and never changed.
 
@@ -32,8 +32,8 @@ Stories in the same wave are independent → can be built in parallel.
 None.
 
 ## On approval
-- Set "blocks" links: {{list of A blocks B}} via Atlassian MCP.
-- Write `epic-sequence-{{epic_key}}.json` for `sdlc-deliver-story-start`, which refuses a story whose prerequisites are not merged.
+- `sdlc-tracker-sync` sets "blocks" links: {{list of A blocks B}} (and removes platform-created links for any `retired_edges`).
+- `epic-sequence.json` is read by `sdlc-deliver-story-start`, which refuses a story whose prerequisites are not merged.
 
 ---
 *After approval, start stories in this order: a story is eligible once its dependencies are all

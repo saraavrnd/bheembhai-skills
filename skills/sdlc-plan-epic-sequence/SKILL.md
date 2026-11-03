@@ -1,21 +1,22 @@
 ---
 name: sdlc-plan-epic-sequence
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Order the user stories of an epic by dependency so foundational stories are built before the
   stories that depend on them: detect dependencies from explicit Jira links, from sdlc-deliver-story-design
   artifacts (what each story produces vs consumes), and from requirement/data-model traceability;
-  topologically sort into parallelizable waves; flag cycles; PROPOSE the order for approval; then
-  write a sequence plan and set Jira "blocks" links. Use this after `sdlc-plan-stories-write` (stories exist for
-  an epic) and before implementing them. Trigger this even when the user just says "sequence the
-  stories", "what order should we build LEARN-11", "order the epic", "resolve story dependencies",
-  or "which story first". This skill proposes an order and sets dependency links; it does NOT
-  implement stories (that's the story delivery workflow) and does not decide unilaterally — it waits for
-  approval before writing links.
+  topologically sort into parallelizable waves; flag cycles; and write the sequence plan
+  (`epic-sequence.md` / `.json`) for approval. Use this after `sdlc-plan-stories-write` (stories exist for
+  an epic) and before implementing them, and again in REFINE mode when `sdlc-deliver-story-design` emits a
+  dependency delta. Trigger this even when the user just says "sequence the stories", "what order
+  should we build LEARN-11", "order the epic", "resolve story dependencies", or "which story
+  first". Authoring only: it does NOT set Jira links — `sdlc-tracker-sync` mirrors the approved
+  edges as "blocks" links (ADR-035) — and it does NOT implement stories.
 compatibility: >
-  Tool-agnostic (Claude Code or Codex). Reads the epic's stories + sdlc-deliver-story-design notes + maps via
-  the Atlassian MCP and the docs/ artifacts; sets Jira "blocks"/"is blocked by" links via the
-  Atlassian MCP. Resolves artifact paths from the Project Layout table in the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none). Falls back to
-  a plan-doc-only output if the MCP can't write links.
+  Tool-agnostic (Claude Code or Codex). Reads the epic's stories + sdlc-deliver-story-design notes + maps from
+  docs/ artifacts, and existing Jira links read-only via the Atlassian MCP when connected. Writes
+  only `epic-sequence.md` and `epic-sequence.json`. Resolves artifact paths from the Project
+  Layout table in the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none).
 model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
 
 ---
@@ -43,27 +44,34 @@ model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
 Decides what to build first. Left unsequenced, stories get picked in backlog order and a consumer
 (a story that calls an endpoint or reads a table) can land before its producer — unbuildable and
 untestable in isolation. This skill builds the dependency graph for an epic, sorts it into waves,
-and records the order both as a plan and as Jira "blocks" links, so `sdlc-deliver-story-start` refuses
-a story whose prerequisites are not done.
+and records the order as a plan (`.md`) and a machine-readable map (`.json`), so `sdlc-deliver-story-start`
+refuses a story whose prerequisites are not done.
 
-> Dependency detection from artifacts is inference, not fact. This skill PROPOSES an order and
-> waits for approval before writing any Jira links — same propose→approve discipline as
-> sdlc-deliver-story-design and sdlc-arch-design.
+> Dependency detection from artifacts is inference, not fact. This skill PROPOSES an order; the
+> gate after it is where a person approves it.
+
+> **Single responsibility (ADR-035):** this is an `author` skill. It writes the sequence only.
+> Jira "blocks" links are set (and platform-created provisional links removed) by
+> `sdlc-tracker-sync`, an `integration` step that runs after approval and reads the `.json` this
+> skill writes. Existing Jira links are read here, never written.
 
 ## Input it expects
-- An epic key (e.g. `LEARN-11`) — its stories fetched via the Atlassian MCP.
+- An epic key (e.g. `LEARN-11`) — its stories from `stories.md` / `story-map.json`.
 - `docs/product/epics/<EPIC>/_epic/story-map.json` and any `story-design.md` notes in each story's
   folder (`…/stories/<STORY>/story-design.md`) — the richest dependency signal.
 - `data-model.md` and the epic's PRD requirements (for requirement-derived dependencies).
-- Existing Jira issue links on the stories (explicit signal).
+- Existing Jira issue links on the stories (explicit signal), read-only via the Atlassian MCP.
+- Refine mode only: the dependency delta in a story's `story-design.md` ("Dependencies
+  discovered").
 
 ## Output it produces
 1. `docs/product/epics/<EPIC>/_epic/epic-sequence.md` — the proposed order: dependency list per story, the
    waves, parallelizable groups, any cycles flagged, and the rationale.
-2. After approval: **Jira "blocks" links** set between stories so the board reflects the order.
-3. A machine-readable `docs/product/epics/<EPIC>/_epic/epic-sequence.json` (`{story -> {depends_on:[], wave:N}}`)
-   that `sdlc-deliver-story-start` reads to refuse a story whose prerequisites are not merged, and that a
-   person reads to pick the next eligible story.
+2. A machine-readable `docs/product/epics/<EPIC>/_epic/epic-sequence.json` (`{story -> {depends_on:[], wave:N}}`)
+   that `sdlc-deliver-story-start` reads to refuse a story whose prerequisites are not merged, that a
+   person reads to pick the next eligible story, and that `sdlc-tracker-sync` mirrors as Jira
+   "blocks" links. Edges that a refine pass retires go in `retired_edges` so tracker-sync can
+   remove the provisional links it created earlier (never a human-set one).
 
 ## The ordering paradox, and how this is resolved
 The richest dependency signal is the per-story `sdlc-deliver-story-design` notes (what each story produces vs
@@ -104,8 +112,9 @@ Combine whatever exists; precision rises as more becomes available.
 ### Step 1 — Gather whatever signals exist (minimal reads — this skill's main cost risk)
 This skill reads across the whole epic, so it is the most likely to bloat context. Read **slices,
 not whole files**:
-- Fetch the epic's stories via the Atlassian MCP in **one batched query** requesting **minimal
-  fields only** — key, summary, status, and issue links. Do NOT pull full descriptions/changelogs.
+- Read the epic's stories from `stories.md` / `story-map.json`; if the Atlassian MCP is
+  connected, read their existing links in **one batched, read-only query** requesting **minimal
+  fields only** — key, status, and issue links. Do NOT pull full descriptions/changelogs.
 - For dependency signal, read only the **produces/consumes lines** from each existing
   `sdlc-deliver-story-design` note (the "Interfaces / endpoints", "Data-model deltas", and "Dependencies
   discovered" sections) — not the entire note.
@@ -131,31 +140,20 @@ This lets the plan show which edges are solid and which are best-guesses pending
   only on wave 1; and so on. Within a wave, stories are independent and can be built **in
   parallel** (useful for multiple developers).
 
-### Step 4 — Propose the order (wait for approval); mark it provisional
+### Step 4 — Write the proposed order; mark it provisional
 Write `docs/product/epics/<EPIC>/_epic/epic-sequence.md`: the waves, each story's dependencies with source AND confidence,
 the parallelizable groups, flagged cycles/conflicts, and — if any edges are provisional — a clear
-note that the order is **provisional and will be refined as sdlc-deliver-story-design notes land**. Present it.
-PAUSE for approval. If the user adjusts, update and re-present. Do not write Jira links until
-approved.
+note that the order is **provisional and will be refined as sdlc-deliver-story-design notes land**. Write
+the machine-readable `docs/product/epics/<EPIC>/_epic/epic-sequence.json` (with per-edge confidence).
+The gate after this step is the approval — `sdlc-tracker-sync` runs only after it; a person who adjusts
+the order sends the step back and you update both files.
 
-### Step 5 — Set Jira "blocks" links (after approval)
-For each approved edge A → B, set a "blocks" link (A blocks B) via the Atlassian MCP, so the board
-shows the sequence. Rules:
-- Don't duplicate links that already exist.
-- Never overwrite or remove a human-set link; only add the approved inferred ones.
-- For **provisional** edges, note in the link comment that it's inferred and may change once the
-  story is designed — so a later refinement that removes it isn't a surprise.
-- Create one at a time, verify each; on failure, report and continue with the rest, listing what
-  didn't set.
-Write the machine-readable `docs/product/epics/<EPIC>/_epic/epic-sequence.json` (with per-edge confidence) for
-`sdlc-deliver-story-start` and the people starting stories to consume.
-
-### Step 6 — Hand off
-Report the order, the waves/parallel groups, which edges are firm vs provisional, and that links
-are set. Tell the user which stories are eligible to start now (wave 1), that `sdlc-deliver-story-start` will refuse
-any story whose prerequisites are not merged, and that
-the sequence will auto-refine as each story's design is produced (see feedback below). Note any
-cycle/conflict needing a human decision.
+### Step 5 — Hand off
+Report the order, the waves/parallel groups, and which edges are firm vs provisional. Tell the
+user which stories are eligible to start now (wave 1), that `sdlc-tracker-sync` will mirror the approved
+edges as Jira "blocks" links, that `sdlc-deliver-story-start` will refuse any story whose prerequisites are
+not merged, and that the sequence will refine as each story's design is produced (see feedback
+below). Note any cycle/conflict needing a human decision.
 
 ## Feedback from sdlc-deliver-story-design (the refinement loop)
 `sdlc-deliver-story-design` (in the story delivery workflow) produces each story's precise produces/consumes just
@@ -166,9 +164,9 @@ re-runs in refine mode for the epic:
 2. Recompute waves for the **remaining (not-yet-merged) stories** only — never reorder or disturb
    stories already built/merged.
 3. If a newly-firm dependency contradicts the current order (e.g. a story you were about to build
-   actually depends on one not yet done), surface it: update the plan, adjust the Jira links
-   (add the firm one; remove the contradicted provisional one with a note), and tell the user the
-   remaining order changed and why.
+   actually depends on one not yet done), surface it: update the plan and the `.json` (add the
+   firm edge; move the contradicted provisional one to `retired_edges` with a reason), and tell the
+   user the remaining order changed and why. `sdlc-tracker-sync` adjusts the Jira links.
 4. If the delta only confirms existing edges, it's a no-op — no churn.
 This is how the provisional first order self-corrects with real data, resolving the ordering
 paradox: sequencing starts without designs and sharpens as designs arrive, with dependency flowing
@@ -177,12 +175,13 @@ the correct direction (design → sequence).
 ## Re-running (stories change over time)
 Re-run when stories are added/removed/re-designed, or on a sdlc-deliver-story-design dependency-delta (above).
 The skill reconciles against current state: add new edges, flag edges that no longer hold for the
-user to confirm before removing, never silently drop a human-set link, and never reorder
-already-merged stories. Idempotent — re-running with no new information sets no new links.
+user to confirm before retiring them, never retire a human-set (`source: link`) edge, and never
+reorder already-merged stories. Idempotent — re-running with no new information changes nothing.
 
 ## Boundaries
-- Proposes and links; does NOT implement (that's the story delivery workflow).
-- Does not decide unilaterally — approval gates the Jira writes.
+- Proposes the order; does NOT set Jira links (`sdlc-tracker-sync`) and does NOT implement (the story
+  delivery workflow).
+- Does not decide unilaterally — the gate after it approves the order before tracker-sync runs.
 - Does not override human-set dependency links.
 - Coarse for un-designed stories; sharpens as sdlc-deliver-story-design notes appear.
 

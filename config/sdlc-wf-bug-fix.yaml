@@ -5,8 +5,10 @@
 #        ({layout.design_note}), read where a story run reads story-design.md.
 # Routing convention: changes_requested re-runs the same step (visit-capped by BB_MAX_STEP_VISITS),
 # except code-review, whose changes_requested means "fix the code" (same as sdlc-wf-story-delivery).
+# ADR-035: triage decides and records the tracker action; tracker-sync applies it. docs-sync and
+# impact-flag run as their own steps before the PR, as in sdlc-wf-story-delivery.
 workflow: sdlc-wf-bug-fix
-version: 1
+version: 2
 work_item: bug
 category: Software Delivery
 description: Fix a reported bug — triage, reproduce as a failing regression test, find the root cause, fix, verify, review, and open a PR.
@@ -18,10 +20,19 @@ steps:
     label: Triage the bug
     deadline: 600
     "on":
-      completed: sdlc-fix-bug-reproduce
+      completed: sdlc-tracker-sync
       changes_requested: sdlc-fix-bug-triage
       # Duplicate / Not a bug / Needs info: a person closes, links or clarifies the bug.
       escalation_required: DONE
+  # Applies the Fix decision's tracker action (move the bug to work started).
+  - id: sdlc-tracker-sync
+    skill: sdlc-tracker-sync
+    model: low
+    label: Move the bug to In Progress
+    deadline: 300
+    "on":
+      completed: sdlc-fix-bug-reproduce
+      changes_requested: sdlc-tracker-sync
   - id: sdlc-fix-bug-reproduce
     skill: sdlc-fix-bug-reproduce
     model: medium
@@ -67,8 +78,26 @@ steps:
     label: Review the fix
     deadline: 900
     "on":
-      completed: sdlc-deliver-pr-open
+      completed: sdlc-deliver-docs-sync
       changes_requested: sdlc-deliver-code-implement
+  - id: sdlc-deliver-docs-sync
+    skill: sdlc-deliver-docs-sync
+    model: low
+    label: Sync the design docs
+    deadline: 900
+    "on":
+      completed: sdlc-deliver-impact-flag
+      changes_requested: sdlc-deliver-docs-sync
+      # A bug fix that needs a structural change is a planned change, not a bug fix.
+      escalation_required: DONE
+  - id: sdlc-deliver-impact-flag
+    skill: sdlc-deliver-impact-flag
+    model: low
+    label: Flag overlapping stories
+    deadline: 600
+    "on":
+      completed: sdlc-deliver-pr-open
+      changes_requested: sdlc-deliver-impact-flag
   - id: sdlc-deliver-pr-open
     skill: sdlc-deliver-pr-open
     model: low

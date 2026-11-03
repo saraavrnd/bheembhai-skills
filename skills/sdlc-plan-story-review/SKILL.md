@@ -1,24 +1,26 @@
 ---
 name: sdlc-plan-story-review
+role: reviewer   # ADR-035: author | reviewer | integration
 description: >
-  Interrogate a single, already-written user story against the system architecture, data model,
-  API contracts, and sibling stories to surface gaps, ambiguity, and undecided edge cases —
-  then rewrite the story's acceptance criteria to close them, with the user's sign-off, before
-  a developer (or `sdlc-deliver-story-design`) ever picks it up. Trigger this when the user says "review this
-  story", "drill into this story", "find gaps in this story", "sharpen/tighten this story",
-  "grill this story", "is this story ready for dev", "this story feels ambiguous", or names a
-  story key with a request to clarify/clean it up. On-demand utility skill — not an automatic
-  stage of the per-story loop; run it whenever a story (new or old) feels underspecified.
+  Review a single, already-written user story against the system architecture, data model, API
+  contracts and sibling stories, and report its gaps, ambiguity and undecided edge cases. REVIEW
+  ONLY: it writes one report, `story-review.md`, with each gap, its evidence, the question a
+  person must answer and the proposed change to the story; it never edits `stories.md`, the story
+  map or Jira. `sdlc-plan-stories-write` (revise mode) applies the findings and `sdlc-tracker-sync`
+  publishes them. Trigger this when the user says "review this story", "drill into this story",
+  "find gaps in this story", "grill this story", "is this story ready for dev", "this story feels
+  ambiguous", or names a story key with a request to check it. On-demand; run it whenever a story
+  (new or old) feels underspecified, before `sdlc-deliver-story-design` picks it up.
 compatibility: >
   Tool-agnostic (Claude Code or Codex). Reads architecture.md / data-model.md / api-contracts /
   ui-conventions.md / ADRs from the committed sdlc-arch-design, plus sibling stories in the same epic.
-  Atlassian MCP optional — used to fetch and update (never create) the Jira story if a key is
-  given; falls back to working on pasted story text if the MCP isn't connected.
+  Atlassian MCP optional and read-only — used to fetch the Jira story if a key is given. Runs on a
+  different model family from the story's author (ADR-035).
 model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
 
 ---
 
-# sdlc-plan-story-review — Drill a Story for Gaps (interview → rewrite → approve)
+# sdlc-plan-story-review — Review a Story for Gaps (report only)
 
 > **Artifact paths:** Resolve all project-artifact locations (architecture, data model, PRD,
 > epics, stories, ADRs, API contracts, per-story notes, etc.) from the **Project Layout** table
@@ -37,14 +39,19 @@ model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
 > minimal fields and batch reads rather than fetching repeatedly. MCP results persist for the
 > session — keep them small.
 
+> **Single responsibility (ADR-035):** this is a `reviewer` skill. It judges a story and writes
+> only `story-review.md`. It never rewrites the story, never edits `stories.md` or
+> `story-map.json`, and never writes to Jira. `sdlc-plan-stories-write` in revise mode applies the
+> proposed changes on the author's model family.
+
 A user story reads as complete and is still full of silent assumptions — an actor that isn't
 quite defined, a precondition that assumes something another story hasn't built yet, an error
 path nobody specified, a value the architecture can't actually support. Those gaps are cheapest
 to catch here, on the story itself, before `sdlc-deliver-story-design` commits to an interface built on top of
 a guess. This skill runs a **grounded interview**: it doesn't ask generic "any ambiguity?"
 questions, it reads the actual architecture/data-model/sibling-stories and asks pointed questions
-only where something concrete doesn't line up — then rewrites the acceptance criteria with the
-user's answers and gets sign-off before anything downstream consumes it.
+only where something concrete doesn't line up — and hands each gap, with its question and the
+proposed change, to `sdlc-plan-stories-write` (revise) through one report.
 
 ## Input it expects
 - A user story — by Jira key (fetched via Atlassian MCP) or pasted story text (statement +
@@ -54,17 +61,17 @@ user's answers and gets sign-off before anything downstream consumes it.
 - The epic's sibling stories (`stories.md` / `story-map.json`) for overlap and sequencing context.
 
 ## Output it produces
-1. The story's acceptance criteria, story statement, and "out of scope" rewritten in place in
-   `docs/product/epics/<EPIC_KEY>/_epic/stories.md`, gaps closed with the user's answers.
-2. `story-review.md` written to **this story's folder**,
-   `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/story-review.md` (create the folder if it
-   doesn't exist; resolve `<EPIC_KEY>` via `docs/product/epic-map.json` if you only have the
-   story key) — from `templates/story-review.md.tmpl`. This is the audit trail: which gaps were
-   found, what was asked, what was answered, what changed.
-3. If a Jira key was given, the Jira story's description/acceptance-criteria is updated to match
-   (via Atlassian MCP) — the existing issue, not a new one.
-4. If a gap turns out to be an architecture conflict rather than a story ambiguity: a flagged
-   "Architecture impact" note recommending `sdlc-arch-design` (amend mode) run before `sdlc-deliver-story-design`.
+One file: `story-review.md` in **this story's folder**,
+`docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/story-review.md` (create the folder if it
+doesn't exist; resolve `<EPIC_KEY>` via `docs/product/epic-map.json` if you only have the story
+key), from `templates/story-review.md.tmpl`. Nothing else changes.
+
+For each real gap it records the **severity** (`Blocking`: tests or code would be built on a
+guess; `Advisory`: worth tightening, safe to build), the **evidence** (the AC or sentence, and the
+doc section it conflicts with), the **question** a person must answer when it is a product
+decision, and the **proposed change** to the story statement, acceptance criteria or out of
+scope. An architecture conflict goes under **Architecture impact**, recommending
+`sdlc-arch-design` (amend mode) before `sdlc-deliver-story-design`.
 
 ## Procedure
 
@@ -90,43 +97,26 @@ FR/NFR IDs, overlap with sibling stories, and whether "out of scope" actually bo
 Discard anything the story already answers unambiguously — only real gaps make it to Step 4.
 Rank what remains by how much it would mislead `sdlc-deliver-tests-write` if left unresolved.
 
-### Step 4 — Interview (the drill)
-Turn each real gap into one specific, answerable question — never "anything else unclear?".
-Ask the highest-impact few first rather than dumping the whole list; if an answer reveals a new
-gap, follow up before moving on. Keep it a conversation, not a form. If a gap turns out to be an
-architecture conflict (the story needs an entity/endpoint/integration that doesn't exist and
-isn't already someone else's in-flight work), do **not** try to resolve it here — surface it
-plainly and hold it for Step 6's escalation note instead of pretending an interview answer can
-invent architecture.
+### Step 4 — Turn each gap into a finding
+Each real gap becomes one finding: severity, evidence, one specific answerable question when a
+person must decide (never "anything else unclear?"), and the proposed change, written in the shape
+`sdlc-plan-stories-write` produces (Gherkin for acceptance criteria). If a gap is an architecture
+conflict (the story needs an entity/endpoint/integration that doesn't exist and isn't already
+someone else's in-flight work), record it under **Architecture impact** — an answer cannot invent
+architecture.
 
-### Step 5 — Rewrite and present for approval
-By this point the rewritten story and the `story-review.md` log must already exist — do the
-work, then show it, rather than describing what you're about to check and waiting. Rewrite the
-story statement, acceptance criteria (Gherkin, edge cases folded in), and "out of scope" using
-the same shape `sdlc-plan-stories-write` produces (`user-story/templates/story.md.tmpl`). Show a clear
-before/after (or the full rewritten story plus the resolved-gaps log) and ask the user to approve
-or push back. If they change an answer, update both the story and the log and re-confirm — this
-realignment is the point of the step.
+### Step 5 — Write the report and stop
+Write `story-review.md` from `templates/story-review.md.tmpl` and finish. Do not edit the story,
+`stories.md`, `story-map.json` or Jira, even when the fix looks obvious: the proposed change is the
+hand-off to `sdlc-plan-stories-write` (revise mode). A clean story ("no findings") is a valid,
+useful outcome.
 
-> Anti-stall note: read the inputs and produce the rewrite and the log in the same turn the
-> interview concludes, THEN pause. Don't narrate that you're "about to check the architecture"
-> and stop there.
-
-### Step 6 — On approval, write back
-- Update the story's section in `docs/product/epics/<EPIC_KEY>/_epic/stories.md` in place.
-- Write `story-review.md` to the story's folder (from `templates/story-review.md.tmpl`).
-- If a requirement's coverage changed (a gap revealed a new FR/NFR this story now covers, or
-  that it doesn't), update `story-map.json` accordingly.
-- If the story came from Jira, update the existing issue's description/acceptance-criteria field
-  via the Atlassian MCP — see `references/atlassian-mcp-usage.md`. Never create a new issue here.
-- If Step 4 held an architecture-conflict gap, state it plainly now and recommend running
-  `sdlc-arch-design` (amend mode) before `sdlc-deliver-story-design` starts on this story — this is the earliest,
-  cheapest point that gap could be caught, even earlier than `sdlc-deliver-story-design`'s own escalation
-  check.
-- Tell the user the story is ready for `sdlc-deliver-story-design` (or, if nothing changed, say so — a clean
-  story is a valid, useful outcome of this skill too).
+> Anti-stall note: read the inputs and write the report in the same turn. Don't narrate that
+> you're "about to check the architecture" and stop there.
 
 ## What this skill is NOT
+- Not an editor — it never rewrites the story or writes to Jira; `sdlc-plan-stories-write` (revise)
+  applies its proposed changes and `sdlc-tracker-sync` publishes them.
 - Not the "how" — it doesn't decide interfaces, endpoints, or data-model deltas; that's
   `sdlc-deliver-story-design`. This only sharpens the "what" the story is asking for.
 - Not authority to change architecture — a real architecture-conflict gap gets flagged to
@@ -144,12 +134,12 @@ finish (`verify.yaml`), so don't spend effort re-checking those. This section co
 calls code can't make: each line gives a situation and the word it gets. What each word means
 is injected at run time.
 
-- **escalation_required**: A gap is an architecture conflict: closing it needs `sdlc-arch-design` (amend), not an interview answer.
-- **completed**: Questions remain that need a person. List them in `story-review.md`; the gate reviewer answers them by sending the step back.
+- **escalation_required**: A gap is an architecture conflict: closing it needs `sdlc-arch-design` (amend), not a story change.
+- **changes_requested**: At least one `Blocking` finding, or an open question a person must answer. `sdlc-plan-stories-write` (revise) applies the report.
+- **completed**: No `Blocking` findings (advisory ones may remain). The story is ready for `sdlc-deliver-story-design`.
 
 ## Reference files
 - `references/gap-checklist.md` — the full drill checklist by category, with what a real (vs.
   nitpick) gap looks like in each.
-- `references/atlassian-mcp-usage.md` — fetching and **updating** (not creating) a Jira story.
 - `templates/story-review.md.tmpl` — the review-log artifact structure.
 - `examples/story-review-LEARN-21.md` — a worked pass over `sdlc-plan-stories-write`'s LEARN-21 example.

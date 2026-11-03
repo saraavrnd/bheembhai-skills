@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "epic-map",
-  "description": "Traceability map from created Jira epics back to PRD requirement IDs. Consumed by the sdlc-plan-stories-write skill.",
+  "description": "Traceability map from epics back to PRD requirement IDs. Consumed by the sdlc-plan-stories-write skill.",
   "type": "object",
   "properties": {
     "project_key": { "type": "string", "description": "Jira project key, e.g. LEARN" },
@@ -12,7 +12,7 @@
         "type": "object",
         "required": ["epic_key", "summary", "requirement_ids"],
         "properties": {
-          "epic_key": { "type": "string", "description": "Jira issue key returned by the MCP, e.g. LEARN-12. Use a placeholder like FA-1-PENDING if created via CSV fallback." },
+          "epic_key": { "type": "string", "description": "Draft key <FA-N>-PENDING until sdlc-tracker-sync publishes the epic, then the Jira issue key, e.g. LEARN-12." },
           "summary": { "type": "string" },
           "feature_area": { "type": "string", "description": "e.g. FA-3" },
           "release": { "type": "string", "enum": ["MVP", "Later", "mixed"] },

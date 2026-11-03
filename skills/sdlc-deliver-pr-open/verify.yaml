@@ -22,8 +22,6 @@ preconditions:
     reason_code: missing_input
 
 artifacts:
-  - id: sync_note
-    path: "{layout.story_dir}design-sync.md"
   - id: handoff
     source: reply
 
@@ -78,6 +76,12 @@ checks:
     args: {keys: "{story}", field: status, op: in, value: ["In Review", "Code Review", "Review"]}
     on_fail: changes_requested
     reason_code: external_action_missing
+  - id: commits_artifacts_only
+    description: Integration step (ADR-035) — it may only commit the loop's own untracked artifacts, never edit content.
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.story_dir}*.md", "{layout.bug_dir}*.md"]}
+    on_fail: changes_requested
+    reason_code: scope
   - id: never_merges
     run: builtin:trace_tool_absent
     args: {tool: '(?i)merge_pull_request|bb_post', input_pattern: '(?i)/merge\b|merge_pull_request'}

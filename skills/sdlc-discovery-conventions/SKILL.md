@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-conventions
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Extract the implicit house style and patterns of the codebase — naming, error handling, how this team structures and writes code — from the per-service artifacts and sampled source, so new features MATCH existing patterns rather than clash. Use during Discovery AFTER structure-map. Trigger on "coding conventions", "house style", "how does this team write code". RECORDS observed patterns with examples; conventions are inferred-from-repetition, flagged as such.
 compatibility: >

@@ -1,6 +1,6 @@
 # Driving the Atlassian (Jira) MCP
 
-These skills create issues through the **connected Atlassian MCP**, not via a REST script.
+`sdlc-tracker-sync` is the only catalog skill that writes to Jira (ADR-035). It creates and updates issues, sets links and applies transitions through the **connected Atlassian MCP**, not via a REST script.
 Tool names vary slightly by MCP version, so discover them rather than hard-coding. The
 patterns below describe the *intent* of each call; use whatever the connected server exposes.
 
@@ -22,14 +22,6 @@ Provide at minimum:
 
 Capture the **returned issue key** (e.g. LEARN-12) — you need it for the traceability map and
 for parenting stories.
-
-When writing the epic description, make it self-contained:
-- State the domain problem in plain language.
-- Name the primary users or actors involved.
-- Describe the concrete functionality and workflows the epic covers.
-- Note the implementation order when there is a natural dependency chain.
-- Mention any prerequisite models, integrations, or platform services that must exist first.
-- Keep the text understandable to a Jira reader who has not seen the PRD.
 
 ## 3. Creating a Story under an Epic
 Provide:
@@ -55,9 +47,18 @@ Provide:
 - Be idempotent-minded: before bulk-creating, check whether issues with the same summaries
   already exist (search first) so re-running the skill doesn't duplicate the backlog.
 
-## 5. If the MCP is unavailable
-Fall back to a Jira CSV import file and tell the user. Do not block the whole chain on Jira
-connectivity — the artifacts (epics.md, stories) are still produced for later import.
+## 5. Links and transitions
+- **"Blocks" links:** before adding, read the story's existing links and skip any that already
+  exist. Add each new link with the comment `created by sdlc-tracker-sync (<epic>-sequence)`, so a
+  later run can tell platform-created links from human-set ones.
+- **Removing a link:** only a link carrying that comment, only for an edge listed in
+  `retired_edges`, and only in a run whose gate approved it. Never remove a human-set link.
+- **Transitions:** list the issue's available transitions and pick the one whose target status
+  matches the intent ("work started", "in review"); names vary by project.
+
+## 6. If the MCP is unavailable
+Do not fall back to a CSV or a guess: stop with `failed_execution` and name what could not be
+published. The authored artifacts are already committed; a re-run publishes them.
 
 ## Token-cost discipline (MCP results persist in context)
 Every MCP result stays in context for the whole session, so Jira calls accumulate fast (this is a

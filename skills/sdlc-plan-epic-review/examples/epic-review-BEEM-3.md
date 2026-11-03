@@ -9,7 +9,9 @@
 > BEEM-15 by hand before this skill existed); the answers are a plausible illustration of how the
 > interview would resolve them, not an applied change to the repo. Shows the thing a per-story
 > `sdlc-plan-story-review` would have to rediscover independently for BEEM-12, BEEM-13, and BEEM-15 if run
-> three separate times instead of once here.
+> three separate times instead of once here. The "Answer" lines show what a person would answer at
+the gate; this skill only records the question and the proposed change (ADR-035), and
+`sdlc-plan-stories-write` (revise) applies it.
 
 ## Context loaded
 - All 8 BEEM-3 stories from `stories.md` (BEEM-17, 18, 19, 16, 12, 13, 14, 15) — full set, not a
@@ -24,9 +26,10 @@
 - `PRD.md` FA-1/FA-3/FA-4/FA-6 sections and `epic-sequence.md`'s epic ordering table (Epic 3:
   Versioned workflow & policy definitions runs after Epic 1, i.e. after BEEM-3).
 
-## Gaps found
+## Findings
 
-### Gap 1 — Cross-story actor & role consistency
+### Finding 1 — Cross-story actor & role consistency
+- **Severity:** Blocking
 - **Stories touched:** BEEM-12, BEEM-13, BEEM-15 (all three use "admin" / "project admin" as an
   actor).
 - **What was missing/ambiguous:** None of the three stories' actors map to an actual enum value.
@@ -34,18 +37,19 @@
   `PROJECT_MANAGER`/`DEVELOPER`/`DEVOPS`/`REVIEWER` (project-scoped) — no `ADMIN` value in
   either. A single-story review of BEEM-15 alone could plausibly invent its own answer; reviewing
   all three together shows they need the *same* answer or they'll disagree on who can do what.
-- **Question asked:** "Across BEEM-12, BEEM-13, and BEEM-15, is 'admin' always the platform admin
+- **Question:** "Across BEEM-12, BEEM-13, and BEEM-15, is 'admin' always the platform admin
   (`platformRole = PLATFORM_ADMIN`), or can a project member with `PROJECT_MANAGER` also perform
   these actions within their own project?"
 - **Answer (illustrative):** Platform admin only, for all three stories — consistent with
   BEEM-16's bootstrap note that it seeds "the prerequisite for BEEM-12, BEEM-13, and BEEM-15."
   `PROJECT_MANAGER` is a run/approval-eligibility role, not a project-administration role, in
   this data model.
-- **Resulting change:** All three stories' "Given a[n] admin/project admin is signed in"
+- **Proposed change:** All three stories' "Given a[n] admin/project admin is signed in"
   preconditions reworded to "Given a signed-in user with `platformRole = PLATFORM_ADMIN`," applied
   identically across BEEM-12, BEEM-13, and BEEM-15 in the same pass.
 
-### Gap 2 — Cross-story / cross-epic architecture fit (dependency note missing, not a conflict)
+### Finding 2 — Cross-story / cross-epic architecture fit (dependency note missing, not a conflict)
+- **Severity:** Advisory
 - **Stories touched:** BEEM-15.
 - **What was missing/ambiguous:** ACs 2, 3, and 5 all depend on "the required approval role for a
   gated step" being knowable. Per `PRD.md`, that mapping lives in the policy definition, which is
@@ -53,36 +57,40 @@
   BEEM-3, so this is legitimate cross-epic sequencing, not an architecture conflict — but BEEM-15's
   own Notes/dependencies section is silent about it, naming only "the approval-gate workflow from
   the orchestration epic."
-- **Question asked:** "BEEM-15's eligibility scenarios assume a step's required role is already
+- **Question:** "BEEM-15's eligibility scenarios assume a step's required role is already
   known. Should BEEM-15's own scope be limited to storing `Membership.role` and exposing an
   eligibility check given a role passed in, with the required-role-per-step mapping explicitly
   left to the policy epic (BHEEM-5) — and should that dependency be written down here?"
 - **Answer (illustrative):** Yes to both — scope BEEM-15 to membership + eligibility check only;
   add the missing dependency note.
-- **Resulting change:** BEEM-15's Notes/dependencies now also reads: "The mapping from a gated
+- **Proposed change:** BEEM-15's Notes/dependencies now also reads: "The mapping from a gated
   step to its required approval role is defined by the policy record built in BHEEM-5 (Epic 3);
   this story only stores project roles and evaluates eligibility given a required role supplied
   by the orchestrator." No architecture change needed — `sdlc-arch-design` is not invoked for this gap.
 
-### Gap 3 — Dependency-note sanity (one-sided claim)
+### Finding 3 — Dependency-note sanity (one-sided claim)
+- **Severity:** Advisory
 - **Stories touched:** BEEM-16, BEEM-12, BEEM-13, BEEM-15.
 - **What was missing/ambiguous:** BEEM-16's notes state it is "the prerequisite seed for BEEM-12,
   BEEM-13, and BEEM-15." None of those three stories' own Notes/dependencies mention BEEM-16 —
   a one-sided dependency claim. Read individually, each of the three looks self-contained; only
   comparing all four together surfaces the mismatch.
-- **Question asked:** "Should BEEM-12, BEEM-13, and BEEM-15 each state 'depends on BEEM-16 (bootstrap
+- **Question:** "Should BEEM-12, BEEM-13, and BEEM-15 each state 'depends on BEEM-16 (bootstrap
   admin)' explicitly, to match BEEM-16's own claim?"
 - **Answer (illustrative):** Yes.
-- **Resulting change:** Added "Depends on `BEEM-16` for the first platform admin account" to the
+- **Proposed change:** Added "Depends on `BEEM-16` for the first platform admin account" to the
   Notes/dependencies of BEEM-12, BEEM-13, and BEEM-15. (This is a documentation fix only — it does
   not change `sdlc-plan-epic-sequence`'s computed order, which already builds BEEM-16 first on other
   grounds.)
+
+## Open questions
+1. See Finding 1's question (platform admin only, or also PROJECT_MANAGER?).
 
 ## Architecture impact
 None — Gap 2 is a legitimate, already-correctly-sequenced cross-epic dependency; the only change
 needed was writing it down. No gap here requires a new entity, field, or endpoint.
 
-## Story changes summary
+## Proposed changes
 `stories.md`:
 - BEEM-12, BEEM-13, BEEM-15: "admin"/"project admin" preconditions reworded to
   `platformRole = PLATFORM_ADMIN`.

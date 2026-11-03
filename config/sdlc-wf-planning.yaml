@@ -1,0 +1,54 @@
+# BheemBhai Planning — PARENT workflow (ADR-035). From a product idea to published, reviewed and
+# sequenced stories, with each skill doing one job:
+#   prd-write (author) -> epics-create (author) -> tracker-sync (integration: publish epics)
+#   -> foreach epic: sdlc-wf-planning-epic (stories, cross-vendor review, sequence, publish).
+# Authors run on the run's primary model; reviewer steps in the child run on the reviewer model.
+workflow: sdlc-wf-planning
+version: 1
+category: Software Delivery
+description: Turn a product idea into a PRD, epics and reviewed, sequenced stories in Jira — authors and reviewers on different model families.
+start: sdlc-plan-prd-write
+
+steps:
+  - id: sdlc-plan-prd-write
+    skill: sdlc-plan-prd-write
+    model: high
+    label: Write the PRD
+    deadline: 1200
+    "on":
+      completed: sdlc-plan-epics-create
+      changes_requested: sdlc-plan-prd-write
+      escalation_required: DONE
+
+  - id: sdlc-plan-epics-create
+    skill: sdlc-plan-epics-create
+    model: medium
+    label: Plan the epics
+    deadline: 900
+    "on":
+      completed: sdlc-tracker-sync
+      changes_requested: sdlc-plan-epics-create
+
+  # Publishes the approved epics and swaps their draft keys for Jira keys.
+  - id: sdlc-tracker-sync
+    skill: sdlc-tracker-sync
+    model: low
+    label: Publish the epics to Jira
+    deadline: 600
+    "on":
+      completed: per-epic-fanout
+      changes_requested: sdlc-tracker-sync
+
+  - id: per-epic-fanout
+    foreach:
+      items_from: docs/product/epic-map.json   # written by epics-create, keys set by tracker-sync
+      select: "$.epics[*]"
+      as: ITEM                                  # ITEM.epic_key, ITEM.summary, ...
+      run: sdlc-wf-planning-epic
+      concurrency: 1                            # v1: the ONLY legal value
+      on_branch_block: continue_others
+      join: all_terminal
+      then_require: all_completed               # v1: the ONLY legal value
+      policy: sdlc-policy-planning-epic-governed
+    label: Stories for each epic (fan-out over epic-map.json)
+    "on": {completed: DONE, partial: DONE, failed: DONE}

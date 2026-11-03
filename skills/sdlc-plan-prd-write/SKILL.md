@@ -1,5 +1,6 @@
 ---
 name: sdlc-plan-prd-write
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Convert a raw product idea or domain description into a structured, decomposable Product
   Requirements Document (PRD). Use this as the FIRST step of the PDLC chain whenever someone

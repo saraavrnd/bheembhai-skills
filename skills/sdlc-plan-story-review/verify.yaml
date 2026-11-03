@@ -1,21 +1,22 @@
 version: 1
 skill: sdlc-plan-story-review
 summary: >
-  The review log exists in the story folder, the story's acceptance criteria still parse and cover
-  its requirements, the Jira issue is updated (never a new one), and an architecture conflict
-  escalates to sdlc-arch-design instead of being resolved in the interview.
+  Review only (ADR-035): the report in the story folder records each gap with severity, evidence,
+  question and proposed change; nothing but the report changes and nothing is written to Jira;
+  Blocking findings route to stories-write (revise); an architecture conflict escalates.
 verdicts_used: [failed_execution, changes_requested, escalation_required]
 
 facts:
-  scenarios:
-    kind: gherkin_scenarios
-    from: "{layout.epic_dir}stories.md"
-    section: "Acceptance Criteria"
   arch_conflict:
     kind: regex
     from: log
     section: "Architecture impact"
     pattern: '(?i)\b(sdlc-arch-design|amend|architecture conflict)\b'
+  blocking_findings:
+    kind: regex
+    from: log
+    section: Findings
+    pattern: '(?im)^\s*-\s*\**Severity:?\**\s*:?\s*Blocking\b'
 
 preconditions:
   - id: stories_present
@@ -30,33 +31,31 @@ artifacts:
   - id: stories_md
     path: "{layout.epic_dir}stories.md"
     must_change: false
-    description: A clean story is a valid outcome; then only the log is new.
+    description: Read as judge input only; a reviewer never changes it.
 
 checks:
   - id: log_sections
     run: builtin:md_sections
-    args: {artifact: log, required: [["Gaps", "Findings"], ["Questions", "Interview"], ["Answers", "Resolved"], ["Changes", "What changed"]], match: contains}
+    args: {artifact: log, required: [["Context loaded", "Loaded"], ["Findings", "Gaps"], ["Open questions", "Questions"], ["Proposed changes"]], match: contains}
     on_fail: changes_requested
     reason_code: structure
-  - id: gherkin_parses
-    run: builtin:gherkin_valid
-    args: {fact: facts.scenarios}
+  - id: blocking_routes_to_revise
+    description: Blocking findings mean stories-write (revise) must apply them before design.
+    when: "self_verdict == 'completed'"
+    run: builtin:count_range
+    args: {fact: facts.blocking_findings, max: 0}
     on_fail: changes_requested
-    reason_code: structure
-  - id: story_map_schema
-    run: builtin:json_schema
-    args: {path: "{layout.epic_dir}story-map.json", schema: schemas/story-map.schema.json}
-    on_fail: changes_requested
-    reason_code: schema_invalid
-  - id: never_creates_issues
+    reason_code: report_inconsistent
+  - id: no_tracker_writes
+    description: Read-only reviewer — Jira writes belong to sdlc-tracker-sync.
     run: builtin:trace_tool_absent
-    args: {tool: '(?i)create.*issue|createJiraIssue'}
+    args: {tool: '(?i)(create|edit|update|transition|delete).*(issue|jira)|createJiraIssue|editJiraIssue|transitionJiraIssue'}
     on_fail: changes_requested
     reason_code: policy
-  - id: only_this_story
-    description: Only this story's section of stories.md, its folder and the story map may change.
+  - id: report_only
+    description: Reviewer writes only its own report (ADR-035).
     run: builtin:diff_paths
-    args: {allowed: ["{layout.epic_dir}stories.md", "{layout.epic_dir}story-map.json", "{layout.story_dir}**"]}
+    args: {allowed: ["{layout.story_dir}story-review.md"]}
     on_fail: changes_requested
     reason_code: scope
   - id: escalation_reported
@@ -75,11 +74,11 @@ judge:
       question: "Does every question in the log point at something concrete in architecture.md, data-model.md, contracts or a sibling story that does not line up?"
       on_fail: changes_requested
       reason_code: quality
-    - id: only_target_story_rewritten
-      question: "Were only the target story's statement, acceptance criteria and out-of-scope rewritten in stories.md (sibling stories untouched)?"
+    - id: proposals_target_this_story
+      question: "Does every proposed change apply to the target story only (a sibling-story problem is named, not proposed as an edit here)?"
       on_fail: changes_requested
       reason_code: scope
-    - id: rewritten_ac_executable
-      question: "Is every rewritten acceptance criterion executable as a test with no further interpretation (concrete values, messages, thresholds)?"
+    - id: proposed_ac_executable
+      question: "Is every proposed acceptance criterion executable as a test with no further interpretation (concrete values, messages, thresholds)?"
       on_fail: changes_requested
       reason_code: quality

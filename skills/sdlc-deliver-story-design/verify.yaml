@@ -74,7 +74,7 @@ checks:
     reason_code: placeholder_left
   - id: story_folder_only
     run: builtin:diff_paths
-    args: {allowed: ["{layout.story_dir}**", "{layout.epic_dir}sdlc-plan-epic-sequence.*"]}
+    args: {allowed: ["{layout.story_dir}**"]}
     on_fail: changes_requested
     reason_code: scope
 

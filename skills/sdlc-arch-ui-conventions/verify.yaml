@@ -1,0 +1,66 @@
+version: 1
+skill: sdlc-arch-ui-conventions
+summary: >
+  When the architecture has a frontend, docs/ui-conventions.md exists with every starter section
+  filled and no template residue, and nothing else changed.
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  has_frontend:
+    kind: regex
+    from: "{layout.architecture}"
+    pattern: '(?i)\b(frontend|web app|single-page|UI layer|React|Vue|Svelte|Angular|Next\.js)\b'
+
+preconditions:
+  - id: architecture_present
+    run: builtin:file_exists
+    args: {path: "{layout.architecture}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: conventions
+    path: "{layout.ui_conventions}"
+    required: false
+
+checks:
+  - id: written_when_frontend
+    when: "facts.has_frontend"
+    run: builtin:file_exists
+    args: {path: "{layout.ui_conventions}"}
+    on_fail: changes_requested
+    reason_code: missing_artifact
+  - id: starter_sections
+    when: "facts.has_frontend"
+    run: builtin:md_sections
+    args:
+      artifact: conventions
+      required: [["Framework", "Component"], ["Design tokens", "Tokens"], ["State"], ["UI states"], ["Accessibility"], ["Responsive"]]
+      match: contains
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_template_residue
+    when: "facts.has_frontend"
+    run: builtin:md_no_placeholders
+    args: {artifact: conventions}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: one_file_only
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.ui_conventions}"]}
+    on_fail: changes_requested
+    reason_code: scope
+
+judge:
+  tier: low
+  vendor: prefer_different
+  inputs: [conventions, "{layout.architecture}", "{layout.tech_stack}"]
+  criteria:
+    - id: matches_stack
+      question: "Does the framework and component structure match the frontend stack named in tech-stack.md and architecture.md?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: thin_starter
+      question: "Is the file a thin starter (a short token set and one state/data-loading pattern), not an exhaustive design system?"
+      on_fail: advisory
+      reason_code: quality

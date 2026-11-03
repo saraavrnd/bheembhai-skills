@@ -1,19 +1,20 @@
 ---
 name: sdlc-deliver-docs-sync
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Keep the system design references and AGENTS.md continuously in sync with shipped code: when a
   story is ready to merge, reconcile what it changed against architecture.md, data-model.md,
-  api-contracts/, and AGENTS.md, commit the doc updates onto the SAME branch so they ride with
-  the merge, and flag any in-progress stories the change affects. Use this at the end of the
-  per-story loop, inside sdlc-deliver-pr-open's flow, BEFORE the PR merges. Trigger this even when the user
+  api-contracts/, and AGENTS.md, and commit the doc updates onto the SAME branch so they ride with
+  the merge. Use this at the end of the per-story loop, as its own step after sdlc-deliver-code-review
+  and BEFORE sdlc-deliver-impact-flag and sdlc-deliver-pr-open. Trigger this even when the user
   just says "sync the design", "update the architecture docs", "update AGENTS.md", "reconcile
   the design after this story", or when a story PR is about to merge. This skill updates
   documentation/reference files only — it does NOT change production code or tests, and it is
   proportionate (a no-op when the story changed nothing at the system level).
 compatibility: >
   Tool-agnostic (Claude Code or Codex). Reads the merged story's diff, the committed design from
-  sdlc-arch-design, and AGENTS.md. Commits doc updates to the story branch via git/GitHub MCP. Uses
-  the Atlassian MCP to find in-progress stories to flag. Runs in the local Docker dev environment.
+  sdlc-arch-design, and AGENTS.md. Commits doc updates to the story branch via git. No Jira access.
+  Runs in the local Docker dev environment.
 model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
 
 ---
@@ -45,8 +46,11 @@ runs at each story's merge to reconcile the references with what actually shippe
 person to read them sees reality.
 
 > Documentation only. This skill never touches production code or tests. Its job is to make the
-> design references match the code that's merging, and to warn anyone whose in-progress work the
-> change affects.
+> design references match the code that's merging.
+
+> **Single responsibility (ADR-035):** this is an `author` skill — docs only. Warning the owners of
+> in-progress stories that this change overlaps is `sdlc-deliver-impact-flag`, an `integration` step that
+> runs right after this one.
 
 ## Why per-merge (not per-epic)
 With multiple stories in flight, the references must reflect reality continuously — at any moment
@@ -55,23 +59,22 @@ for a whole epic, exactly when parallel stories most overlap. So this runs every
 **proportionate**: most merges change nothing at the system level and the sync is a near no-op.
 
 ## Where it runs
-Inside `sdlc-deliver-pr-open`'s flow, **before the PR is opened**, while still on the story branch — so the
+As its own workflow step, **before the PR is opened**, while still on the story branch — so the
 doc commit becomes part of the PR and merges atomically with the code (it rides with the merge,
 not a follow-up PR). Order in the loop:
-`... sdlc-deliver-tests-verify → sdlc-deliver-code-review → sdlc-deliver-pr-open [ sdlc-deliver-docs-sync commits docs to branch → open PR → … → merge ]`.
+`... sdlc-deliver-tests-verify → sdlc-deliver-code-review → sdlc-deliver-docs-sync → sdlc-deliver-impact-flag → sdlc-deliver-pr-open`.
 
 ## Input it expects
 - The story's merged diff (the branch `feat/<STORY_KEY>-...` against main).
 - The committed design from `sdlc-arch-design`: `architecture.md`, `data-model.md`, `api-contracts/`,
   `adr/`, and the repo's `AGENTS.md`.
-- Access to Jira (Atlassian MCP) to list in-progress stories for overlap-flagging.
 
 ## Output it produces
 - Updated reference files (only those that actually changed), committed to the story branch:
   potentially `architecture.md`, `data-model.md`, `api-contracts/`, `AGENTS.md`, and a running
   `docs/CHANGELOG-design.md`.
 - A `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/design-sync.md` note: what changed in the references (or "no system-level
-  change"), and a list of affected in-progress stories flagged for design re-check.
+  change"), and the structural-change check.
 
 ## Procedure
 
@@ -105,33 +108,23 @@ dependencies, new external integrations, config) against the current reference d
 - a pointer to the design changelog for detail.
 Keep it concise and current — it's a living orientation file, not a full spec.
 
-### Step 4 — Flag affected in-progress stories (the multi-user safeguard)
-Via the Atlassian MCP, list stories that are In Progress / In Review (not this one). For each,
-check whether this change touches the same module, endpoint, or data entity their `sdlc-deliver-story-design`
-references. For any overlap:
-- add a comment on that Jira story: "Design changed by <STORY_KEY> (e.g. `material` table gained
-  `checksum`); please re-check your sdlc-deliver-story-design before/again implementing,"
-- list them in `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/design-sync.md`.
-This is a notification, not a block — it lets the other developer re-align proactively instead of
-discovering the collision at merge.
-
-### Step 5 — Commit onto the story branch (before the PR opens)
+### Step 4 — Commit onto the story branch (before the PR opens)
 Commit the doc/reference changes to the SAME branch as the story (message:
 `<STORY_KEY>: sdlc-deliver-docs-sync — update references`), while still on the branch and before `sdlc-deliver-pr-open`
 opens the PR. This way the doc updates are part of the PR and merge atomically with the code. Do
 not open a separate PR; do not commit straight to main.
 
-### Step 6 — Hand back to sdlc-deliver-pr-open
-Report what was synced (or that it was a no-op) and which stories were flagged. `sdlc-deliver-pr-open` then
-opens the PR (now including the doc updates) and transitions Jira. If a structural change was
+### Step 5 — Hand off
+Report what was synced (or that it was a no-op). `sdlc-deliver-impact-flag` runs next, then
+`sdlc-deliver-pr-open` opens the PR (now including the doc updates) and transitions Jira. If a structural change was
 detected that never went through a `sdlc-arch-design` amendment, recommend pausing to do that first.
 
 ## Boundaries
 - Docs/reference files only — never production code or tests.
 - Not a design *decision* maker — that's `sdlc-arch-design` (amend mode). This reflects decisions
   already shipped; it escalates if it finds an un-amended structural change.
-- Does not merge or block — it commits docs to the branch and flags overlaps; `sdlc-deliver-pr-open` owns
-  the merge, humans own the response to flags.
+- Does not merge, block or notify — it commits docs to the branch; `sdlc-deliver-impact-flag` notifies
+  overlapping stories and `sdlc-deliver-pr-open` opens the PR.
 
 ## On a bug run (sdlc-wf-bug-fix)
 The work item is a bug. Most bug fixes are `no system-level change`: append the changelog line
@@ -149,7 +142,7 @@ is injected at run time.
 - **completed**: Nothing changed at the system level. A no-op sync is completed.
 
 ## Reference files
-- `templates/design-sync-note.md.tmpl` — the per-merge sync note + flagged stories.
+- `templates/design-sync-note.md.tmpl` — the per-merge sync note.
 - `templates/AGENTS.md.tmpl` — the structure of the living AGENTS.md this keeps current.
 - `references/sync-decision-guide.md` — classifying no-op vs incremental vs structural; idempotency.
 - `examples/` — a worked sync for story LEARN-21 (incremental: new endpoint + table).

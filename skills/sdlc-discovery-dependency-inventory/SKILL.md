@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-dependency-inventory
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Inventory one service'"'"'s third-party dependencies from its manifest and lockfile — names,
   versions, and flags for outdated or known-vulnerable packages — into a reviewable note the

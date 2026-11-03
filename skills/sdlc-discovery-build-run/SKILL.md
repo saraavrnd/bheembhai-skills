@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-build-run
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Extract how to build, run, and test one service locally — the commands, required services,
   environment variables, and entrypoint — into a reviewable sdlc-discovery-build-run note the feature-dev agent
