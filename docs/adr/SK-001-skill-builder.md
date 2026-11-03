@@ -121,6 +121,7 @@ pinned versions, and records them on every run.
 | Component | What it is | How it's pinned | Source |
 |---|---|---|---|
 | **Agent image** | The container the platform runs for every step: `run_skill.sh` (clone, skill bundle, prompt, Claude Code, commit, push, result upload), in one go | Image **digest** from `kit.json`, pulled from the platform's **ECR** repo | Platform image build |
+| **Scanner image** | The platform's scanner container (ADR-034 §4, §7): `bheembhai-skillscan` and SkillSpector on a slim Python base. It reads one skill bundle and writes one report | Image **digest** from `kit.json`, pulled from the platform's **ECR** repo. Never a tag such as `:latest` | Platform image build |
 | **`bheembhai-verify`** | verify.yaml loader, builtin checks, verdict precedence | Via the kit (below) | Platform kit releases (ADR-032 §2a, platform ADR-033 §3) |
 | **`bheembhai-stepkit`** (new) | The engine-side code that runs before a container starts (§2a) | Via the kit (below) | Platform kit releases |
 
@@ -134,8 +135,10 @@ contract.)
 
 **Pulling the image from ECR.** The skill builder host has a read-only AWS identity allowed
 `ecr:GetAuthorizationToken`, `ecr:BatchGetImage` and `ecr:GetDownloadUrlForLayer` on the agent
-image repository only. The runner logs in with the ECR token and pulls by digest. Updating the
-image, the verifier or the stepkit is a one-line change to `kit.txt`, in a PR like any other.
+and scanner image repositories only. The runner logs in with the ECR token and pulls both by
+digest. A digest, not `:latest`, is what makes the verdict here match the platform's: a moving tag
+would let the two scan with different SkillSpector versions. Updating an image, the verifier or
+the stepkit is a one-line change to `kit.txt`, in a PR like any other.
 
 ### 2a. The step kit
 
@@ -285,6 +288,12 @@ skill before it runs it, with the same two SkillSpector stages and the same pinn
 `bheembhai-skillscan` package the platform uses (ADR-034 §7). A skill gets the same verdict here,
 in this repo's CI and in the platform.
 
+- **Runs in the scanner image, never in the app process.** The scanner parses untrusted skill
+  content, so the runner starts a short-lived scanner container (the kit's digest, §2) for each
+  stage, as the platform's Engine does. The bundle is mounted read-only and the report is written
+  to an output mount. The static stage runs with no network. The LLM stage gets the model key as
+  env only and network access only to the model endpoint. Each container has a 10-minute limit,
+  and a timeout is a failed scan. The scanner's MCP server mode is never used.
 - **No scan on save**, as in the platform (ADR-034 §2). Scans run when the author asks for them
   and before every run.
 - **Static check** before every run on the exact bundle the run will use, and from a **Security
@@ -300,11 +309,13 @@ in this repo's CI and in the platform.
   recommendation, each finding with severity, rule, file and line, and which model ran the LLM
   check.
 - **CLI:** `python -m skill_builder.runner scan --project <p> --skill <s> --skills-ref <branch>`
-  runs both stages without a test run; `--static-only` skips the model.
+  runs both stages without a test run; `--static-only` skips the model. Both start the same scanner
+  container as the app, so the host needs Docker.
 - **Not a gate for the platform.** The skill builder never writes to the platform (§8). Its scan is
   advice for the author; this repo's CI and the platform scan again.
 
-This repo's CI (`ci.yml`) also runs the static check on every PR, through the same package, with
+This repo's CI (`ci.yml`) also runs the static check on every PR, in the same scanner image (pulled
+by the digest in `skill-builder/kit.txt`), with
 SARIF uploaded so findings show on the PR. It skips the LLM check, because the platform runs both
 stages at import (ADR-034 §6). Accepted findings live in `.skillspector-baseline.yaml`, each with a
 reason, and need a CODEOWNERS review.
@@ -419,6 +430,8 @@ comments on the PR are fixed on the same branch, which clears Ready until the ch
 - Jira seeding replaces aliases with real keys, and cleanup leaves no issues behind.
 - A skill whose static check is `DO_NOT_INSTALL` never starts a run; the LLM check is never called
   for it.
+- The runner refuses a scanner or agent image given by tag instead of digest.
+- A static scan container has no network.
 - The skill builder and the platform give the same scan verdict for the same bundle (both pin
   `bheembhai-skillscan`).
 - The platform engine and the skill builder build the same `BB_CONTEXT` for the same workflow step
