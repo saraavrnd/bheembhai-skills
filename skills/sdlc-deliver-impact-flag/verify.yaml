@@ -16,6 +16,14 @@ facts:
     section: "Flags"
     pattern: '(?m)^\|\s*([A-Z][A-Z0-9]+-\d+)\s*\|'
 
+preconditions:
+  - id: conventions_present
+    description: Story and bug folders resolve from the conventions file's Project Layout.
+    run: builtin:file_exists
+    args: {path: "{layout.agents_md}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
 artifacts:
   - id: note
     path: "{layout.story_dir}impact-flags.md"

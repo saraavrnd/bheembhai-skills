@@ -42,6 +42,22 @@ facts:
 
 snapshot: [jira_state]
 
+preconditions:
+  - id: plan_present
+    description: A planning run publishes the epic map; without it there is nothing to sync.
+    when: "not facts.is_bug"
+    run: builtin:file_exists
+    args: {path: "{layout.epic_map}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: triage_present
+    description: A bug run publishes the triage decision; without it there is nothing to sync.
+    when: "facts.is_bug"
+    run: builtin:file_exists
+    args: {path: "{layout.bug_dir}bug-triage.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
 artifacts:
   - id: handoff
     source: reply
