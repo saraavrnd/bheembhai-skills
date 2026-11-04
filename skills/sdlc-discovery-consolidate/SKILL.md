@@ -97,6 +97,8 @@ Step 5 — Present ALL canonical docs together for review. This is the hardest g
   reverse-engineered knowledge as the project's working truth.
 
 ## Output format
+For `docs/architecture.md`: fill every section of the SAD template. Keep the section numbers and
+headings. If a section does not apply, write "Not applicable." and one short reason.
 Each canonical doc matches its delivery-skill template shape, plus the provenance banner. The
 evidence layer is untouched. See `examples/consolidate-manifest-LEARN-portal.md` for the mapping.
 
