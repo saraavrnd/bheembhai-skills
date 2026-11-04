@@ -1,7 +1,8 @@
-<!-- Bundled Simplified Technical English (ASD-STE100) rules. This is the FULL rule set, baked into
-     the skill so it needs no standalone STE skill install. Apply these rules WHILE you write each
-     canonical doc. Adapted from asd-ste100-skill (MIT, danyuchn/asd-ste100-skill). This is the STE
-     principles, not the certified ASD dictionary. Do not search the web for the standard. -->
+> Bundled Simplified Technical English (ASD-STE100) rules. This is the FULL rule set, baked into
+> the skill so it needs no standalone STE skill install. Apply these rules WHILE you write each
+> canonical doc. Adapted from asd-ste100-skill (MIT, danyuchn/asd-ste100-skill). This is the STE
+> principles, not the certified ASD dictionary. Do not search the web for the standard.
+
 
 # Simplified Technical English (ASD-STE100)
 

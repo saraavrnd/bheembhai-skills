@@ -24,6 +24,8 @@ model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
 > layout places this file at `docs/ui-conventions.md`. This skill's own `templates/` stays inside
 > the skill folder.
 
+Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
+
 > **Single responsibility (ADR-035):** this is an `author` skill split out of `sdlc-arch-design`. It
 > writes `docs/ui-conventions.md` only.
 

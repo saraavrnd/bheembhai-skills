@@ -1,7 +1,8 @@
-<!-- How to draw the architecture diagrams in the canonical SAD. Mermaid only. Every diagram is
-     BUILT FROM the discovery evidence — never freehand. This keeps the diagrams honest: a node or
-     edge appears only if a discovery artifact supports it. Read this before you write any diagram
-     in docs/architecture.md. -->
+> How to draw the architecture diagrams in the canonical SAD. Mermaid only. Every diagram is
+> BUILT FROM the discovery evidence — never freehand. This keeps the diagrams honest: a node or
+> edge appears only if a discovery artifact supports it. Read this before you write any diagram
+> in docs/architecture.md.
+
 
 # Architecture diagram conventions
 

@@ -26,6 +26,8 @@ the canonical project docs. It reuses the delivery skills' own templates where t
 sdlc-arch-design's `templates/architecture.md.tmpl`, `templates/ADR.md.tmpl`) so the output is shaped
 identically to greenfield. Own `templates/`/`examples/` stay in the skill folder.
 
+Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
+
 Cost & context: Runs at the frontmatter complexity tier (strong — these docs drive every future
 feature). Read the distilled discovery artifacts, not source. Compose, don't re-discover.
 
@@ -97,6 +99,8 @@ Step 5 — Present ALL canonical docs together for review. This is the hardest g
   reverse-engineered knowledge as the project's working truth.
 
 ## Output format
+For `docs/architecture.md`: fill every section of the SAD template. Keep the section numbers and
+headings. If a section does not apply, write "Not applicable." and one short reason.
 Each canonical doc matches its delivery-skill template shape, plus the provenance banner. The
 evidence layer is untouched. See `examples/consolidate-manifest-LEARN-portal.md` for the mapping.
 

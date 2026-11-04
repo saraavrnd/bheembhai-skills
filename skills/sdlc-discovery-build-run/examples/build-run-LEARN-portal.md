@@ -1,4 +1,3 @@
-<!-- Worked example: build-run for Learn Portal (fastapi pack). Commands from pyproject/compose + pack. -->
 ```yaml
 artifact: build-run
 service: learn-portal

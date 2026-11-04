@@ -46,6 +46,8 @@ alive one call away.
   `local`, `cross-module` or `architectural`, and a **domain tag** (backend / frontend / full-stack)
   for the implement step's lens.
 
+Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
+
 ## Procedure
 
 ### Step 1 — Trace from the symptom inward

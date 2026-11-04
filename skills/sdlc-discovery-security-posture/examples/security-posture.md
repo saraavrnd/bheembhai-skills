@@ -1,6 +1,3 @@
-<!-- Worked example: SDLC-structured security-posture.md for Learn Portal. Readable domain sections
-     + severity-ranked findings + machine block. Every line tagged + sourced. -->
-
 ---
 artifact: security-posture
 generated: 2026-10-10

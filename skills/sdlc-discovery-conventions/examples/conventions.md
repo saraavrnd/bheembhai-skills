@@ -1,5 +1,3 @@
-<!-- Worked example: SDLC-structured conventions.md for Learn Portal. -->
-
 ---
 artifact: conventions
 generated: 2026-10-10

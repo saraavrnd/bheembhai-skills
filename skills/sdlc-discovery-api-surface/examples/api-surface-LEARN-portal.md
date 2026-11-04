@@ -1,5 +1,3 @@
-<!-- Worked example: api-surface for the Learn Portal backend (fastapi pack).
-     Written to docs/discovery/learn-portal/api-surface.md. Sources are the real router lines. -->
 ```yaml
 artifact: api-surface
 service: learn-portal

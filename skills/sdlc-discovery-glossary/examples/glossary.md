@@ -1,5 +1,3 @@
-<!-- Worked example: SDLC-structured glossary.md for Learn Portal. -->
-
 ---
 artifact: glossary
 generated: 2026-10-10

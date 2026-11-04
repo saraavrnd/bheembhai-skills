@@ -1,6 +1,3 @@
-<!-- Human index for the service graph graphify built. Written to docs/discovery/<SERVICE>/graph.md.
-     An INDEX + hand-off record, not a description of the code. The real artifact is the graphify
-     store at graphify-out/graph.json; downstream skills query it via graphify verbs. -->
 ```yaml
 artifact: graph
 service: <SERVICE>
@@ -17,11 +14,9 @@ nodes: <N|null>
 **Status:** <built | partial | not built — reason>
 
 ## Scale
-<!-- From graphify's build output if it reports counts; otherwise "see store". -->
 - Nodes: <N> · relations: <E> · languages: <...>
 
 ## Smoke test
-<!-- The one verb call run to confirm the graph answers queries. -->
 `graphify query "entry points" --budget 500 --graph docs/discovery/<SERVICE>/graphify-out/graph.json`
 → <returned N nodes with source refs | FAILED — reason>
 

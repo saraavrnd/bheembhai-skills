@@ -31,6 +31,8 @@ model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
 > folder only. This skill's own `templates/`, `references/`,
 > `examples/`, and `scripts/` stay inside the skill folder and never move under `docs/`.
 
+Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
+
 > **Cost & context:** This skill runs at the `model:` tier in its frontmatter.
 > To avoid context bloat: load only the slices of artifacts you
 > need (not whole files), don't re-read what's already in context, and for any MCP calls request

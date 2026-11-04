@@ -1,4 +1,3 @@
-<!-- Worked example: the AGENTS.md sdlc-discovery-init writes for Learn Portal (repo had none). -->
 # AGENTS.md — Learn Portal
 
 ## Project Layout

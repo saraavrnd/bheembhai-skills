@@ -36,6 +36,8 @@ model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
 > `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/`. This skill's own `templates/`,
 > `references/`, `examples/` stay inside the skill folder and never move under `docs/`.
 
+Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
+
 > **Cost & context:** This skill runs at the `model:` tier in its frontmatter.
 > An epic can hold a dozen-plus stories — batch-read `stories.md`
 > and `story-map.json` once rather than fetching per story, load architecture/data-model slices

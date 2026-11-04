@@ -1,5 +1,3 @@
-<!-- Worked example: sdlc-discovery-graph hand-off for the learn-portal service, built with graphify.
-     Shows the graph store location + the verb calls downstream skills run against it. -->
 ```yaml
 artifact: graph
 service: learn-portal

@@ -1,5 +1,3 @@
-<!-- Worked example: stack-detect output for the Learn Portal backend service.
-     Written to docs/discovery/learn-portal/stack.md. Confident match. -->
 ```yaml
 artifact: stack
 service: learn-portal

@@ -1,6 +1,7 @@
-<!-- Flat reference read by sdlc-discovery-init. Defines what counts as a service boundary, which
-     files reveal them, and how to tell a first-party service from an off-the-shelf infra
-     dependency. No logic, no tool calls — just the rules the skill applies. -->
+> Flat reference read by sdlc-discovery-init. Defines what counts as a service boundary, which
+> files reveal them, and how to tell a first-party service from an off-the-shelf infra
+> dependency. No logic, no tool calls — just the rules the skill applies.
+
 
 # Service-boundary heuristics
 

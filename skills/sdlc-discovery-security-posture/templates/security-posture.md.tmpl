@@ -1,9 +1,3 @@
-<!-- Discovery hand-off (system): security-posture.md -> docs/discovery/_system/security-posture.md
-     SDLC-standard Security Posture document. Readable domain sections on top; machine block of
-     severity-ranked findings at the bottom. Every line keeps a confidence tag + source; security
-     findings also carry a severity. "None observed." where a control is absent — say so explicitly,
-     since absence of a control IS a finding. -->
-
 ---
 artifact: security-posture
 generated: <DATE>
@@ -14,7 +8,6 @@ confidence_summary: "<n observed, n inferred, n uncertain>"
 # Security Posture — <SYSTEM / REPO NAME>
 
 ## 1. Overview
-<!-- 2-4 sentences: the overall posture and the single biggest honest caveat. -->
 <prose overview>
 
 ## 2. Authentication & Authorization
@@ -36,7 +29,6 @@ confidence_summary: "<n observed, n inferred, n uncertain>"
 - <lockfile presence, known-vuln deps, pinning> _[observed — source: dependency-inventory.md]_
 
 ## 8. Findings (severity-ranked)
-<!-- The actionable list. Highest severity first. -->
 | ID | Severity | Finding | Confidence | Source |
 |----|----------|---------|------------|--------|
 | SEC-1 | high | <specific statement> | observed | <path:line> |

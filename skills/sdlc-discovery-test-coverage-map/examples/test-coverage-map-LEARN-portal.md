@@ -1,4 +1,3 @@
-<!-- Worked example: test-coverage-map for Learn Portal (fastapi pack). From the tests/ tree. -->
 ```yaml
 artifact: test-coverage-map
 service: learn-portal

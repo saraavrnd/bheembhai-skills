@@ -1,7 +1,3 @@
-<!-- Worked example: the SDLC-structured architecture.md for Learn Portal, built from the real
-     per-service discovery artifacts + integration-map. Shows how the machine findings become a
-     readable Architecture Overview while every line keeps its confidence tag and source. -->
-
 ---
 artifact: architecture
 generated: 2026-10-10

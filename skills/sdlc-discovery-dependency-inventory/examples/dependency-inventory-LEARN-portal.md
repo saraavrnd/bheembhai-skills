@@ -1,4 +1,3 @@
-<!-- Worked example: dependency-inventory for Learn Portal (fastapi pack). From pyproject + uv.lock. -->
 ```yaml
 artifact: dependency-inventory
 service: learn-portal

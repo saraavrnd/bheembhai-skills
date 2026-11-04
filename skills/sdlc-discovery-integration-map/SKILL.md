@@ -20,6 +20,8 @@ complexity: medium   # BheemBhai maps complexity (low/medium/high) -> model via 
 
 Artifact paths: Discovery runs on a freshly-acquired brownfield repo; the convention is created by sdlc-discovery-init. Use the default layout in `references/_SHARED-project-layout.md`. This is a SYSTEM-LEVEL synthesis skill: it reads the per-service discovery artifacts (`docs/discovery/<SERVICE>/*.md` for every service in `docs/discovery/services.md`) and writes to `docs/discovery/_system/`. It reads discovery's own artifacts and source code only — never the canonical project docs, which are discovery OUTPUT. Own `templates/`/`examples/` stay in the skill folder.
 
+Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
+
 Cost & context: Runs at the frontmatter complexity tier (standard — this is synthesis, not
 extraction). Read the per-service artifacts (already distilled) first; only grep source for each
 pack'"'"'s `patterns.external_call` to find outbound calls the per-service maps didn'"'"'t capture. Do not

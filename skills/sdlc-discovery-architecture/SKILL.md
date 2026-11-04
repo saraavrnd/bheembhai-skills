@@ -14,6 +14,8 @@ complexity: high   # BheemBhai maps complexity (low/medium/high) -> model via th
 
 Artifact paths: Discovery runs on a freshly-acquired brownfield repo; the convention is created by sdlc-discovery-init. Use the default layout in `references/_SHARED-project-layout.md`. This is a SYSTEM-LEVEL synthesis skill: it reads the per-service discovery artifacts for every service in `docs/discovery/services.md` and writes to `docs/discovery/_system/`. It reads discovery artifacts and source only — never the canonical project docs, which are discovery OUTPUT. Own `templates/`/`examples/` stay in the skill folder.
 
+Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
+
 Cost & context: Runs at the frontmatter complexity tier. Read the per-service artifacts (already
 distilled) as primary input; touch source only to confirm a specific judgment. Don't re-read whole
 services — the per-service discovery notes are why they exist.
@@ -50,6 +52,14 @@ Step 6 — Write and present. Keep it a map of the real system, not an idealized
 
 ## Output format
 Write a standard SDLC document: numbered headers/sections from the template (Overview first, Evidence Notes last), with a trailing machine block kept in sync for downstream skills and consolidate. The structure is the template's; the evidence discipline stays INLINE — every factual line is tagged observed|inferred|uncertain and observed lines cite a source.
+Section guidance for the template:
+- Every section stays. If a section has nothing, write "None observed." under it. Never drop the confidence tags.
+- 3. Component Inventory: one row per deployable, service, datastore or significant module.
+- 4. Component Relationships: one row per directed call edge. An edge that is planned but not wired has confidence `uncertain`.
+- 6. Cross-Cutting Concerns: one subsection per concern the evidence shows (authentication and authorization, configuration, deployment, tenancy, health and observability, quality gates).
+- 8. Architecture Style: style labels are usually `inferred` from the verified layout. Cite the structural basis.
+- 9. Gaps & Known Limitations: where the code differs from what its documentation or config declares.
+- The machine block holds the same facts as the prose. Keep the two in sync.
 Write this artifact in Simplified Technical English: apply the rules in `references/ste-rules.md` (bundled in this skill) while you write (short active sentences, one claim each, plain words). This artifact is the evidence layer that `sdlc-discovery-consolidate` turns into the canonical greenfield Software Architecture Document (`docs/architecture.md`, from consolidate's `templates/architecture-SAD.md.tmpl`) — so keep each claim clear and atomic, which makes the STE rewrite at consolidation faithful. Keep the confidence tags and source pointers; STE governs the wording, not the evidence discipline.
 Per `references/_SHARED-discovery-contract.md`: every claim carries confidence; observed claims cite a source
 (a per-service artifact entry or a code line). Synthesis/judgment claims are `inferred` and say what

@@ -47,6 +47,8 @@ merge conflict or a broken test later.
   checked, and each overlap with its evidence.
 - One Jira comment on each overlapping story.
 
+Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
+
 ## Procedure
 
 ### Step 1 — Pre-filter with no judgement (cheap, always)
