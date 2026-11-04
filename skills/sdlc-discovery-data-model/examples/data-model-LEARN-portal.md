@@ -1,4 +1,3 @@
-<!-- Worked example: data-model for Learn Portal (fastapi pack). Sourced from the real migration + model. -->
 ```yaml
 artifact: data-model
 service: learn-portal

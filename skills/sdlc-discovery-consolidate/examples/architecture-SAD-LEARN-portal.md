@@ -1,8 +1,3 @@
-<!-- Worked example: the canonical greenfield-style SAD for Learn Portal, written in ASD-STE100
-     Simplified Technical English. Note the style: short active sentences, one claim each, plain
-     words, lists for sequences. The provenance banner and Appendix A carry the reverse-engineered
-     truth so the body reads greenfield-clean. Built from the docs/discovery/ evidence artifacts. -->
-
 ---
 title: Software Architecture Document — Learn Portal
 version: 1.0

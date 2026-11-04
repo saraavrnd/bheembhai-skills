@@ -24,6 +24,8 @@ per-service discovery folder `docs/discovery/<SERVICE>/graphify-out/` and writes
 `docs/` files (those are discovery OUTPUT). This skill's own `references/`, `templates/`,
 `examples/` stay in the skill folder.
 
+Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
+
 **Cost & context:** Runs at the frontmatter complexity tier — the work is mechanical (run graphify,
 confirm it built, summarize). graphify does the extraction; do NOT read source into context. After
 the build, use graphify's verbs for anything you need rather than reading the raw `graph.json`.

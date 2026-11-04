@@ -1,4 +1,3 @@
-<!-- Worked example: structure-map for Learn Portal (fastapi pack). Follows FastAPI conventions. -->
 ```yaml
 artifact: structure-map
 service: learn-portal

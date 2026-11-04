@@ -26,6 +26,8 @@ exists (a re-run, or a repo already onboarded), do NOT overwrite it — read it 
 discovery rows are present, adding only what's missing. This skill's own `templates/`/`examples/` stay in the
 skill folder, never under `docs/`.
 
+Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
+
 Cost & context: Runs at the frontmatter model tier. Read the repo's TOP-LEVEL structure, the
 **orchestration files** (`docker-compose.yml`/`compose.yaml` and any Dockerfiles), monorepo
 markers (root package.json "workspaces", pnpm-workspace.yaml, lerna.json, nx.json, go.work), and

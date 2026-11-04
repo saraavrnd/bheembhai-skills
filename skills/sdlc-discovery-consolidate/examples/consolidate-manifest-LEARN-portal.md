@@ -1,4 +1,3 @@
-<!-- Worked example: what sdlc-discovery-consolidate produces for Learn Portal, and from what. -->
 ```yaml
 artifact: consolidate-manifest
 generated: 2026-10-01

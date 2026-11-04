@@ -20,6 +20,8 @@ complexity: low   # BheemBhai maps complexity (low/medium/high) -> model via the
 
 Artifact paths: Discovery runs on a freshly-acquired brownfield repo, so the BheemBhai convention usually does NOT exist yet — there is typically no `AGENTS.md` and no `docs/` layout (discovery is what CREATES them). Therefore: use the **default layout** in `references/_SHARED-project-layout.md` and CREATE paths as you write; only if a prior discovery run already wrote an `AGENTS.md` Project Layout table should you prefer it. Discovery artifacts are created under `docs/discovery/` (per-service notes in `docs/discovery/<SERVICE>/`, system synthesis in `docs/discovery/_system/`). This skill reads only SOURCE CODE and its own upstream discovery artifacts — never the canonical project docs (`docs/architecture.md` etc.), which are discovery's OUTPUT, produced by `sdlc-discovery-consolidate` at the end of the phase, not its input. This skill's own `templates/`/`examples/` stay in the skill folder, never under `docs/`.
 
+Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
+
 Cost & context: Runs at the frontmatter complexity tier. Read `stack.md`, the pack's `commands` and
 `locations.env_example`/`entrypoint`, plus the service's manifest scripts, a compose file if
 present, and `.env.example`. Do not read source code — this is about the run surface, not the app.

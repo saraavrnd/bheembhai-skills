@@ -91,6 +91,8 @@ output; every guard test must **pass**. Paste the run under Red-phase verificati
 Fill `templates/test-plan.md.tmpl`. Each row is one scenario, tagged `regression` or `guard` in
 the Type column. Hand off to `sdlc-fix-rootcause-analyze`.
 
+Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
+
 ## Rules that keep the red honest
 - **Assert the expected behaviour, never the current one.** A test that passes today and fails
   after the fix is backwards.

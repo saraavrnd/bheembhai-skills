@@ -1,8 +1,9 @@
-<!-- Flat reference: how discovery skills build and query the code graph with the graphify CLI
-     (installed as a Claude Code plugin in the BheemBhai container). No logic — the contract and the
-     four query verbs, with how each maps to a discovery need. Confirm flags against
-     https://docs.graphify.com/reference/overview for the installed graphify version
-     (`graphify --version`); the forms below are the stable shape, not every flag. -->
+> Flat reference: how discovery skills build and query the code graph with the graphify CLI
+> (installed as a Claude Code plugin in the BheemBhai container). No logic — the contract and the
+> four query verbs, with how each maps to a discovery need. Confirm flags against
+> https://docs.graphify.com/reference/overview for the installed graphify version
+> (`graphify --version`); the forms below are the stable shape, not every flag.
+
 
 # graphify — build & query reference
 

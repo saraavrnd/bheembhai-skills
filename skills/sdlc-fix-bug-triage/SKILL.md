@@ -52,6 +52,8 @@ fixing as a bug at all?**
   `sdlc-tracker-sync` applies a Fix action as the next step; a non-Fix decision escalates, and the
   person handling it acts on the bug.
 
+Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
+
 > **Single responsibility (ADR-035):** this is an `author` skill. It decides and writes
 > `bug-triage.md`; it never transitions or comments on the Jira bug.
 

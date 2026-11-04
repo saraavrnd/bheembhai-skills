@@ -26,6 +26,8 @@ the canonical project docs. It reuses the delivery skills' own templates where t
 sdlc-arch-design's `templates/architecture.md.tmpl`, `templates/ADR.md.tmpl`) so the output is shaped
 identically to greenfield. Own `templates/`/`examples/` stay in the skill folder.
 
+Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
+
 Cost & context: Runs at the frontmatter complexity tier (strong — these docs drive every future
 feature). Read the distilled discovery artifacts, not source. Compose, don't re-discover.
 

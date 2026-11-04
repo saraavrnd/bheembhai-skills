@@ -19,6 +19,8 @@ complexity: low   # BheemBhai maps complexity (low/medium/high) -> model via the
 
 Artifact paths: Discovery runs on a freshly-acquired brownfield repo; the BheemBhai convention is created by sdlc-discovery-init, not assumed. Use the default layout in `references/_SHARED-project-layout.md` (prefer an existing `AGENTS.md` only if a prior run wrote one). This skill reads SOURCE CODE and its own upstream discovery artifacts under `docs/discovery/` — never the canonical project docs, which are discovery OUTPUT. This skill's own `templates/`/`examples/` stay in the skill folder, never under `docs/`.
 
+Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
+
 Cost & context: Runs at the frontmatter complexity tier. Read ONLY the manifest and lockfile — not
 source. Keep the list to direct/top-level dependencies plus any transitive dep that carries a known
 risk flag; do not enumerate the entire transitive tree.

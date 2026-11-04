@@ -1,7 +1,3 @@
-<!-- Worked example: SDLC-structured integration-map.md for Learn Portal. Readable sections +
-     machine block; every line tagged + sourced. This is the per-service synthesis the
-     architecture skill reads. -->
-
 ---
 artifact: integration-map
 generated: 2026-10-10

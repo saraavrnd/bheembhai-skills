@@ -1,5 +1,3 @@
-<!-- Worked example: SDLC-structured risk-register.md for Learn Portal. -->
-
 ---
 artifact: risk-register
 generated: 2026-10-10

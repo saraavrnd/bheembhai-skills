@@ -1,11 +1,3 @@
-<!-- Worked example: polyglot repo (Learn Portal). topology=multi, TWO first-party services.
-     Note how detection comes from docker-compose.yml + the Dockerfiles, NOT just manifests:
-     embedding_service has no pyproject.toml of its own yet is a service (own Dockerfile, own
-     compose build context, own port). ingestion_pipeline is a COMPONENT of the api service
-     (no Dockerfile/manifest; runs on the shared prefect-worker image against the api codebase),
-     so it is noted in summary but NOT a fan-out entry. The infra images (postgres, redis, minio,
-     ollama, langfuse, mailhog) are dependencies, not services. The fence info string is what the
-     parent workflow's fan-out node looks for. -->
 ```yaml bheembhai:foreach
 artifact: services
 repo: learn-portal

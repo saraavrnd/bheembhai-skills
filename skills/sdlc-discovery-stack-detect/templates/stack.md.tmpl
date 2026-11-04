@@ -1,8 +1,3 @@
-<!-- Discovery hand-off: tech stack for one service. Written to docs/discovery/<SERVICE>/stack.md
-     Read by every downstream discovery skill. It carries BOTH the detection findings AND an
-     embedded copy of the selected knowledge pack's data — because downstream skills cannot read
-     the pack files (those live only in sdlc-discovery-stack-detect's folder; each skill's container
-     sees only its own folder). Every finding carries confidence and, when observed, a source. -->
 ```yaml
 artifact: stack
 service: <SERVICE>
