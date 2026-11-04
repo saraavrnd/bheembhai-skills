@@ -1,16 +1,19 @@
 ---
 name: sdlc-plan-stories-write
+role: author   # ADR-035: author | reviewer | integration
 description: >
-  Break a Jira EPIC into well-formed USER STORIES, each with testable acceptance criteria, and
-  create them in Jira under their parent epic using the connected Atlassian MCP. Use this as the
-  THIRD step of the PDLC chain, after `sdlc-plan-epics-create`. Trigger this even when the user just says
+  Break an EPIC into well-formed USER STORIES, each with testable acceptance criteria, written to
+  `stories.md` and `story-map.json` — and, in REVISE mode, apply the proposed changes from a
+  review report (`epic-review.md` or a `story-review.md`) plus the answers a person gave at the
+  gate. Use this as the THIRD step of the PDLC chain, after `sdlc-plan-epics-create`, and again whenever
+  `sdlc-plan-epic-review` / `sdlc-plan-story-review` request changes. Trigger this even when the user just says
   "write the user stories", "break the epic into stories", "create stories with acceptance
-  criteria", "generate Jira stories", or names an epic to expand. This skill turns the
-  requirements mapped to an epic (via epic-map.json) into stories whose acceptance criteria are
-  written so they can later drive the `sdlc-deliver-tests-write` and `sdlc-deliver-code-implement` skills.
+  criteria", "apply the review", or names an epic to expand. Authoring only: it never writes to
+  Jira — `sdlc-tracker-sync` publishes the approved stories (ADR-035).
 compatibility: >
-  Tool-agnostic skill body (Claude Code or Codex). Requires the Atlassian (Jira) MCP to create
-  and parent stories. Falls back to a Jira-importable file if the MCP is not connected.
+  Tool-agnostic skill body (Claude Code or Codex). Reads the epic from `epics.md` /
+  `epic-map.json` (Atlassian MCP optional and read-only, to fetch an existing epic). Writes only
+  the epic's `stories.md`, `story-map.json` and `revisions.md`.
 model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
 
 ---
@@ -34,25 +37,43 @@ model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
 > minimal fields and batch reads rather than fetching repeatedly. MCP results persist for the
 > session — keep them small.
 
+> **Single responsibility (ADR-035):** this is an `author` skill. It writes story content only.
+> It does not create or update Jira issues (that is `sdlc-tracker-sync`, an `integration` step),
+> and it does not review its own stories (that is `sdlc-plan-epic-review` / `sdlc-plan-story-review`, run on a
+> different model family). New stories get draft keys `<EPIC_KEY>-PENDING-N`; `sdlc-tracker-sync`
+> swaps them for the real Jira keys when it publishes.
+
 
 Third link in the chain. It converts an epic (and the PRD requirements mapped to it) into
 INVEST-quality user stories, each with acceptance criteria precise enough that a test can be
 written from them directly. These acceptance criteria are the contract that the downstream
 `sdlc-deliver-code-implement` and `sdlc-deliver-tests-write` skills build against — so vagueness here costs the most later.
 
+## Modes
+- **Create** (default): no `stories.md` exists for this epic yet, or the user asks for a fresh
+  decomposition. Steps 1–5.
+- **Revise**: the run hands you back from `sdlc-plan-epic-review` or `sdlc-plan-story-review` with
+  `changes_requested` (the hand-off names the report), or the user asks to "apply the review".
+  Read that report's **Findings**, **Open questions** (with the answers given at the gate) and
+  **Proposed changes**, and apply them — Step R. A finding whose question has no answer yet is
+  not applied: list it in `revisions.md` as still open.
+
 ## Input it expects
-- An epic — either a Jira epic key (e.g. LEARN-12) the agent can fetch via the Atlassian MCP,
-  or the rendered epic body.
+- An epic — its section in `epics.md` and its entry in `epic-map.json` (or a Jira epic key the
+  agent can read via the Atlassian MCP).
 - `epic-map.json` from `sdlc-plan-epics-create` — to know which PRD requirement IDs this epic must
   cover (the source of truth for completeness).
 - Optionally the original `PRD.md` for requirement wording.
+- Revise mode only: the review report (`_epic/epic-review.md` or the story's `story-review.md`)
+  and the gate answers in the run hand-off.
 
 ## Output it produces
 1. `docs/product/epics/<EPIC_KEY>/_epic/stories.md` — the reviewable set of stories with acceptance criteria.
-2. Created Jira stories under the epic (via Atlassian MCP), each linked to its parent.
-3. `docs/product/epics/<EPIC_KEY>/_epic/story-map.json` — `{story_key -> [requirement IDs]}`, extending traceability
+2. `docs/product/epics/<EPIC_KEY>/_epic/story-map.json` — `{story_key -> [requirement IDs]}`, extending traceability
    from epic → story → requirement. Every requirement mapped to this epic must be covered by
-   at least one story.
+   at least one story. New stories use draft keys `<EPIC_KEY>-PENDING-N`; existing keys are kept.
+3. Revise mode only: `docs/product/epics/<EPIC_KEY>/_epic/revisions.md` — one entry per pass: which
+   report was applied, each finding → what changed in which story, and any finding left open.
 
 ## Procedure
 
@@ -92,25 +113,25 @@ Each story needs:
 - **Notes / dependencies** — sequencing, data needs, design links.
 - **Estimate** — story points if known.
 
-### Step 4 — Verify coverage before creating
+### Step 4 — Verify coverage
 Cross-check the stories against the epic's requirement IDs. Every requirement must be covered
 by at least one story's acceptance criteria. If any requirement is uncovered, add or extend a
-story. Report the coverage summary to the user.
+story. Record the coverage summary at the top of `stories.md`.
 
-### Step 5 — Create stories in Jira via Atlassian MCP
-For each story (see `references/atlassian-mcp-usage.md`):
-- Create issue: project key, type = Story, summary, description (story statement + acceptance
-  criteria + out-of-scope), labels.
-- **Parent it to the epic** (parent field or Epic Link depending on project type).
-- Set story points if the field exists.
-- Capture the returned story key into `docs/product/epics/<EPIC_KEY>/_epic/story-map.json`.
-Create one at a time, verify each, record the key immediately. Search first to avoid creating
-duplicates if the skill is re-run.
+### Step 5 — Hand off
+Tell the user: N stories written for <EPIC_KEY> (draft keys where new), coverage of requirements
+is complete (or flag gaps), and the next steps: `sdlc-plan-epic-review` reviews the set, then
+`sdlc-tracker-sync` publishes the approved stories to Jira.
 
-### Step 6 — Hand off
-Tell the user: N stories created under <EPIC_KEY>, coverage of requirements is complete (or
-flag gaps), keys listed, and the next steps are `sdlc-deliver-code-implement` (story → code) and `sdlc-deliver-tests-write`
-(acceptance criteria → tests).
+### Step R — Revise from a review report
+1. Read the report's **Proposed changes** and the gate answers; apply each one to the named
+   story's statement, acceptance criteria, out of scope or notes in `stories.md`, in the same
+   shape Step 3 produces. One answer that affects several stories changes all of them.
+2. If coverage changed, update `story-map.json` (and keep Step 4's coverage summary true).
+3. Do not touch stories the report does not name, and do not add findings of your own — a new
+   problem you notice goes into `revisions.md` as a note for the next review.
+4. Write the `revisions.md` entry (report applied, finding → change, still-open findings).
+5. Hand back: the reviewer runs again on the revised set.
 
 ## Writing acceptance criteria that drive tests (the core rule)
 Each Given/When/Then must be executable as a test with no further interpretation.
@@ -128,10 +149,6 @@ If a story would require a missing prerequisite actor, entity, or state that no 
 epic creates, do not paper over it with an assumption; flag the gap and route it back to
 epic/PRD review.
 
-## If the Atlassian MCP is not connected
-Fall back to `jira-stories-<EPIC_KEY>-import.csv` (Summary, Issue Type, Description, Parent/
-Epic Link, Labels) and tell the user. Still write the markdown and the story map.
-
 ## Outcomes
 
 BheemBhai checks this skill's inputs before you start and its output's structure after you
@@ -139,10 +156,10 @@ finish (`verify.yaml`), so don't spend effort re-checking those. This section co
 calls code can't make: each line gives a situation and the word it gets. What each word means
 is injected at run time.
 
+- **changes_requested**: Revise mode, and a finding's question has no answer yet, so the story cannot be fixed without guessing. Name the open finding in `revisions.md`.
 - **escalation_required**: A scenario assumes an actor, entity or state that no story or requirement creates, and you cannot record it as a gap within this epic.
 
 ## Reference files
 - `templates/story.md.tmpl` — story + acceptance-criteria structure.
 - `references/acceptance-criteria-guide.md` — Gherkin patterns and the testability bar.
-- `references/atlassian-mcp-usage.md` — driving the MCP (shared with sdlc-plan-epics-create).
 - `examples/` — stories with acceptance criteria derived from a sample epic.

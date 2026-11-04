@@ -1,5 +1,6 @@
 ---
 name: sdlc-deliver-code-implement
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Implement a user story by writing the minimum code needed to make its failing tests pass (the
   TDD green phase), on a story branch, following the approved sdlc-deliver-story-design and project
@@ -12,7 +13,7 @@ description: >
 compatibility: >
   Tool-agnostic (Claude Code or Codex). Runs build/test/lint in the local Docker dev environment.
   Reads the story, the approved sdlc-deliver-story-design note, and the failing tests from sdlc-deliver-tests-write.
-  Git used for the story branch; Atlassian MCP optional (to read/transition the story).
+  Works on the run branch the platform created; Atlassian MCP optional and read-only (to read the story).
 model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
 
 ---
@@ -57,16 +58,15 @@ that matters: make the tests pass by **building the feature**, never by weakenin
 
 ## Procedure
 
-### Step 1 — Create the story branch
-Fetch `origin` and branch from `origin/main`: `feat/<STORY_KEY>-<short-slug>` (e.g.
-`feat/LEARN-21-upload-course-materials`). All work happens here.
+### Step 1 — Confirm you are on the run branch
+The platform creates the run branch (`feat/<STORY_KEY>-<short-slug>`, or `fix/<BUG_KEY>-…` for a
+bug) from the latest `origin/main` at run initialisation and checks it out (ADR-013). Confirm the
+working tree is on that branch; do not create, switch or rebase branches yourself. If it is on
+`main` or another story's branch, stop with `failed_execution` — that is a platform fault, not
+something to fix here.
 
-If the developer already has local uncommitted or unpushed work on `main` that should be part of
-the story, commit or stash it before creating the story branch; this step intentionally starts
-from the remote main line so the branch base is always the latest merged code.
-If the workspace is already on a different story branch, do not continue there by accident:
-create or switch to the expected `feat/<STORY_KEY>-<short-slug>` branch from `origin/main`
-before writing code. Never reuse a previous story's branch for a new story.
+> **Single responsibility (ADR-035):** this is an `author` skill — it writes code only. Branch
+> management belongs to the platform, the PR to `sdlc-deliver-pr-open`, and Jira to the integration steps.
 
 ### Step 2 — Re-read the design and the tests
 Confirm the interfaces in the sdlc-deliver-story-design note match what the tests call. If they've diverged

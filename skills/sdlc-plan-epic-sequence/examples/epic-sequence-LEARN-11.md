@@ -26,8 +26,8 @@
 
 > The "→" shows the refinement: each edge started provisional (first run, no designs) and became
 > firm once the relevant sdlc-deliver-story-design emitted its dependency-delta. Had a design revealed a *new*
-> or *contradicting* dependency, `sdlc-plan-epic-sequence` would have re-sequenced the remaining stories and
-> adjusted the Jira links.
+> or *contradicting* dependency, `sdlc-plan-epic-sequence` would have re-sequenced the remaining stories (and
+> `sdlc-tracker-sync` would have adjusted the Jira links).
 
 ## Parallelizable groups
 None in this epic — it's a linear pipeline (upload → prepare → ground). Each wave has one story,
@@ -38,7 +38,7 @@ that different developers could take at once.)
 None — clean linear chain. No inference contradicted a human-set link (there were none set).
 
 ## On approval
-- Set "blocks" links via Atlassian MCP: LEARN-21 blocks LEARN-22; LEARN-22 blocks LEARN-23.
+- `sdlc-tracker-sync` sets "blocks" links: LEARN-21 blocks LEARN-22; LEARN-22 blocks LEARN-23.
 - Wrote `docs/product/epics/LEARN-11/_epic/epic-sequence.json`.
 
 ---

@@ -1,5 +1,6 @@
 ---
 name: sdlc-deliver-story-design
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Produce a thin, reviewable per-story design note before any tests or code are written: decide
   which existing architecture module(s) a user story touches, the interface/endpoint signatures,
@@ -61,9 +62,14 @@ Two things:
    doesn't exist; resolve `<EPIC_KEY>` via `docs/product/epic-map.json` if you only have the story
    key). From `templates/story-design.md.tmpl`,
    **presented for approval** before the loop continues. It is intentionally small.
-2. A **dependency-delta** for `sdlc-plan-epic-sequence`: the firm produces/consumes this design revealed, so
-   the (provisional) epic order can self-correct. This is what resolves the sequencing paradox —
+2. A **dependency-delta** in the note's "Dependencies discovered" section: the firm
+   produces/consumes this design revealed, so the (provisional) epic order can self-correct when
+   `sdlc-plan-epic-sequence` next runs in refine mode. This is what resolves the sequencing paradox —
    the precise dependency signal flows from design back to sequence. See Step 6.
+
+> **Single responsibility (ADR-035):** this is an `author` skill — it writes the design note only.
+> It does not run `sdlc-plan-epic-sequence`, edit the sequence files, or touch Jira links; it records the
+> delta, and the sequence skill (then `sdlc-tracker-sync` for the links) acts on it.
 
 ## Procedure
 
@@ -137,16 +143,13 @@ approach, update the note and re-confirm — this realignment is the entire valu
 On approval, two things:
 - Tell the user the next step is `sdlc-deliver-tests-write`, which will write failing tests against the
   interfaces and acceptance criteria in this note (TDD), followed by `sdlc-deliver-code-implement`.
-- **Emit the dependency-delta to `sdlc-plan-epic-sequence`.** From this note's produces/consumes, state the
-  **firm** dependencies discovered: "this story consumes <endpoint/table/field/module> that
-  <other story> produces." If the design reveals a dependency the provisional epic order missed —
-  or contradicts one it assumed — call `sdlc-plan-epic-sequence` in refine mode for the epic so it updates
-  the order of the **remaining** (not-yet-merged) stories and adjusts the Jira "blocks" links. If
-  the design only confirms the existing order, the delta is a no-op. This is the feedback that
-  turns the provisional first sequence into an accurate one as designs land.
-
-  Capture the delta in the note's "Dependencies discovered" section so it's auditable: which
-  story-produced things this story consumes, and whether that matched or changed the sequence.
+- **Record the dependency-delta for `sdlc-plan-epic-sequence`.** From this note's produces/consumes, state
+  the **firm** dependencies discovered: "this story consumes <endpoint/table/field/module> that
+  <other story> produces", and say whether that **matches** the current `epic-sequence.json` or
+  **changes** it (a missed or contradicted dependency). Write it in the note's "Dependencies
+  discovered" section. When it changes the order, say so in your hand-off so a person (or the
+  planning workflow) re-runs `sdlc-plan-epic-sequence` in refine mode for the remaining stories. Do not
+  edit `epic-sequence.*` or Jira yourself.
 
 ## What this skill is NOT
 - Not system architecture — that's `sdlc-arch-design` (and this escalates to it when needed).

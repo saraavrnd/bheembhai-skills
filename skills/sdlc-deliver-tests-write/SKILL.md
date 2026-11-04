@@ -1,5 +1,6 @@
 ---
 name: sdlc-deliver-tests-write
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Write automated tests for a user story from its Gherkin acceptance criteria and approved
   sdlc-deliver-story-design, BEFORE any implementation exists (the TDD red phase). Use this as the second

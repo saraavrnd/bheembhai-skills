@@ -1,5 +1,6 @@
 ---
 name: sdlc-deliver-tests-verify
+role: reviewer   # ADR-035: author | reviewer | integration
 description: >
   Independently verify that a story's implementation is genuinely done before a PR is opened:
   confirm the full test suite passes, that every acceptance scenario is actually covered by a

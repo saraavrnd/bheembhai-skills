@@ -2,8 +2,8 @@ version: 1
 skill: sdlc-plan-epic-sequence
 summary: >
   The sequence covers exactly the epic's stories, is acyclic with waves that respect every edge,
-  labels provisional edges, and after approval mirrors approved edges as Jira links without
-  removing human-set ones. A detected cycle escalates instead of being hidden.
+  labels provisional edges, and writes only the sequence files — no Jira writes (tracker-sync
+  mirrors the approved edges, ADR-035). A detected cycle escalates instead of being hidden.
 verdicts_used: [failed_execution, changes_requested, escalation_required]
 
 facts:
@@ -32,16 +32,6 @@ facts:
     kind: jsonpath
     from: seq_json
     expr: "$.stories[*].edge_sources.*[?(@.confidence == 'provisional')]"
-  approved:
-    kind: jsonpath
-    from: seq_json
-    expr: "$.approved"
-  human_links:
-    kind: context
-    key: baseline.jira_state.links
-    description: Jira "blocks" links that existed before this run (captured by the jira_state snapshot).
-
-snapshot: [jira_state]
 
 preconditions:
   - id: story_map_present
@@ -90,27 +80,15 @@ checks:
     args: {artifact: seq_md, pattern: '(?i)\bprovisional\b', min: 1}
     on_fail: changes_requested
     reason_code: quality
-  - id: links_set_after_approval
-    when: "facts.approved"
-    run: builtin:jira_links_exist
-    args: {edges: facts.edges, link_type: Blocks}
-    on_fail: changes_requested
-    reason_code: external_action_missing
-  - id: no_links_before_approval
-    when: "not facts.approved"
+  - id: no_tracker_writes
+    description: Authoring only — Jira links belong to sdlc-tracker-sync (ADR-035).
     run: builtin:trace_tool_absent
-    args: {tool: '(?i)(create|add).*(issue)?_?link'}
-    on_fail: changes_requested
-    reason_code: policy
-  - id: human_links_preserved
-    when: "facts.human_links"
-    run: builtin:jira_links_exist
-    args: {edges: facts.human_links, link_type: Blocks}
+    args: {tool: '(?i)(create|add|delete|remove).*(issue)?_?link|(create|edit|update|transition|delete).*(issue|jira)'}
     on_fail: changes_requested
     reason_code: policy
   - id: epic_files_only
     run: builtin:diff_paths
-    args: {allowed: ["{layout.epic_dir}sdlc-plan-epic-sequence.*"]}
+    args: {allowed: ["{layout.epic_dir}epic-sequence.*"]}
     on_fail: changes_requested
     reason_code: scope
 

@@ -1,5 +1,6 @@
 ---
 name: sdlc-deliver-code-review
+role: reviewer   # ADR-035: author | reviewer | integration
 description: >
   Review a verified story's implementation against coding standards, a security audit, the
   acceptance criteria, and maintainability — producing an advisory report of findings by

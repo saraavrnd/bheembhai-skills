@@ -3,22 +3,44 @@
   "title": "sdlc-plan-epic-sequence",
   "description": "Machine-readable build order for an epic's stories. Read by sdlc-deliver-story-start, which refuses a story whose dependencies are not all merged.",
   "type": "object",
-  "required": ["epic_key", "stories"],
+  "required": [
+    "epic_key",
+    "stories"
+  ],
   "properties": {
-    "epic_key": { "type": "string", "description": "e.g. LEARN-11" },
-    "approved": { "type": "boolean", "description": "true once the user approved the order and links were set" },
+    "epic_key": {
+      "type": "string",
+      "description": "e.g. LEARN-11"
+    },
+    "approved": {
+      "type": "boolean",
+      "description": "optional, informational: approval is the workflow gate after sdlc-plan-epic-sequence; sdlc-tracker-sync runs only after that gate"
+    },
     "stories": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["story_key", "wave", "depends_on"],
+        "required": [
+          "story_key",
+          "wave",
+          "depends_on"
+        ],
         "properties": {
-          "story_key": { "type": "string" },
-          "title": { "type": "string" },
-          "wave": { "type": "integer", "description": "1 = no dependencies; N = depends only on waves < N" },
+          "story_key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "wave": {
+            "type": "integer",
+            "description": "1 = no dependencies; N = depends only on waves < N"
+          },
           "depends_on": {
             "type": "array",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "description": "story keys this story is blocked by (must be merged first)"
           },
           "edge_sources": {
@@ -27,8 +49,22 @@
             "additionalProperties": {
               "type": "object",
               "properties": {
-                "source": { "type": "string", "enum": ["link", "artifact", "requirement", "acceptance-text"] },
-                "confidence": { "type": "string", "enum": ["firm", "provisional"] }
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "link",
+                    "artifact",
+                    "requirement",
+                    "acceptance-text"
+                  ]
+                },
+                "confidence": {
+                  "type": "string",
+                  "enum": [
+                    "firm",
+                    "provisional"
+                  ]
+                }
               }
             }
           }
@@ -38,7 +74,35 @@
     "cycles": {
       "type": "array",
       "description": "any circular dependencies flagged for human resolution (empty if clean)",
-      "items": { "type": "array", "items": { "type": "string" } }
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "retired_edges": {
+      "type": "array",
+      "description": "edges a refine pass dropped; sdlc-tracker-sync removes the matching Jira link only if the platform created it (never a human-set link)",
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "to",
+          "reason"
+        ],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }

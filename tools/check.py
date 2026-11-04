@@ -21,6 +21,9 @@ KNOWN = ROOT / "tools" / "known-issues.txt"
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 FILE_REF = re.compile(r"`((?:templates|references|examples|schemas|scripts)/[^`\s]+)`")
 OUTCOME_WORD = re.compile(r"^\s*-\s*\*\*(\w+)\*\*:", re.M)
+# ADR-035 §1: every skill has exactly one role. Reviewers judge another step's output and
+# write only their own report; integration skills act in external tools and write no content.
+ROLES = ("author", "reviewer", "integration")
 
 errors = []
 
@@ -38,6 +41,9 @@ def frontmatter(text):
         return None
 
 
+roles = {}
+
+
 def check_skills():
     names = set()
     for d in sorted(p for p in SKILLS.iterdir() if p.is_dir()):
@@ -53,8 +59,12 @@ def check_skills():
         fm = frontmatter(md)
         if fm is None:
             err(f"skills/{n}: SKILL.md frontmatter missing or invalid")
-        elif fm.get("name") != n:
-            err(f"skills/{n}: SKILL.md name '{fm.get('name')}' does not match folder")
+        else:
+            if fm.get("name") != n:
+                err(f"skills/{n}: SKILL.md name '{fm.get('name')}' does not match folder")
+            if fm.get("role") not in ROLES:
+                err(f"skills/{n}: SKILL.md role '{fm.get('role')}' must be one of {', '.join(ROLES)} (ADR-035)")
+            roles[n] = fm.get("role")
 
         for ref in FILE_REF.findall(md):
             if any(c in ref for c in "<*{") or ref.endswith("/"):
@@ -72,6 +82,14 @@ def check_skills():
             continue
         if v.get("skill") != n:
             err(f"skills/{n}: verify.yaml skill '{v.get('skill')}' does not match folder")
+        if roles.get(n) in ("reviewer", "integration"):
+            scopes = [c for c in (v.get("checks") or []) if c.get("run") == "builtin:diff_paths"]
+            if not scopes:
+                err(f"skills/{n}: role {roles[n]}: needs a builtin:diff_paths check limiting what it writes (ADR-035)")
+            for c in scopes:
+                for pat in (c.get("args") or {}).get("allowed") or []:
+                    if pat == "**" or pat.endswith("/**") and pat.count("/") <= 1:
+                        err(f"skills/{n}: role {roles[n]}: may not write '{pat}' (ADR-035: its own report or log only)")
         used = set(v.get("verdicts_used") or [])
         on_fails = {c.get("on_fail") for k in ("preconditions", "checks") for c in (v.get(k) or [])}
         on_fails |= {c.get("on_fail") for c in ((v.get("judge") or {}).get("criteria") or [])}

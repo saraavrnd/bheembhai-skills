@@ -1,23 +1,25 @@
 ---
 name: sdlc-plan-epic-review
+role: reviewer   # ADR-035: author | reviewer | integration
 description: >
-  Interrogate an already-decomposed epic's FULL set of stories together — not one at a time —
-  to surface gaps that only show up across siblings: the same actor/role assumed by several
+  Review an already-decomposed epic's FULL set of stories together — not one at a time — and
+  report the gaps that only show up across siblings: the same actor/role assumed by several
   stories but never actually defined, a requirement claimed by two stories in contradictory
   ways (or claimed by none), a cross-epic dependency a story quietly assumes but never states,
-  a scope hole no single story's "out of scope" admits to. Rewrites the affected stories once,
-  together, instead of asking the same question in every per-story review. Trigger this when
-  the user says "review this epic", "drill into this epic", "find gaps across these stories",
-  "sanity check the epic", "is this epic ready for sdlc-deliver-story-design", "these stories feel
-  inconsistent", or names an epic key with a request to clarify/tighten it. On-demand utility
-  skill — run it right after `sdlc-plan-stories-write` finishes an epic (before `sdlc-plan-epic-sequence` or any
-  per-story `sdlc-plan-story-review`), or any time later on an epic that already feels shaky.
+  a scope hole no single story's "out of scope" admits to. REVIEW ONLY: it writes one report,
+  `epic-review.md`, with each gap, the stories it touches, the question a person must answer and
+  the proposed change; it never edits stories, maps or Jira. `sdlc-plan-stories-write` (revise
+  mode) applies the findings and `sdlc-tracker-sync` publishes them. Trigger this when the user
+  says "review this epic", "drill into this epic", "find gaps across these stories", "sanity
+  check the epic", "is this epic ready for sdlc-deliver-story-design", or "these stories feel
+  inconsistent". Runs right after `sdlc-plan-stories-write` finishes an epic (before
+  `sdlc-plan-epic-sequence` or any per-story `sdlc-plan-story-review`), or any time later.
 compatibility: >
   Tool-agnostic (Claude Code or Codex). Reads architecture.md / data-model.md / api-contracts /
   ui-conventions.md / ADRs from the committed sdlc-arch-design, the PRD's feature-area requirements,
-  and every sibling story in the epic. Atlassian MCP optional — used to fetch and update (never
-  create) the Jira epic and its child stories if keys are given; falls back to working on
-  `stories.md` directly if the MCP isn't connected.
+  and every sibling story in the epic from `stories.md` / `story-map.json`. Read-only: no Jira
+  writes, no edits outside its own report. Runs on a different model family from the author of
+  the stories (ADR-035).
 model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
 
 ---
@@ -42,6 +44,11 @@ model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
 > persist for the session — keep them small, this skill's blast radius is already wider than
 > `sdlc-plan-story-review`'s.
 
+> **Single responsibility (ADR-035):** this is a `reviewer` skill. It judges the stories
+> `sdlc-plan-stories-write` wrote and writes only `epic-review.md`. It never rewrites a story, never
+> edits `stories.md`, `story-map.json` or `epic-map.json`, and never writes to Jira. The fix is
+> applied by `sdlc-plan-stories-write` in revise mode, which reads this report.
+
 `sdlc-plan-story-review` drills one story at a time — it's precise but blind to the epic around it. Some
 gaps only exist in that blind spot: an actor named "admin" that three stories each assume is
 defined, when the data model actually has no such role; a requirement two stories both claim to
@@ -49,7 +56,7 @@ cover, worded so each would build a different, contradicting interpretation; a s
 a concept another epic owns without ever writing that dependency down. Left uncaught, every
 affected story's `sdlc-deliver-story-design` (or a separate `sdlc-plan-story-review` pass) re-discovers the same gap
 independently and asks the user the same question N times. This skill runs the drill once, across
-the whole epic, and rewrites every affected story together.
+the whole epic, and hands every affected story's fix to `sdlc-plan-stories-write` in one report.
 
 ## Input it expects
 - An epic — by Jira key (fetched via Atlassian MCP) or its existing `stories.md` /
@@ -61,20 +68,19 @@ the whole epic, and rewrites every affected story together.
   whether something this epic's stories assume is legitimately another epic's deliverable.
 
 ## Output it produces
-1. Every affected story's acceptance criteria, story statement, "out of scope", and
-   Notes/dependencies — rewritten in place in
-   `docs/product/epics/<EPIC_KEY>/_epic/stories.md` — gaps closed with the user's answers. One
-   answer may touch several stories; all of them get updated in the same pass.
-2. `epic-review.md` written to `docs/product/epics/<EPIC_KEY>/_epic/epic-review.md` (from
-   `templates/epic-review.md.tmpl`) — the audit trail: which stories were loaded, what
-   cross-story gaps were found, what was asked, what was answered, which stories changed.
-3. If Jira keys were given: the epic's description and each touched story's
-   description/acceptance-criteria field updated to match (via Atlassian MCP) — existing
-   issues only, never new ones.
-4. If `epic-map.json` or `story-map.json` coverage changed as a result, both updated to match.
-5. If a gap turns out to be a genuine architecture conflict (not a cross-epic sequencing
-   assumption that's already accounted for): a flagged "Architecture impact" note recommending
-   `sdlc-arch-design` (amend mode) before any of the epic's stories reach `sdlc-deliver-story-design`.
+One file: `docs/product/epics/<EPIC_KEY>/_epic/epic-review.md` (from
+`templates/epic-review.md.tmpl`). Nothing else changes.
+
+For each real cross-story gap it records:
+- **Severity:** `Blocking` (a developer would build the wrong thing, or two stories would
+  contradict each other) or `Advisory` (worth fixing, safe to build as written).
+- **Stories touched**, with the evidence (story key + the sentence or AC that shows the gap).
+- **Question** a person must answer, when the fix is a product decision, not a wording fix.
+- **Proposed change** per touched story — what `sdlc-plan-stories-write` (revise) should change in the
+  statement, acceptance criteria, out of scope or notes. Proposed, not applied.
+
+Plus a requirement-coverage check, a dependency-note sanity check, and an **Architecture
+impact** section for a gap that needs `sdlc-arch-design` (amend) rather than a story change.
 
 ## Procedure
 
@@ -103,41 +109,22 @@ AC, one missing unhappy path with no sibling implication) — that stays `sdlc-p
 not duplicate it here. Only gaps that involve two or more stories, or the epic's own boundary,
 earn a question.
 
-### Step 4 — Interview (the drill)
-Turn each real cross-cutting gap into one specific, answerable question, naming which stories it
-touches. Ask the highest-impact few first — an undefined actor used by half the epic's stories,
-or a silently-assumed cross-epic dependency, outranks a wording nitpick. If an answer reveals a
-new gap in a story not yet considered, follow up before moving on. If a gap is a genuine
-architecture conflict (not a legitimate, already-sequenced cross-epic dependency — see the
-checklist's category 4 for the distinction), do not resolve it here; hold it for Step 6's
-escalation note.
+### Step 4 — Turn each gap into a finding
+Each real cross-cutting gap becomes one finding: its severity, the stories it touches with the
+evidence, one specific answerable question when a person must decide, and the proposed change per
+story. Order by impact — an undefined actor used by half the epic's stories, or a silently-assumed
+cross-epic dependency, outranks a wording nitpick. If a gap is a genuine architecture conflict
+(not a legitimate, already-sequenced cross-epic dependency — see the checklist's category 4),
+record it under **Architecture impact**, not as a story change.
 
-### Step 5 — Rewrite and present for approval
-By this point the rewritten stories and `epic-review.md` must already exist — do the work, then
-show it. Rewrite every affected story's statement/acceptance-criteria/out-of-scope/notes in the
-same shape `sdlc-plan-stories-write` produces. Show a clear before/after per touched story (or the resolved-
-gaps log) and ask the user to approve or push back. If they change an answer, update every story
-it touches and re-confirm.
+### Step 5 — Write the report and stop
+Write `epic-review.md` from `templates/epic-review.md.tmpl` and finish. Do not edit any story,
+map or Jira issue, even when the fix looks obvious: the proposed change is the hand-off to
+`sdlc-plan-stories-write` (revise mode), which applies it on the author's model family and is then
+reviewed again.
 
-> Anti-stall note: read the inputs and produce the rewrite and the log in the same turn the
-> interview concludes, THEN pause. Don't narrate that you're "about to check the architecture"
-> and stop there.
-
-### Step 6 — On approval, write back
-- Update every touched story's section in `docs/product/epics/<EPIC_KEY>/_epic/stories.md` in
-  place, in one pass.
-- Write `epic-review.md` to `docs/product/epics/<EPIC_KEY>/_epic/epic-review.md` (from
-  `templates/epic-review.md.tmpl`).
-- If coverage changed (a gap revealed a requirement no story covers, or resolved a duplicate
-  claim), update `story-map.json` and, if the epic's own requirement set changed, `epic-map.json`.
-- If Jira keys were given, update the epic's description and every touched story's
-  description/acceptance-criteria via the Atlassian MCP — see
-  `references/atlassian-mcp-usage.md`. Never create a new issue here.
-- If Step 4 held an architecture-conflict gap, state it plainly now and recommend running
-  `sdlc-arch-design` (amend mode) before any affected story starts `sdlc-deliver-story-design` — catching it once
-  here is cheaper than each story's own `sdlc-deliver-story-design` escalation rediscovering it separately.
-- Tell the user which stories are ready for `sdlc-plan-story-review` (if any still feel individually
-  underspecified) or straight to `sdlc-deliver-story-design` — a clean epic is a valid, useful outcome too.
+> Anti-stall note: read the inputs and write the report in the same turn. Don't narrate that
+> you're "about to check the architecture" and stop there.
 
 ## What this skill is NOT
 - Not a replacement for `sdlc-plan-story-review` — that skill still does the deep single-story drill
@@ -146,11 +133,12 @@ it touches and re-confirm.
 - Not `sdlc-plan-epic-sequence` — that skill computes build ORDER (topological waves, Jira "blocks"
   links). This skill only flags a dependency note that's missing, contradictory, or points at a
   story that doesn't exist; it never computes or writes the order itself.
+- Not an editor — it never rewrites stories, maps or Jira; `sdlc-plan-stories-write` (revise) applies
+  its proposed changes and `sdlc-tracker-sync` publishes them.
 - Not authority to change architecture — a real architecture-conflict gap gets flagged to
   `sdlc-arch-design`, never quietly resolved by inventing a design inside this interview.
-- Not automatic — on-demand. Reach for it right after `sdlc-plan-stories-write` finishes an epic (cheapest
-  point, before any per-story work starts), or any time an epic's stories feel like they're
-  talking past each other.
+- Runs as a step of `sdlc-wf-planning-epic` right after `sdlc-plan-stories-write`, and can also be run on
+  demand any time an epic's stories feel like they're talking past each other.
 
 ## Outcomes
 
@@ -159,14 +147,13 @@ finish (`verify.yaml`), so don't spend effort re-checking those. This section co
 calls code can't make: each line gives a situation and the word it gets. What each word means
 is injected at run time.
 
-- **escalation_required**: A gap is an architecture conflict: closing it needs `sdlc-arch-design` (amend), not a story rewrite.
-- **completed**: Questions remain that need a person. List them as open questions in `epic-review.md`; the gate reviewer answers them by sending the step back.
+- **escalation_required**: A gap is an architecture conflict: closing it needs `sdlc-arch-design` (amend), not a story change.
+- **changes_requested**: At least one `Blocking` finding, or an open question a person must answer. `sdlc-plan-stories-write` (revise) applies the report.
+- **completed**: No `Blocking` findings (advisory ones may remain). The epic is ready for `sdlc-plan-epic-sequence`.
 
 ## Reference files
 - `references/gap-checklist.md` — the epic-scoped drill checklist by category, with what a real
   (vs. nitpick, vs. already-`sdlc-plan-story-review`'s-job) gap looks like in each.
-- `references/atlassian-mcp-usage.md` — fetching and **updating** (not creating) a Jira epic and
-  its child stories, batched.
 - `templates/epic-review.md.tmpl` — the review-log artifact structure.
 - `examples/epic-review-BEEM-3.md` — an illustrative worked pass over this repo's own `BEEM-3`
   epic (Project access, identity & run ownership).

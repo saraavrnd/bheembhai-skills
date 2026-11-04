@@ -1,6 +1,6 @@
 version: 1
 skill: sdlc-plan-epics-create
-summary: Every PRD requirement lands in exactly one epic, epic-map.json matches its schema, and the epics exist in Jira (or the CSV fallback was produced).
+summary: Every PRD requirement lands in exactly one epic, epic-map.json matches its schema, only the epic plan files change, and nothing is written to Jira (tracker-sync publishes, ADR-035).
 verdicts_used: [failed_execution, changes_requested]
 
 facts:
@@ -38,9 +38,6 @@ artifacts:
     path: "{layout.epics}"
   - id: epic_map
     path: "{layout.epic_map}"
-  - id: csv_fallback
-    path: "jira-epics-import.csv"
-    required: false
 
 checks:
   - id: epic_map_schema
@@ -77,18 +74,17 @@ checks:
     args: {artifact: epics_md}
     on_fail: changes_requested
     reason_code: placeholder_left
-  - id: epics_exist_in_jira
-    when: "not exists('jira-epics-import.csv')"
-    run: builtin:jira_issues_exist
-    args: {keys: facts.map_epic_keys, issue_type: Epic}
+  - id: no_tracker_writes
+    description: Authoring only — Jira writes belong to sdlc-tracker-sync (ADR-035).
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)(create|edit|update|transition|delete).*(issue|jira)|createJiraIssue|editJiraIssue|transitionJiraIssue'}
     on_fail: changes_requested
-    reason_code: external_action_missing
-  - id: csv_has_all_epics
-    when: "exists('jira-epics-import.csv')"
-    run: builtin:regex_count
-    args: {artifact: csv_fallback, pattern: ',\s*Epic\s*,', min: 1}
+    reason_code: policy
+  - id: plan_files_only
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.epics}", "{layout.epic_map}"]}
     on_fail: changes_requested
-    reason_code: external_action_missing
+    reason_code: scope
 
 judge:
   tier: medium

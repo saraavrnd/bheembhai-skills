@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-api-surface
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Extract the HTTP/API surface of one service — every endpoint with its method, path, auth
   requirement, and handler location — into a reviewable sdlc-discovery-api-surface note the feature-dev agent

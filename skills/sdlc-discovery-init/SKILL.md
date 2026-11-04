@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-init
+role: author   # ADR-035: author | reviewer | integration
 description: >
   FIRST step of the Discovery phase. Bootstraps the BheemBhai convention onto a freshly-acquired
   brownfield repo that has none of it: detects the service topology (single service vs. multiple),

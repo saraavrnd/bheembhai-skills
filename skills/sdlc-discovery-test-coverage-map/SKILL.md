@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-test-coverage-map
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Map what is tested in one service today — which test files exist, at which layers (unit /
   integration / e2e), what they cover, and how they run — into a reviewable note so a feature

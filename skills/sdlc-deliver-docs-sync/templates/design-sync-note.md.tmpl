@@ -13,17 +13,10 @@
 - [ ] `AGENTS.md` —
 - [ ] `docs/CHANGELOG-design.md` — entry appended
 
-## Affected in-progress stories (flagged for design re-check)
-<!-- From Atlassian MCP: stories In Progress / In Review touching the same module/endpoint/entity.
-     Each gets a Jira comment recommending a sdlc-deliver-story-design re-check. -->
-| Story | Overlap (module / endpoint / entity) | Action |
-|-------|--------------------------------------|--------|
-| | | commented: re-check sdlc-deliver-story-design |
-
 ## Structural-change check
 <!-- If this story made a structural change that did NOT go through a sdlc-arch-design amendment,
      flag it here and recommend pausing to amend sdlc-arch-design + add an ADR. Usually "none". -->
 None — change was incremental / within the existing architecture.
 
 ---
-*Docs committed to the branch; `sdlc-deliver-pr-open` proceeds to merge them atomically with the code.*
+*Docs committed to the branch; `sdlc-deliver-impact-flag` runs next, then `sdlc-deliver-pr-open` opens the PR so they merge atomically with the code.*

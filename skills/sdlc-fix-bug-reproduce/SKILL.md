@@ -1,5 +1,6 @@
 ---
 name: sdlc-fix-bug-reproduce
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Reproduce a triaged bug as an automated regression test that FAILS today with the reported
   symptom, plus guard tests for the neighbouring cases that already work. This is the TDD red

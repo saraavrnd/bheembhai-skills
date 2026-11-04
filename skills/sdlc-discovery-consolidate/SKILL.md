@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-consolidate
+role: author   # ADR-035: author | reviewer | integration
 description: >
   FINAL step of the Discovery phase. Compose the per-service and system discovery artifacts into
   the canonical project docs that BheemBhai's delivery skills read — docs/architecture.md,

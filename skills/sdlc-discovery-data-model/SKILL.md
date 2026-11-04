@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-data-model
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Extract the persistent data model of one service — entities/tables, their columns, keys,
   relationships, and the migrations that define them — into a reviewable sdlc-discovery-data-model note the

@@ -1,5 +1,6 @@
 ---
 name: sdlc-arch-repo-scaffold
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Turn an approved technical design into a runnable GREENFIELD repository skeleton: folder
   structure, chosen frameworks wired up, linting/formatting, a working test harness configured

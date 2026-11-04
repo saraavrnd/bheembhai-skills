@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-risk-register
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Compile the risk and tech-debt register — fragile areas, missing test coverage, outdated/vulnerable deps, TODO/FIXME hotspots, and deviations — from the per-service and synthesis artifacts, so features know where to tread carefully. Use during Discovery near the end (it aggregates other findings). Trigger on "risks", "tech debt", "where are the landmines". AGGREGATES evidence-backed concerns; it does not invent risks.
 compatibility: >

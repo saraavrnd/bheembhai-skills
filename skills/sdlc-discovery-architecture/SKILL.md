@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-architecture
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Synthesize the system architecture — the components, their responsibilities, and how they fit — from the per-service discovery artifacts, into a system-level architecture note. Use during Discovery AFTER the per-service and integration-map skills. Trigger on "describe the architecture", "how is this system structured", "what are the components". JUDGES structure from evidence; every architectural claim traces to per-service findings or code.
 compatibility: >

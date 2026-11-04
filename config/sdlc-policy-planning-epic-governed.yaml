@@ -1,0 +1,16 @@
+# Governance for one epic's planning run (ADR-035).
+# - epic-review: a person answers the report's open questions when it requests changes (the
+#   answers travel to stories-write's revise pass), and confirms a clean review.
+# - epic-sequence: approving the order is what lets tracker-sync set the Jira "blocks" links.
+policy: sdlc-policy-planning-epic-governed
+version: 1
+applies_to: sdlc-wf-planning-epic
+gates:
+  sdlc-plan-epic-review:
+    review: required
+    role: any
+    on_status: [completed, changes_requested, escalation_required]
+  sdlc-plan-epic-sequence:
+    review: required
+    role: any
+    on_status: [completed, escalation_required]

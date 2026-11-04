@@ -13,41 +13,46 @@
   existing `material` filename-uniqueness constraint noted.
 - Sibling stories in `stories.md` (LEARN-22, LEARN-23) — no overlap with upload itself.
 
-## Gaps found
+## Findings
 
-### Gap 1 — Actor & precondition clarity
+### Finding 1 — Actor & precondition clarity
+- **Severity:** Blocking
 - **What was missing/ambiguous:** "Given a signed-in teacher on a subject page" doesn't say the
   teacher must be the *owner* of that course. `data-model.md` models a single owning
   `teacher_id` per course, so any signed-in teacher could otherwise upload into a course they
   don't teach.
-- **Question asked:** "Should upload be restricted to the course's owning teacher, or can any
+- **Question:** "Should upload be restricted to the course's owning teacher, or can any
   teacher in the system upload to any course?"
 - **Answer:** Restricted to the owning teacher; others should get a permission error.
-- **Resulting change:** Added a precondition ("the teacher is the course's assigned owner") to
+- **Proposed change:** Added a precondition ("the teacher is the course's assigned owner") to
   the happy-path Given, and a new unhappy-path scenario for a non-owning teacher.
 
-### Gap 2 — Acceptance-criteria completeness
+### Finding 2 — Acceptance-criteria completeness
+- **Severity:** Advisory
 - **What was missing/ambiguous:** No scenario for uploading a file with the same filename as an
   already-uploaded material in the same course. Silent re-upload, silent overwrite, and silent
   reject are all plausible and would each produce a different test/implementation.
-- **Question asked:** "If a teacher uploads a file with a name that already exists in this
+- **Question:** "If a teacher uploads a file with a name that already exists in this
   course, should it be stored as a new, separate material, rejected, or replace the existing
   one?"
 - **Answer:** Stored as a new, separate material (materials aren't deduplicated by filename;
   `material_id` is the identity).
-- **Resulting change:** Added a scenario confirming duplicate filenames are both accepted and
+- **Proposed change:** Added a scenario confirming duplicate filenames are both accepted and
   independently addressable by `material_id`.
 
-### Gap 3 — Concreteness of outcomes (considered, dismissed)
+### Finding 3 — Concreteness of outcomes (considered, dismissed)
 - Checked "processing" status wording against LEARN-22's scenarios — already consistent, no
   change needed.
+
+## Open questions
+1. Finding 1: owning teacher only, or any teacher? (The "Answer" lines in this example show what the gate reviewer replied; `sdlc-plan-stories-write` (revise) applied them.)
 
 ## Architecture impact
 None — both gaps were resolved by pinning down intent already representable in the existing
 data model (ownership check, no dedup constraint needed). Nothing here requires a new entity,
 field, or integration.
 
-## Story changes summary
+## Proposed changes
 `stories.md`, LEARN-21 section:
 - Happy-path Given now reads: "Given a signed-in teacher who is the assigned owner of the
   course, on that course's subject page".

@@ -1,5 +1,6 @@
 ---
 name: sdlc-deliver-pr-open
+role: integration   # ADR-035: author | reviewer | integration
 description: >
   Open a pull request for a verified story on the run's code host — GitHub (via the GitHub MCP)
   or Bitbucket Cloud (via the Atlassian Bitbucket MCP) — fill the PR body
@@ -44,6 +45,11 @@ story branch, opens a pull request on the run's code host — **GitHub MCP** on 
 artifacts the loop already produced, and moves the Jira story forward via the **Atlassian MCP**.
 It deliberately stops at "PR open, ready for review" — merge is a human decision.
 
+> **Single responsibility (ADR-035):** this is an `integration` skill. It pushes, opens the PR and
+> moves Jira; it writes no content. Design-doc sync (`sdlc-deliver-docs-sync`) and the in-progress
+> story overlap check (`sdlc-deliver-impact-flag`) run as their own workflow steps **before** this one,
+> so their commits are already on the branch.
+
 > Only run on a story that PASSED sdlc-deliver-tests-verify. Opening a PR for unverified work pushes the gate
 > downstream onto the reviewer, which is what the loop is designed to avoid.
 
@@ -68,7 +74,7 @@ Check `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/verification.md` says P
 Then run `git status` and stage any untracked story artifact files — story-design.md,
 test-plan.md, verification.md, code-review.md — that the loop produced but never committed.
 These files belong on the branch and must be part of the PR. If any are untracked, add and
-commit them now (before sdlc-deliver-docs-sync runs in Step 4):
+commit them now:
 
 ```bash
 git status
@@ -95,22 +101,13 @@ Fill the installed PR template from the loop's artifacts:
 - **Jira link:** the issue URL/key.
 Keep it factual; the artifacts already contain the content.
 
-### Step 4 — Sync the design onto the branch (sdlc-deliver-docs-sync), before opening the PR
-Run `sdlc-deliver-docs-sync` for this story now, while still on the branch, so any reference/`AGENTS.md`
-updates are committed to the SAME branch and become part of this PR (they ride with the merge,
-not a follow-up). sdlc-deliver-docs-sync is proportionate — for most stories it's a near no-op (just a
-changelog line); for stories that added an endpoint/field/module-detail it updates the affected
-docs. It also flags any in-progress stories the change affects via the Atlassian MCP. If
-sdlc-deliver-docs-sync detects a structural change that never went through a `sdlc-arch-design` amendment, pause
-and route there first. Commit its doc changes to the branch before proceeding.
-
-### Step 5 — Open the PR (code-host MCP)
+### Step 4 — Open the PR (code-host MCP)
 Detect the run's code host first: the GitHub MCP attached means GitHub; the Bitbucket MCP
 attached means Bitbucket Cloud. Open the PR with head = story branch, base = the merge target
 from the run context (`merge_branch` in the context file / `GIT_MERGE_BRANCH` env — the PR base
 the run was submitted with; fall back to the branch's own upstream or `main` only when the
 context carries no merge target). Title + body from Step 3, labels if the repo uses them. The PR
-now includes both the code and the sdlc-deliver-docs-sync doc commit. Capture the returned **PR URL**.
+includes the code and the doc commits `sdlc-deliver-docs-sync` already made. Capture the returned **PR URL**.
 
 **GitHub:** create via the GitHub MCP. Discover the exact tool/params from the connected MCP
 rather than assuming; if creation fails (auth/permission), stop and report so the user can fix
@@ -134,16 +131,15 @@ repo slug), `{repo}` from the slug in the git remote (`git remote get-url origin
 carries the PR URL and id. If `bb_post` fails on permissions, stop and report — don't retry
 blindly.
 
-### Step 6 — Link and transition Jira (Atlassian MCP)
+### Step 5 — Link and transition Jira (Atlassian MCP)
 Via the Atlassian MCP:
 - Add the PR URL to the Jira story (remote link or comment).
 - Transition the story to **In Review** (confirm the exact transition name in the project;
   some workflows name it differently). Capture the new status.
 Do this only after the PR is open, so the link is real.
 
-### Step 7 — Hand off (stop at review)
-Report the PR URL, the Jira story's new status, and the sdlc-deliver-docs-sync result (what was synced + any
-flagged stories). Do NOT merge — human review (the `sdlc-deliver-code-review` skill ran earlier; human owns
+### Step 6 — Hand off (stop at review)
+Report the PR URL and the Jira story's new status. Do NOT merge — human review (the `sdlc-deliver-code-review` skill ran earlier; human owns
 approval and merge). Tell the user the loop for this story is complete pending review, the design
 references are current as of this PR, and the next story can start at `sdlc-deliver-story-design`.
 
@@ -156,7 +152,7 @@ Never block the whole loop on connectivity — the branch and PR body are still 
 ## Boundaries
 - Does not merge, approve, or close the PR.
 - Does not re-run or re-verify tests (that was `sdlc-deliver-tests-verify`); it trusts the PASS report.
-- Does not implement or change code.
+- Does not implement or change code, and does not edit docs (`sdlc-deliver-docs-sync` ran before it).
 
 ## On a bug run (sdlc-wf-bug-fix)
 The work item is a bug, and its folder is `docs/product/bugs/<BUG_KEY>/`. Differences from a story:

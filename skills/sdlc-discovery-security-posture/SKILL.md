@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-security-posture
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Synthesize the security posture — the auth/authz model, secrets handling, input-validation and known risk areas — from the per-service discovery artifacts, into a system-level security note. Use during Discovery AFTER the per-service skills. Trigger on "security posture", "how does auth work", "where are the security risks". For brownfield this is partly a FINDINGS exercise (what's weak), stated honestly with evidence, not a clean description.
 compatibility: >

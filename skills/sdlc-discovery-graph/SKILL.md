@@ -1,5 +1,6 @@
 ---
 name: sdlc-discovery-graph
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Builds the code graph for one service by running graphify (the graphify Claude Code plugin
   installed in the BheemBhai container) over the service source, into a per-service graph store.

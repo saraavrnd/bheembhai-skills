@@ -21,10 +21,6 @@ facts:
     kind: regex
     from: "{layout.prd}"
     pattern: '^\|\s*(N?FR-\d{3})\s*\|'
-  has_frontend:
-    kind: regex
-    from: architecture
-    pattern: '(?i)\b(frontend|web app|single-page|UI layer|React|Vue|Svelte|Angular|Next\.js)\b'
   design_req_refs:
     kind: regex
     from: data_model
@@ -124,12 +120,6 @@ checks:
     args: {fact: facts.design_req_refs, min: 1}
     on_fail: changes_requested
     reason_code: traceability_gap
-  - id: ui_conventions_when_frontend
-    when: "facts.approved and not facts.amend_mode and facts.has_frontend"
-    run: builtin:file_exists
-    args: {path: "{layout.ui_conventions}"}
-    on_fail: advisory
-    reason_code: missing_artifact
   - id: no_placeholders
     when: "facts.approved or facts.amend_mode"
     run: builtin:md_no_placeholders

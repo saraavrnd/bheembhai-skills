@@ -77,47 +77,66 @@ generic — the product (Learn Portal, a payments API, anything) is just the inp
      sdlc-arch-design (AMEND mode) → new ADR → resume. (before code, not at merge)
 ```
 
+### Roles (ADR-035)
+Every skill does one job and carries one `role:` in its SKILL.md frontmatter (`tools/check.py`
+enforces it). The role decides which model runs it: the platform runs **author** and
+**integration** steps on the run's primary model and **reviewer** steps (and the verify judge) on
+a model from a different family, so content is never reviewed by the family that wrote it.
+
+| Role | Does | Writes | Skills |
+|------|------|--------|--------|
+| `author` | creates, updates or deletes content | content in its own scope | prd-write, epics-create, stories-write, epic-sequence, arch-design, arch-ui-conventions, arch-repo-scaffold, story-design, tests-write, code-implement, docs-sync, fix-bug-triage, fix-bug-reproduce, fix-rootcause-analyze, all 16 discovery skills, adhoc-session |
+| `reviewer` | judges another step's output | its own report only | code-review, tests-verify, epic-review, story-review |
+| `integration` | carries out an approved decision in Jira / the code host | a short record, tracker keys | story-start, impact-flag, pr-open, tracker-sync |
+
+A reviewer reviews the step its `changes_requested` / `BLOCK` edge routes to; a workflow names any
+other independence pair with `independent_of` (tests-write vs code-implement).
+
 ### Built now
 | Skill | In | Out |
 |-------|----|----|
 | `sdlc-plan-prd-write` | idea / domain notes / whitepaper | `PRD.md` — numbered, atomic, testable requirements grouped into feature areas |
-| `sdlc-plan-epics-create` | `PRD.md` | Jira **epics** (via Atlassian MCP) + `epic-map.json` traceability |
-| `sdlc-plan-stories-write` | an epic + `epic-map.json` | Jira **stories** with Gherkin acceptance criteria + `story-map.json` |
+| `sdlc-plan-epics-create` | `PRD.md` | `epics.md` + `epic-map.json` traceability (draft keys; `sdlc-tracker-sync` publishes) |
+| `sdlc-plan-stories-write` | an epic + `epic-map.json`; or a review report (revise mode) | `stories.md` with Gherkin acceptance criteria + `story-map.json` (draft keys; `sdlc-tracker-sync` publishes) |
 | `sdlc-arch-design` | PRD + epics (create); escalated story (amend) | **approved** architecture, ADRs, data model, API contracts, tech stack, testing strategy. **Amend mode**: updates the design + adds an ADR when a story needs an architecture change |
+| `sdlc-arch-ui-conventions` | approved design with a frontend | thin `ui-conventions.md` starter (split out of `sdlc-arch-design`) |
 | `sdlc-arch-repo-scaffold` | approved design | **runnable repo skeleton** with frameworks wired, TDD harness, walking skeleton, CI, Docker |
 | `sdlc-deliver-story-design` | a story + committed design | thin, **reviewed** `story-design-<KEY>.md`; escalates to sdlc-arch-design (amend) if the story breaks the architecture |
 | `sdlc-deliver-tests-write` | story + approved sdlc-deliver-story-design | **failing tests** (TDD red) + `test-plan-<KEY>.md`, one+ test per acceptance scenario |
-| `sdlc-deliver-code-implement` | failing tests + sdlc-deliver-story-design | code on `feat/<KEY>` branch making tests **green**, no test weakened |
+| `sdlc-deliver-code-implement` | failing tests + sdlc-deliver-story-design | code on the run's `feat/<KEY>` branch (created by the platform) making tests **green**, no test weakened |
 | `sdlc-deliver-tests-verify` | branch + test-plan | **PASS/BLOCK** verification: honest-green gate (coverage, no faked green, no regression) |
 | `sdlc-deliver-code-review` | verified branch + standards/NFRs | **advisory** report (standards + security + acceptance + maintainability) by severity + fix list routed to `sdlc-deliver-code-implement`; blocks nothing |
-| `sdlc-deliver-docs-sync` | merged story diff + committed design + AGENTS.md | updates **architecture / data-model / contracts / AGENTS.md** on the branch (proportionate; no-op when nothing changed) + **flags affected in-progress stories** via Jira |
-| `sdlc-deliver-pr-open` | verified (and reviewed) story | runs `sdlc-deliver-docs-sync`, then GitHub **PR** (via MCP) + Jira story → **In Review** (via MCP); does not merge |
+| `sdlc-deliver-docs-sync` | merged story diff + committed design + AGENTS.md | updates **architecture / data-model / contracts / AGENTS.md** on the branch (proportionate; no-op when nothing changed) |
+| `sdlc-deliver-impact-flag` | this run's diff + other in-progress stories' designs | Jira comment on each overlapping in-progress story + `impact-flags.md`; never blocks |
+| `sdlc-deliver-pr-open` | verified, reviewed and doc-synced story | GitHub/Bitbucket **PR** (via MCP) + Jira story → **In Review** (via MCP); does not merge |
+| `sdlc-tracker-sync` | approved epics / stories / sequence / bug-triage action | the matching Jira issues, links and transitions; swaps draft keys for Jira keys |
 
 ### Bug-fix skills
 | Skill | In | Out |
 |-------|----|----|
-| `sdlc-fix-bug-triage` | a Jira bug | `bug-triage.md`: expected vs actual with a source, steps, severity S1–S4, affected area, one decision; Jira → In Progress on Fix |
+| `sdlc-fix-bug-triage` | a Jira bug | `bug-triage.md`: expected vs actual with a source, steps, severity S1–S4, affected area, one decision and the intended Jira action (`sdlc-tracker-sync` applies it on Fix) |
 | `sdlc-fix-bug-reproduce` | `bug-triage.md` (Fix) | regression tests that fail with the reported symptom, guard tests, `reproduction.md`, `test-plan.md` |
 | `sdlc-fix-rootcause-analyze` | reproduction + red tests | `fix-design.md`: root cause, causal chain, fix approach, target modules, blast radius, scope |
 
 ### Utility skills
 | Skill | In | Out |
 |-------|----|----|
-| `sdlc-plan-epic-review` | an epic's full story set (Jira key or `stories.md`) + committed design | cross-story gaps drilled via interview; every affected story rewritten together in place + `epic-review.md` audit log; escalates architecture-conflict gaps to `sdlc-arch-design` |
-| `sdlc-plan-story-review` | a written story (Jira key or pasted) + committed design | gaps drilled via interview; story's acceptance criteria rewritten in place + `story-review.md` audit log; escalates architecture-conflict gaps to `sdlc-arch-design` |
+| `sdlc-plan-epic-review` | an epic's full story set + committed design | **report only**: `epic-review.md` with cross-story gaps, questions and proposed changes; `sdlc-plan-stories-write` (revise) applies them; escalates architecture-conflict gaps to `sdlc-arch-design` |
+| `sdlc-plan-story-review` | a written story + committed design | **report only**: `story-review.md` with gaps, questions and proposed changes; `sdlc-plan-stories-write` (revise) applies them; escalates architecture-conflict gaps to `sdlc-arch-design` |
 
 ### The two phases
 **Bootstrap (run once):** `sdlc-arch-design` → `sdlc-arch-repo-scaffold`. Establishes the stack/architecture
 (with your approval) and a repo that builds, lints, tests, and runs in Docker.
 
 **Per-story loop (repeat forever, TDD):** `sdlc-deliver-story-design` → `sdlc-deliver-tests-write` → `sdlc-deliver-code-implement` →
-`sdlc-deliver-tests-verify` → `sdlc-deliver-code-review` → `sdlc-deliver-pr-open` (which runs `sdlc-deliver-docs-sync`). Two human checkpoints per
+`sdlc-deliver-tests-verify` → `sdlc-deliver-code-review` → `sdlc-deliver-docs-sync` → `sdlc-deliver-impact-flag` → `sdlc-deliver-pr-open`. Two human checkpoints per
 story: the sdlc-deliver-story-design review and the PR review.
 
 ### Entry point: the story delivery workflow
 You don't invoke the loop skills by hand. Under BheemBhai, the **story delivery workflow** runs
 them: start it with a story key and the engine walks `sdlc-deliver-story-start` → `sdlc-deliver-story-design` →
-`sdlc-deliver-tests-write` → `sdlc-deliver-code-implement` → `sdlc-deliver-tests-verify` → `sdlc-deliver-code-review` → `sdlc-deliver-pr-open`. Its `on:` map handles
+`sdlc-deliver-tests-write` → `sdlc-deliver-code-implement` → `sdlc-deliver-tests-verify` → `sdlc-deliver-code-review` → `sdlc-deliver-docs-sync` →
+`sdlc-deliver-impact-flag` → `sdlc-deliver-pr-open`. Its `on:` map handles
 the loops (the `sdlc-deliver-tests-verify` BLOCK loop, architecture escalation), and its policy gates are the
 human checkpoints (sdlc-deliver-story-design approval, code review). The run stops at the open PR; it never
 merges. `sdlc-deliver-story-start` runs first: it refuses a story whose prerequisites are not merged and moves
@@ -132,6 +151,8 @@ skills, then reuses the story loop's deliver skills unchanged in behaviour:
 sdlc-fix-bug-triage ──► bug-triage.md         decision: Fix / Duplicate / Not a bug / Needs info
         │ Fix
         ▼
+sdlc-tracker-sync ──► Jira bug → In Progress (the action triage recorded)
+        ▼
 sdlc-fix-bug-reproduce ──► regression tests (red, with the reported symptom) + reproduction.md + test-plan.md
         │
         ▼
@@ -143,6 +164,10 @@ sdlc-deliver-code-implement ──► fix on fix/<BUG_KEY>-<slug>, regression te
 sdlc-deliver-tests-verify ──► verification.md (PASS/BLOCK, same honest-green gate)
         ▼
 sdlc-deliver-code-review ──► code-review.md (does the fix remove the cause for every caller?)
+        ▼
+sdlc-deliver-docs-sync ──► design docs corrected if a doc stated the wrong behaviour
+        ▼
+sdlc-deliver-impact-flag ──► comments on in-progress stories the fix overlaps
         ▼
 sdlc-deliver-pr-open ──► PR with Expected behaviour, Root cause, Regression tests; Jira → In Review
 ```
@@ -160,10 +185,11 @@ Before implementing an epic's stories, run **`sdlc-plan-epic-sequence`** to orde
 producer (the story that creates an endpoint/table) is built before its consumers. It detects
 dependencies from three sources (explicit Jira links > sdlc-deliver-story-design artifacts > requirement/data
 model), topologically sorts into **waves** (same-wave stories are independent → parallelizable),
-flags cycles, proposes the order for approval, then sets Jira "blocks" links and writes a
-machine-readable plan. `sdlc-deliver-story-start` reads that plan: it refuses to start a story whose
+flags cycles, and writes the proposed order plus a machine-readable plan for approval;
+`sdlc-tracker-sync` then mirrors the approved edges as Jira "blocks" links. `sdlc-deliver-story-start` reads that plan: it refuses to start a story whose
 prerequisites aren't merged. Flow:
-`sdlc-plan-stories-write → sdlc-plan-epic-review → sdlc-plan-epic-sequence → story delivery (wave by wave)` — running
+`sdlc-plan-stories-write → sdlc-plan-epic-review (→ stories-write revise) → sdlc-plan-epic-sequence → sdlc-tracker-sync → story delivery (wave by wave)`
+— the `sdlc-wf-planning` / `sdlc-wf-planning-epic` workflows run exactly this. Running
 `sdlc-plan-epic-review` first means `sdlc-plan-epic-sequence` sorts a story set whose cross-story contradictions and
 missing dependency notes are already resolved, rather than baking them into the dependency graph.
 
@@ -173,11 +199,12 @@ work in parallel:
 - **Reactive (before code):** a story that needs an architecture change is caught by
   `sdlc-deliver-story-design`'s escalation rule and routed to `sdlc-arch-design` **amend mode**, which updates the
   design and records a new ADR before implementation proceeds.
-- **Housekeeping (at every merge):** `sdlc-deliver-docs-sync` runs inside `sdlc-deliver-pr-open` on every story,
-  reconciling the references and `AGENTS.md` with what shipped and committing those updates onto
-  the same branch so they merge atomically. It's proportionate (a near no-op for most stories)
-  and **flags any in-progress stories the change affects**, so parallel work re-aligns proactively
-  instead of colliding at merge. `AGENTS.md` is treated as a first-class output because every
+- **Housekeeping (at every merge):** `sdlc-deliver-docs-sync` runs as its own step before `sdlc-deliver-pr-open`
+  on every story, reconciling the references and `AGENTS.md` with what shipped and committing
+  those updates onto the same branch so they merge atomically. It's proportionate (a near no-op
+  for most stories). `sdlc-deliver-impact-flag` then runs on **every** story and **flags any in-progress
+  stories the change affects** — from the code diff, not the docs — so parallel work re-aligns
+  proactively instead of colliding at merge. `AGENTS.md` is treated as a first-class output because every
   future story's agent reads it first.
 
 ### Sharpening a whole epic before its stories scatter: `sdlc-plan-epic-review`
@@ -187,10 +214,12 @@ one story in isolation; some gaps only exist *across* siblings — the same acto
 stories assume but that's never actually defined in the data model, a requirement two stories
 claim in contradicting ways (or that no story claims at all), a cross-epic dependency a story
 quietly assumes but never writes down, a one-sided "depends on me" claim no sibling reciprocates.
-`sdlc-plan-epic-review` loads the epic's **full** story set together, drills
-`references/gap-checklist.md`'s cross-story categories, and rewrites every affected story in the
-same pass — so the same question doesn't get asked (and answered differently) once per story.
-Logs the interview to `epic-review.md` in the epic's `_epic/` folder. Same escalation posture as
+`sdlc-plan-epic-review` loads the epic's **full** story set together, checks
+`references/gap-checklist.md`'s cross-story categories, and writes one report, `epic-review.md` in
+the epic's `_epic/` folder: each gap with its severity, the question a person must answer and the
+proposed change for every affected story. It changes nothing else — `sdlc-plan-stories-write` (revise mode)
+applies the report on the author's model family, so the same question isn't asked (and answered
+differently) once per story. Same escalation posture as
 `sdlc-plan-story-review`: a gap that's a real architecture conflict (not a legitimate, already-sequenced
 cross-epic dependency) gets flagged to `sdlc-arch-design` rather than resolved here. It does not
 compute build order — that's still `sdlc-plan-epic-sequence`'s job.
@@ -200,8 +229,8 @@ On-demand, not an automatic stage. Whenever a story reads as ambiguous — right
 produces it, before `sdlc-deliver-story-design` starts, or on an old backlog story nobody's touched — run
 `sdlc-plan-story-review`. It reads `architecture.md`, `data-model.md`, `api-contracts/`, and sibling stories
 in the same epic, drills the story with pointed questions grounded in what actually exists (not
-generic "any ambiguity?" prompts), then rewrites the acceptance criteria in place with the user's
-sign-off and logs the interview to `story-review.md` in the story's folder. If a gap turns out to
+generic "any ambiguity?" prompts), and writes `story-review.md` in the story's folder with each gap,
+its question and the proposed change. `sdlc-plan-stories-write` (revise mode) applies it. If a gap turns out to
 be an architecture conflict rather than story ambiguity, it flags that for `sdlc-arch-design` (amend
 mode) instead of resolving it — the same escalation posture `sdlc-deliver-story-design` uses, just one step
 earlier and cheaper.
@@ -272,17 +301,18 @@ So at any point you can answer "is requirement X built and tested?" by following
 enforces that every epic requirement is covered by at least one story.
 
 ## Jira via Atlassian MCP
-The Jira-touching skills (`sdlc-plan-epics-create`, `sdlc-plan-stories-write`) create issues through the **connected
-Atlassian MCP**, not a REST script. They discover the project and issue types, create issues
-one at a time, capture returned keys, and fall back to a CSV import file if the MCP isn't
-connected. See `references/atlassian-mcp-usage.md` in those skills.
+Authoring and reviewer skills never write to Jira (ADR-035). The integration skills do:
+`sdlc-tracker-sync` creates and updates epics and stories, sets "blocks" links and applies a bug's
+triage action; `sdlc-deliver-story-start` and `sdlc-deliver-pr-open` move a story's status; `sdlc-deliver-impact-flag`
+comments on overlapping stories. All go through the **connected Atlassian MCP**, not a REST script —
+see `skills/sdlc-tracker-sync/references/atlassian-mcp-usage.md`.
 
 ## How to run it
 Install where your agent reads skills (e.g. `.claude/skills/`), then drive the chain in order:
 
 1. "Here are my product notes — **write a PRD**."  → `sdlc-plan-prd-write` produces `PRD.md`.
-2. "**Decompose the PRD into epics** in project LEARN."  → `sdlc-plan-epics-create` creates epics.
-3. "**Break LEARN-11 into stories**."  → `sdlc-plan-stories-write` creates stories with acceptance criteria.
+2. "**Decompose the PRD into epics** in project LEARN."  → `sdlc-plan-epics-create` writes the epics; `sdlc-tracker-sync` publishes them.
+3. "**Break LEARN-11 into stories**."  → `sdlc-plan-stories-write` writes stories with acceptance criteria; `sdlc-tracker-sync` publishes them.
 
 ## Reporting the outcome (BheemBhai pipeline)
 

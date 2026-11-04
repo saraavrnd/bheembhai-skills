@@ -1,5 +1,6 @@
 ---
 name: sdlc-fix-rootcause-analyze
+role: author   # ADR-035: author | reviewer | integration
 description: >
   Find why a reproduced bug happens and write the fix design: the root cause with file:line
   evidence, the causal chain from that line to the observed symptom, the smallest fix that removes

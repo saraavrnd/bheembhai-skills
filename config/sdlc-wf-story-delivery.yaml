@@ -1,9 +1,21 @@
+# ADR-035: every step's skill has one role (author / reviewer / integration). Reviewer steps
+# (tests-verify, code-review) review the step their changes_requested / BLOCK edge routes to;
+# `independent_of` names the other independence pairs. Integration steps (story-start, impact-flag,
+# pr-open) carry out decisions in Jira / the code host and write no content.
 workflow: sdlc-wf-story-delivery
-version: 1
+version: 2
 category: Software Delivery
 description: End-to-end governed story delivery — design, tests, implementation, verification, review, and PR.
-start: sdlc-deliver-story-design
+start: sdlc-deliver-story-start
 steps:
+  - id: sdlc-deliver-story-start
+    skill: sdlc-deliver-story-start
+    model: low   # per-step model (backend-enforced)
+    label: Start the story
+    deadline: 600
+    "on":
+      completed: sdlc-deliver-story-design
+      changes_requested: sdlc-deliver-story-start
   - id: sdlc-deliver-story-design
     skill: sdlc-deliver-story-design
     model: high   # per-step model (backend-enforced)
@@ -29,6 +41,9 @@ steps:
     model: low   # per-step model (backend-enforced)
     label: Write the tests
     deadline: 900
+    # Tests and code on different model families (ADR-035 §3): the same model misreading the
+    # story twice is the blind spot this guards against.
+    independent_of: [sdlc-deliver-code-implement]
     "on":
       completed: sdlc-deliver-code-implement
   - id: sdlc-deliver-code-implement
@@ -55,8 +70,28 @@ steps:
     label: Review the code
     deadline: 900
     "on":
-      completed: sdlc-deliver-pr-open
+      completed: sdlc-deliver-docs-sync
       changes_requested: sdlc-deliver-code-implement
+  # Was run inside pr-open's Step 4; now its own step so the PR step is integration-only (ADR-035).
+  - id: sdlc-deliver-docs-sync
+    skill: sdlc-deliver-docs-sync
+    model: low   # per-step model (backend-enforced)
+    label: Sync the design docs
+    deadline: 900
+    "on":
+      completed: sdlc-deliver-impact-flag
+      changes_requested: sdlc-deliver-docs-sync
+      # A structural change that bypassed an architecture amendment.
+      escalation_required: sdlc-arch-design
+  # Every run: the overlap signal is the code diff, not the docs (ADR-035). Never gated.
+  - id: sdlc-deliver-impact-flag
+    skill: sdlc-deliver-impact-flag
+    model: low   # per-step model (backend-enforced)
+    label: Flag overlapping stories
+    deadline: 600
+    "on":
+      completed: sdlc-deliver-pr-open
+      changes_requested: sdlc-deliver-impact-flag
   - id: sdlc-deliver-pr-open
     skill: sdlc-deliver-pr-open
     model: low   # per-step model (backend-enforced)

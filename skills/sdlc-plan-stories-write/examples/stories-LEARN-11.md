@@ -3,8 +3,8 @@
 Epic LEARN-11 covers FR-004, FR-005, FR-006. Decomposed into 3 stories below; coverage of all
 three requirements verified.
 
-> Story keys LEARN-NN are illustrative. With the Atlassian MCP connected, the skill creates
-> each story, parents it to LEARN-11, and records the real key in `docs/product/epics/LEARN-11/_epic/story-map.json`.
+> Story keys LEARN-NN are illustrative. The skill writes draft keys `LEARN-11-PENDING-N`;
+> `sdlc-tracker-sync` creates each story, parents it to LEARN-11, and records the real key in `docs/product/epics/LEARN-11/_epic/story-map.json`.
 
 ---
 

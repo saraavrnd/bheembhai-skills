@@ -1,5 +1,6 @@
 ---
 name: sdlc-deliver-story-start
+role: integration   # ADR-035: author | reviewer | integration
 description: >
   Open a user story for delivery: confirm it is ready to be built, move the Jira story to
   In Progress via the Atlassian MCP, and write a short start note in the story's folder. Use this
