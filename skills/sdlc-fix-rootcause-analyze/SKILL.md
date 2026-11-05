@@ -20,7 +20,7 @@ model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
 # sdlc-fix-rootcause-analyze — Explain the Bug, Then Plan the Fix
 
 > **Artifact paths:** Resolve all project-artifact locations from the **Project Layout** table in
-> the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths. **Per-bug
+> the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths. **Per-bug
 > artifacts live in that bug's own folder** `docs/product/bugs/<BUG_KEY>/` (`{layout.bug_dir}`).
 > `fix-design.md` is the bug's **design note** (`{layout.design_note}` on a bug run): the shared
 > deliver skills read it where a story run reads `story-design.md`.

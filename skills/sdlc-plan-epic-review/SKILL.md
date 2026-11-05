@@ -30,7 +30,7 @@ model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
 > epics, stories, ADRs, API contracts, per-story notes, etc.) from the **Project Layout** table
 > in the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths; the
 > current layout places these under `docs/` (e.g. `docs/architecture.md`, `docs/adr/`,
-> `docs/api-contracts/`, `docs/product/`). **Epic-level artifacts live in that epic's own
+> `docs/api-contracts/`, `docs/product/`). **Epic-level artifacts live in a per-epic
 > `_epic/` folder** `docs/product/epics/<EPIC_KEY>/_epic/` (stories.md, story-map.json,
 > sdlc-plan-epic-sequence.{md,json}, **epic-review.md**); per-story artifacts stay in
 > `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/`. This skill's own `templates/`,

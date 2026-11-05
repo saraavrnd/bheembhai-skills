@@ -20,7 +20,7 @@ model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
 # sdlc-deliver-story-start — Open a Story for Delivery
 
 > **Artifact paths:** Resolve all project-artifact locations from the **Project Layout** table in
-> the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths. **Per-story
+> the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths. **Per-story
 > artifacts live in that story's own folder** `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/`;
 > epic artifacts in `docs/product/epics/<EPIC_KEY>/_epic/`.
 

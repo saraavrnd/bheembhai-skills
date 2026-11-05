@@ -4,7 +4,7 @@
 
 All PDLC skills read and write **project artifacts** (architecture, data model, PRD, epics,
 stories, ADRs, API contracts, per-story notes, etc.) at locations declared in the **Project
-Layout** table inside the repo's conventions file — `AGENTS.md` at the repo root, or `CLAUDE.md`
+Layout** table inside the conventions file of the repo — `AGENTS.md` at the repo root, or `CLAUDE.md`
 when the repo has no `AGENTS.md`. When both exist, `AGENTS.md` wins.
 
 ## The rule

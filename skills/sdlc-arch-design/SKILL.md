@@ -9,7 +9,7 @@ description: >
   when the user just says "design the architecture", "propose a tech stack", "what should we
   build this in", "create the technical design", "set up the architecture", or asks how to
   start building a new product. This skill also runs in AMEND mode when `sdlc-deliver-story-design` escalates
-  a structural change mid-build (a story that needs something the architecture didn't anticipate):
+  a structural change mid-build (a story that needs something the architecture did not anticipate):
   trigger phrases like "amend the architecture", "update the tech design for this story",
   "the story needs an architecture change", or "add an ADR for this". This skill PROPOSES and
   waits for approval; it does not scaffold code (that is `sdlc-arch-repo-scaffold`) and does not decide

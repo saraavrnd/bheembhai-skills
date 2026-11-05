@@ -13,7 +13,7 @@ description: >
 compatibility: >
   Tool-agnostic skill body (Claude Code or Codex). Reads the epic from `epics.md` /
   `epic-map.json` (Atlassian MCP optional and read-only, to fetch an existing epic). Writes only
-  the epic's `stories.md`, `story-map.json` and `revisions.md`.
+  the epic files `stories.md`, `story-map.json` and `revisions.md`.
 model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
 
 ---
