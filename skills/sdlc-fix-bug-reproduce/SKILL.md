@@ -13,18 +13,16 @@ compatibility: >
   Tool-agnostic (Claude Code or Codex). Uses the project's test runners from testing-strategy.md
   and the deployed Docker Compose stack for integration and browser reproductions. Reads
   bug-triage.md and the existing test harness.
-model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-fix-bug-reproduce — Make the Bug Fail on Demand
 
 > **Artifact paths:** Resolve all project-artifact locations from the **Project Layout** table in
-> the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths. **Per-bug
+> the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths. **Per-bug
 > artifacts live in that bug's own folder** `docs/product/bugs/<BUG_KEY>/` (`{layout.bug_dir}`).
 > Tests go in the project's test tree, never in the bug folder.
 
-> **Cost & context:** This skill runs at the `model:` tier in its frontmatter. Load only
+> **Cost & context:** This skill runs at the model tier its workflow step sets. Load only
 > bug-triage.md, the modules named under Affected area, and the existing tests for those modules.
 
 A bug you cannot reproduce is a bug you cannot prove you fixed. This skill turns the triage

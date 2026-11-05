@@ -14,14 +14,12 @@ compatibility: >
   Requires the Atlassian (Jira) MCP to list stories and add comments. Reads this run's diff and
   the other stories' `story-design.md` notes. Writes only `impact-flags.md` in this work item's
   folder.
-model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-deliver-impact-flag — Flag Overlapping In-Progress Stories
 
 > **Artifact paths:** Resolve all project-artifact locations from the **Project Layout** table in
-> the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none). Per-story
+> the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none). Per-story
 > artifacts live in `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/`; bug artifacts in
 > `docs/product/bugs/<BUG_KEY>/`.
 

@@ -14,3 +14,13 @@ filled from tech-stack.md: languages, frameworks, stores, pinned versions
 ### Project structure
 
 mirrors architecture.md: list the top-level folders and what each holds
+
+## `templates/README.md.tmpl` — command blocks
+
+### Run
+
+The command block has no language tag in the template because its `{{…}}` placeholders are not valid shell. When you fill in the real commands, open the block as ```bash.
+
+### Develop
+
+The command block has no language tag in the template because its `{{…}}` placeholders are not valid shell. When you fill in the real commands, open the block as ```bash.

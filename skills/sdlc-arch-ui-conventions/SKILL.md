@@ -13,14 +13,12 @@ description: >
 compatibility: >
   Tool-agnostic (Claude Code or Codex). Reads the committed `docs/architecture.md` and
   `docs/tech-stack.md`. Writes only `docs/ui-conventions.md`.
-model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-arch-ui-conventions — Thin UI Conventions Starter (propose → approve)
 
 > **Artifact paths:** Resolve all project-artifact locations from the **Project Layout** table in
-> the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none). The current
+> the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none). The current
 > layout places this file at `docs/ui-conventions.md`. This skill's own `templates/` stays inside
 > the skill folder.
 

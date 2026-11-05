@@ -46,7 +46,7 @@ Returned as the `error` field of the 415 response body.
 
 ## Red-phase verification
 ```
-$ pytest -vv tests/unit/ingestion/test_upload_validation.py tests/integration/ingestion/test_materials_upload.py -k "uppercase or extension_case or rejects_exe"
+$ pytest -vv tests/unit/ingestion/test_upload_validation.py::test_type_allowlist_ignores_extension_case tests/unit/ingestion/test_upload_validation.py::test_type_allowlist_still_rejects_exe tests/integration/ingestion/test_materials_upload.py::test_accepts_uppercase_extension
 tests/unit/ingestion/test_upload_validation.py::test_type_allowlist_ignores_extension_case FAILED
     AssertionError: is_allowed_type('Week1.PDF', 'application/pdf') -> False; reason: Unsupported file type
 tests/unit/ingestion/test_upload_validation.py::test_type_allowlist_still_rejects_exe PASSED

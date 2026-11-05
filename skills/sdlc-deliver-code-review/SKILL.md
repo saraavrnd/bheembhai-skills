@@ -15,15 +15,13 @@ compatibility: >
   sdlc-arch-repo-scaffold / sdlc-arch-design), the story acceptance criteria, and the verification report.
   May run available static-analysis/linters/dependency scanners in the local Docker dev
   environment to support findings. Does not modify code.
-model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-deliver-code-review — Standards, Security, Acceptance, Maintainability (advisory)
 
 > **Artifact paths:** Resolve all project-artifact locations (architecture, data model, PRD,
 > epics, stories, ADRs, API contracts, per-story notes, etc.) from the **Project Layout** table
-> in the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths; the
+> in the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths; the
 > current layout places these under `docs/` (e.g. `docs/architecture.md`, `docs/adr/`,
 > `docs/api-contracts/`, `docs/product/`). **Per-story artifacts live in that story's own
 > folder** `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/` with short, un-suffixed
@@ -34,7 +32,7 @@ model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
 
 Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
 
-> **Cost & context:** This skill runs at the `model:` tier in its frontmatter.
+> **Cost & context:** This skill runs at the model tier its workflow step sets.
 > To avoid context bloat: load only the slices of artifacts you
 > need (not whole files), don't re-read what's already in context, and for any MCP calls request
 > minimal fields and batch reads rather than fetching repeatedly. MCP results persist for the

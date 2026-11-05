@@ -36,7 +36,7 @@ risk_hints:
   - "mass-assignment: models without $fillable/$guarded accept arbitrary input"
   - "raw DB::statement / DB::raw calls are a SQL-injection surface"
   - "->get() in a loop (N+1 queries) — check for missing eager loading (with())"
-  - ".env committed to the repo (should be gitignored; only .env.example committed)"
+  - "environment file with real values committed to the repo (only the example env file belongs in git)"
 
 glossary_hints:
   - app/Models            # entity names = domain nouns

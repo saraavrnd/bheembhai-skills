@@ -12,8 +12,6 @@ compatibility: >
   file); the branch is already checked out and the repo is the working tree. The runner
   commits and pushes your changes automatically after you finish — you never need to run
   git commit/push yourself.
-model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # adhoc — Free-Form Work on the User's Branch

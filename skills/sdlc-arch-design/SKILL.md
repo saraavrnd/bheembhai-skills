@@ -9,7 +9,7 @@ description: >
   when the user just says "design the architecture", "propose a tech stack", "what should we
   build this in", "create the technical design", "set up the architecture", or asks how to
   start building a new product. This skill also runs in AMEND mode when `sdlc-deliver-story-design` escalates
-  a structural change mid-build (a story that needs something the architecture didn't anticipate):
+  a structural change mid-build (a story that needs something the architecture did not anticipate):
   trigger phrases like "amend the architecture", "update the tech design for this story",
   "the story needs an architecture change", or "add an ADR for this". This skill PROPOSES and
   waits for approval; it does not scaffold code (that is `sdlc-arch-repo-scaffold`) and does not decide
@@ -18,15 +18,13 @@ compatibility: >
   Tool-agnostic (Claude Code or Codex). May use web search to check current versions/options if
   available, but works without it. Output is Markdown design docs + ADRs + contract files that
   `sdlc-arch-repo-scaffold` and `sdlc-deliver-code-implement` consume. Atlassian MCP optional (to read epics/stories).
-model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-arch-design — Greenfield Technical Design (propose → approve)
 
 > **Artifact paths:** Resolve all project-artifact locations (architecture, data model, PRD,
 > epics, stories, ADRs, API contracts, per-story notes, etc.) from the **Project Layout** table
-> in the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths; the
+> in the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths; the
 > current layout places these under `docs/` (e.g. `docs/architecture.md`, `docs/adr/`,
 > `docs/api-contracts/`, `docs/product/`). **Per-story artifacts live in that story's own
 > folder** `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/` with short, un-suffixed
@@ -37,7 +35,7 @@ model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
 
 Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
 
-> **Cost & context:** This skill runs at the `model:` tier in its frontmatter.
+> **Cost & context:** This skill runs at the model tier its workflow step sets.
 > To avoid context bloat: load only the slices of artifacts you
 > need (not whole files), don't re-read what's already in context, and for any MCP calls request
 > minimal fields and batch reads rather than fetching repeatedly. MCP results persist for the

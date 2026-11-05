@@ -14,14 +14,12 @@ description: >
 compatibility: >
   Requires the Atlassian (Jira) MCP. Reads the planning artifacts and `bug-triage.md`; writes only
   tracker keys back into `epic-map.json`, `epics.md`, `story-map.json` and `stories.md`.
-model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-tracker-sync — Publish Approved Artifacts to Jira
 
 > **Artifact paths:** Resolve all project-artifact locations from the **Project Layout** table in
-> the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none). Epic-level
+> the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none). Epic-level
 > artifacts live in `docs/product/epics/<EPIC_KEY>/_epic/`; bug artifacts in
 > `docs/product/bugs/<BUG_KEY>/`.
 

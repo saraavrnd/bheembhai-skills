@@ -11,15 +11,13 @@ description: >
 compatibility: >
   Tool-agnostic skill body (Claude Code or Codex). Reads `PRD.md`; writes only `epics.md` and
   `epic-map.json`. No Jira access needed.
-model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-plan-epics-create — PRD to Epics
 
 > **Artifact paths:** Resolve all project-artifact locations (architecture, data model, PRD,
 > epics, stories, ADRs, API contracts, per-story notes, etc.) from the **Project Layout** table
-> in the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths; the
+> in the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths; the
 > current layout places these under `docs/` (e.g. `docs/architecture.md`, `docs/adr/`,
 > `docs/api-contracts/`, `docs/product/`). **Per-story artifacts live in that story's own
 > folder** `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/` with short, un-suffixed
@@ -30,7 +28,7 @@ model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
 
 Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
 
-> **Cost & context:** This skill runs at the `model:` tier in its frontmatter.
+> **Cost & context:** This skill runs at the model tier its workflow step sets.
 > To avoid context bloat: load only the slices of artifacts you
 > need (not whole files), don't re-read what's already in context, and for any MCP calls request
 > minimal fields and batch reads rather than fetching repeatedly. MCP results persist for the

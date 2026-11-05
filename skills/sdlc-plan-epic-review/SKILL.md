@@ -20,17 +20,15 @@ compatibility: >
   and every sibling story in the epic from `stories.md` / `story-map.json`. Read-only: no Jira
   writes, no edits outside its own report. Runs on a different model family from the author of
   the stories (ADR-035).
-model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-plan-epic-review — Drill a Whole Epic for Cross-Story Gaps
 
 > **Artifact paths:** Resolve all project-artifact locations (architecture, data model, PRD,
 > epics, stories, ADRs, API contracts, per-story notes, etc.) from the **Project Layout** table
-> in the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths; the
+> in the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths; the
 > current layout places these under `docs/` (e.g. `docs/architecture.md`, `docs/adr/`,
-> `docs/api-contracts/`, `docs/product/`). **Epic-level artifacts live in that epic's own
+> `docs/api-contracts/`, `docs/product/`). **Epic-level artifacts live in a per-epic
 > `_epic/` folder** `docs/product/epics/<EPIC_KEY>/_epic/` (stories.md, story-map.json,
 > sdlc-plan-epic-sequence.{md,json}, **epic-review.md**); per-story artifacts stay in
 > `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/`. This skill's own `templates/`,
@@ -38,7 +36,7 @@ model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
 
 Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
 
-> **Cost & context:** This skill runs at the `model:` tier in its frontmatter.
+> **Cost & context:** This skill runs at the model tier its workflow step sets.
 > An epic can hold a dozen-plus stories — batch-read `stories.md`
 > and `story-map.json` once rather than fetching per story, load architecture/data-model slices
 > only for the modules the epic's stories collectively touch (not whole files, not other

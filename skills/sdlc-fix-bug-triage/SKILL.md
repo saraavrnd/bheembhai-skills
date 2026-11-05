@@ -14,15 +14,13 @@ compatibility: >
   Tool-agnostic skill body (Claude Code or Codex). Reads the bug from the run context (or
   read-only via the Atlassian MCP). Reads architecture.md, the stories/contracts that define the expected
   behaviour, and recent bugs in the same component. Resolves artifact paths from the Project
-  Layout table in the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none).
-model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
-
+  Layout table in the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none).
 ---
 
 # sdlc-fix-bug-triage — Decide What the Bug Is
 
 > **Artifact paths:** Resolve all project-artifact locations from the **Project Layout** table in
-> the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths. **Per-bug
+> the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none) — see `_SHARED-project-layout.md`. Do not hardcode paths. **Per-bug
 > artifacts live in that bug's own folder** `docs/product/bugs/<BUG_KEY>/` (`{layout.bug_dir}`),
 > with short filenames: bug-triage.md, reproduction.md, test-plan.md, fix-design.md,
 > verification.md, code-review.md, design-sync.md.
