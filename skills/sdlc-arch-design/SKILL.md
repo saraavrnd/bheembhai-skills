@@ -18,8 +18,6 @@ compatibility: >
   Tool-agnostic (Claude Code or Codex). May use web search to check current versions/options if
   available, but works without it. Output is Markdown design docs + ADRs + contract files that
   `sdlc-arch-repo-scaffold` and `sdlc-deliver-code-implement` consume. Atlassian MCP optional (to read epics/stories).
-model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-arch-design — Greenfield Technical Design (propose → approve)
@@ -37,7 +35,7 @@ model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
 
 Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
 
-> **Cost & context:** This skill runs at the `model:` tier in its frontmatter.
+> **Cost & context:** This skill runs at the model tier its workflow step sets.
 > To avoid context bloat: load only the slices of artifacts you
 > need (not whole files), don't re-read what's already in context, and for any MCP calls request
 > minimal fields and batch reads rather than fetching repeatedly. MCP results persist for the

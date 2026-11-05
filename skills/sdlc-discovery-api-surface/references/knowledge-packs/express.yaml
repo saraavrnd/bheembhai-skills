@@ -29,7 +29,7 @@ commands:
   install: "npm install"
   test:    "npm test"
   run:     "npm start"
-  migrate: "npx sequelize-cli db:migrate"
+  migrate: "npx --no-install sequelize-cli db:migrate"
 
 risk_hints:
   - "route with no auth middleware before the handler = open endpoint"

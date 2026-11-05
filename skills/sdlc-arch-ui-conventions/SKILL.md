@@ -13,8 +13,6 @@ description: >
 compatibility: >
   Tool-agnostic (Claude Code or Codex). Reads the committed `docs/architecture.md` and
   `docs/tech-stack.md`. Writes only `docs/ui-conventions.md`.
-model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-arch-ui-conventions — Thin UI Conventions Starter (propose → approve)

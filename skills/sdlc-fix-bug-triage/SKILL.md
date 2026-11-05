@@ -15,8 +15,6 @@ compatibility: >
   read-only via the Atlassian MCP). Reads architecture.md, the stories/contracts that define the expected
   behaviour, and recent bugs in the same component. Resolves artifact paths from the Project
   Layout table in the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none).
-model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-fix-bug-triage — Decide What the Bug Is

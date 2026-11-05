@@ -159,9 +159,9 @@ judge:
       for_each: facts.dep_entries
       max_items: 12
       question: >-
-        Check only the entry's NAME and DECLARED VERSION against its `source` citation.
+        Compare the NAME and DECLARED VERSION of the entry with its `source` citation.
         `source` is a `<manifest>:<line>` pointer to where the package is declared; `risk`,
-        `confidence` and `note` describe a separate risk signal, so never judge them against
+        `confidence` and `note` describe a separate risk signal, so do not grade them against
         that line (a manifest line cannot show an audit result, and `confidence` describes the
         risk signal's evidence, not this citation). If `source` points at the manifest staged
         as an input, verify that line declares this package with the stated version or range

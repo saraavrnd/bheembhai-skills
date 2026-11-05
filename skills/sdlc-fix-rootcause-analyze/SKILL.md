@@ -13,8 +13,6 @@ compatibility: >
   Tool-agnostic (Claude Code or Codex). Read-only on code: reads the modules under test, git
   log/blame for them, architecture.md, data-model.md and the API contracts. May run the
   regression tests under a debugger or with extra logging, but commits no such change.
-model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-fix-rootcause-analyze — Explain the Bug, Then Plan the Fix

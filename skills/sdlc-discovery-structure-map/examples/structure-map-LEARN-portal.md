@@ -10,7 +10,7 @@ summary: >
 areas:
   - { area: routes,     path: "app/*/router.py",        purpose: "per-feature routers", confidence: observed, source: "app/" }
   - { area: models,     path: "app/*/models.py",        purpose: "SQLAlchemy models per feature", confidence: observed, source: "app/" }
-  - { area: config,     path: "app/config.py",          purpose: "settings, read from .env", confidence: observed, source: "app/" }
+  - { area: config,     path: "app/config.py",          purpose: "settings, read from the environment file", confidence: observed, source: "app/" }
   - { area: migrations, path: "migrations/versions/",   purpose: "Alembic schema history", confidence: observed, source: "migrations/" }
   - { area: tests,      path: "tests/",                purpose: "layered test suites (unit, integration, e2e)", confidence: observed, source: "tests/" }
   - { area: entrypoint, path: "app/main.py",            purpose: "FastAPI app + health", confidence: observed, source: "app/main.py" }

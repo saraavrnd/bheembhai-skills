@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "epic-map",
-  "description": "Traceability map from epics back to PRD requirement IDs. Consumed by the sdlc-plan-stories-write skill.",
+  "description": "Traceability map from epics back to PRD requirement IDs. Consumed by sdlc-plan-stories-write.",
   "type": "object",
   "properties": {
     "project_key": { "type": "string", "description": "Jira project key, e.g. LEARN" },

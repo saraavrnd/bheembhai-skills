@@ -14,8 +14,6 @@ compatibility: >
   the deployed Docker Compose stack for integration and browser coverage, while unit tests
   remain in-process. Reads the story, its test-plan, and the implementation on the branch. Does
   not modify code.
-model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-deliver-tests-verify — The Honest-Green Gate
@@ -33,7 +31,7 @@ model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
 
 Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
 
-> **Cost & context:** This skill runs at the `model:` tier in its frontmatter.
+> **Cost & context:** This skill runs at the model tier its workflow step sets.
 > To avoid context bloat: load only the slices of artifacts you
 > need (not whole files), don't re-read what's already in context, and for any MCP calls request
 > minimal fields and batch reads rather than fetching repeatedly. MCP results persist for the

@@ -13,8 +13,6 @@ compatibility: >
   Tool-agnostic. Reads the raw repo: top-level layout, orchestration files (docker-compose,
   Dockerfiles), monorepo markers, and nested manifests. No MCP. Writes AGENTS.md (if absent) and
   the docs/discovery/ skeleton. Output seeds every later step.
-model: low   # default tier (high/medium/low); the workflow step's model: overrides it
-
 ---
 
 # sdlc-discovery-init

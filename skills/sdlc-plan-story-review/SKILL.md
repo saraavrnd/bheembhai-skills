@@ -16,8 +16,6 @@ compatibility: >
   ui-conventions.md / ADRs from the committed sdlc-arch-design, plus sibling stories in the same epic.
   Atlassian MCP optional and read-only — used to fetch the Jira story if a key is given. Runs on a
   different model family from the story's author (ADR-035).
-model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-plan-story-review — Review a Story for Gaps (report only)
@@ -35,7 +33,7 @@ model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
 
 Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
 
-> **Cost & context:** This skill runs at the `model:` tier in its frontmatter.
+> **Cost & context:** This skill runs at the model tier its workflow step sets.
 > To avoid context bloat: load only the slices of artifacts you
 > need (not whole files), don't re-read what's already in context, and for any MCP calls request
 > minimal fields and batch reads rather than fetching repeatedly. MCP results persist for the

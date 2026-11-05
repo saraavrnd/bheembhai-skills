@@ -13,8 +13,6 @@ compatibility: >
   Tool-agnostic skill body (Claude Code or Codex). Uses the Atlassian (Jira) MCP to read the
   story and transition it. Reads the epic's epic-sequence.json when one exists. Resolves
   artifact paths from the Project Layout table in the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none).
-model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-deliver-story-start — Open a Story for Delivery

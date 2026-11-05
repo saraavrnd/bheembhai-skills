@@ -14,8 +14,6 @@ compatibility: >
   Tool-agnostic (Claude Code or Codex). Runs shell/build/test commands in the local Docker dev
   environment. Reads the committed design from `sdlc-arch-design`. GitHub used for the initial repo
   and branch conventions; Atlassian MCP optional.
-model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-arch-repo-scaffold — Greenfield Repository Skeleton
@@ -33,7 +31,7 @@ model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
 
 Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
 
-> **Cost & context:** This skill runs at the `model:` tier in its frontmatter.
+> **Cost & context:** This skill runs at the model tier its workflow step sets.
 > To avoid context bloat: load only the slices of artifacts you
 > need (not whole files), don't re-read what's already in context, and for any MCP calls request
 > minimal fields and batch reads rather than fetching repeatedly. MCP results persist for the

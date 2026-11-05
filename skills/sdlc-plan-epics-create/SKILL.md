@@ -11,8 +11,6 @@ description: >
 compatibility: >
   Tool-agnostic skill body (Claude Code or Codex). Reads `PRD.md`; writes only `epics.md` and
   `epic-map.json`. No Jira access needed.
-model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-plan-epics-create — PRD to Epics
@@ -30,7 +28,7 @@ model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
 
 Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
 
-> **Cost & context:** This skill runs at the `model:` tier in its frontmatter.
+> **Cost & context:** This skill runs at the model tier its workflow step sets.
 > To avoid context bloat: load only the slices of artifacts you
 > need (not whole files), don't re-read what's already in context, and for any MCP calls request
 > minimal fields and batch reads rather than fetching repeatedly. MCP results persist for the

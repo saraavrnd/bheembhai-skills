@@ -15,8 +15,6 @@ compatibility: >
   or the Bitbucket MCP for a Bitbucket Cloud run) to open the PR, and the Atlassian (Jira) MCP to
   link and transition the issue. Falls back to git push + a printed PR body if an MCP is
   unavailable. Runs in the local Docker dev environment.
-model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-deliver-pr-open — Open the PR, Close the Loop
@@ -32,7 +30,7 @@ model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
 > folder only. This skill's own `templates/`, `references/`,
 > `examples/`, and `scripts/` stay inside the skill folder and never move under `docs/`.
 
-> **Cost & context:** This skill runs at the `model:` tier in its frontmatter.
+> **Cost & context:** This skill runs at the model tier its workflow step sets.
 > To avoid context bloat: load only the slices of artifacts you
 > need (not whole files), don't re-read what's already in context, and for any MCP calls request
 > minimal fields and batch reads rather than fetching repeatedly. MCP results persist for the

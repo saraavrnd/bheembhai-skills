@@ -14,8 +14,6 @@ compatibility: >
   Tool-agnostic skill body (Claude Code or Codex). Reads the epic from `epics.md` /
   `epic-map.json` (Atlassian MCP optional and read-only, to fetch an existing epic). Writes only
   the epic files `stories.md`, `story-map.json` and `revisions.md`.
-model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-plan-stories-write — Epic to Stories with Acceptance Criteria
@@ -33,7 +31,7 @@ model: sonnet   # tier: standard (haiku=cheap, sonnet=standard, opus=strong)
 
 Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
 
-> **Cost & context:** This skill runs at the `model:` tier in its frontmatter.
+> **Cost & context:** This skill runs at the model tier its workflow step sets.
 > To avoid context bloat: load only the slices of artifacts you
 > need (not whole files), don't re-read what's already in context, and for any MCP calls request
 > minimal fields and batch reads rather than fetching repeatedly. MCP results persist for the

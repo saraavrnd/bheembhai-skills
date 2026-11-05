@@ -15,8 +15,6 @@ compatibility: >
   sdlc-arch-repo-scaffold / sdlc-arch-design), the story acceptance criteria, and the verification report.
   May run available static-analysis/linters/dependency scanners in the local Docker dev
   environment to support findings. Does not modify code.
-model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-deliver-code-review — Standards, Security, Acceptance, Maintainability (advisory)
@@ -34,7 +32,7 @@ model: opus   # tier: strong (haiku=cheap, sonnet=standard, opus=strong)
 
 Section guidance for this skill's templates is in `references/template-guide.md`. Read the part for a template before you fill it.
 
-> **Cost & context:** This skill runs at the `model:` tier in its frontmatter.
+> **Cost & context:** This skill runs at the model tier its workflow step sets.
 > To avoid context bloat: load only the slices of artifacts you
 > need (not whole files), don't re-read what's already in context, and for any MCP calls request
 > minimal fields and batch reads rather than fetching repeatedly. MCP results persist for the

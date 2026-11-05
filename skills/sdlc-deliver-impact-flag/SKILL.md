@@ -14,8 +14,6 @@ compatibility: >
   Requires the Atlassian (Jira) MCP to list stories and add comments. Reads this run's diff and
   the other stories' `story-design.md` notes. Writes only `impact-flags.md` in this work item's
   folder.
-model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
-
 ---
 
 # sdlc-deliver-impact-flag — Flag Overlapping In-Progress Stories
