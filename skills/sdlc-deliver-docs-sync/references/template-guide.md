@@ -45,3 +45,9 @@ Only files that actually changed. "none" if no-op.
 
 If this story made a structural change that did NOT go through a sdlc-arch-design amendment,
 flag it here and recommend pausing to amend sdlc-arch-design + add an ADR. Usually "none".
+
+## `templates/AGENTS.md.tmpl` — command block
+
+### How to run / test / lint
+
+The command block has no language tag in the template because its `{{…}}` placeholders are not valid shell. When you fill in the real commands, open the block as ```bash.
