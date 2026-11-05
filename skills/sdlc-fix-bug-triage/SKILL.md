@@ -14,7 +14,7 @@ compatibility: >
   Tool-agnostic skill body (Claude Code or Codex). Reads the bug from the run context (or
   read-only via the Atlassian MCP). Reads architecture.md, the stories/contracts that define the expected
   behaviour, and recent bugs in the same component. Resolves artifact paths from the Project
-  Layout table in the repo's conventions file (`AGENTS.md`, or `CLAUDE.md` when the repo has none).
+  Layout table in the conventions file of the repo (`AGENTS.md`, or `CLAUDE.md` when the repo has none).
 model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
 
 ---
