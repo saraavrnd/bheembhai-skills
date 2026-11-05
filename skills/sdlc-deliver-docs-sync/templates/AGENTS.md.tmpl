@@ -1,12 +1,12 @@
 # AGENTS.md — {{product_name}}
 
 > Living orientation for AI agents (Claude / Codex) working in this repo. Kept current by the
-> `sdlc-deliver-docs-sync` skill at each story merge. Concise by design — points to detail, doesn't restate it.
+> `sdlc-deliver-docs-sync` skill at each story merge. Concise by design — points to detail, does not restate it.
 
 ## Project Layout
 > Single source of truth for where project artifacts live. Every skill resolves artifact paths
 > from THIS table instead of hardcoding them. When a doc moves, change its row here only —
-> `sdlc-deliver-docs-sync` keeps this honest at each merge. Skill-internal files (each skill's own
+> `sdlc-deliver-docs-sync` keeps this honest at each merge. Skill-internal files (every skill keeps its own
 > `templates/`, `references/`, `examples/`, `scripts/`) are NOT listed here; they stay inside the
 > skill folder wherever the agent loads skills from, and never move under `docs/`.
 
@@ -39,8 +39,8 @@
 
 > **Per-story folder rule:** every artifact for one story lives in its own folder
 > `docs/product/epics/<EPIC_KEY>/stories/<STORY_KEY>/` with short, un-suffixed filenames (the
-> folder carries the key). Resolve a story's artifacts under that folder only. Use
-> `docs/product/epic-map.json` to find a story's epic if you only have the story key.
+> folder carries the key). Resolve the artifacts of a story under that folder only. Use
+> `docs/product/epic-map.json` to find the epic of a story if you only have the story key.
 
 ## What this project is
 
