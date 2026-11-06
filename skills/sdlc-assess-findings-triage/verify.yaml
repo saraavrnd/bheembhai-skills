@@ -1,0 +1,153 @@
+version: 1
+skill: sdlc-assess-findings-triage
+summary: >
+  The audit's findings exist before any tokens are spent. Afterwards fix-map.json matches its
+  schema, every audit finding has exactly one verdict, every true positive sits in exactly one
+  batch, every batch has a section in fix-plan.md, fix-now batches carry a draft bug key, and only
+  the two plan files changed. Nothing is written to Jira (tracker-sync publishes, ADR-035).
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  audit_ids:
+    kind: jsonpath
+    from: "docs/security/audit/findings.json"
+    expr: "$.findings[*].id"
+  triaged_ids:
+    kind: jsonpath
+    from: fix_map
+    expr: "$.findings[*].id"
+  true_positive_ids:
+    kind: jsonpath
+    from: fix_map
+    expr: "$.findings[?(@.verdict == 'true_positive')].id"
+  batched_ids:
+    kind: jsonpath
+    from: fix_map
+    expr: "$.batches[*].finding_ids[*]"
+  batch_ids:
+    kind: jsonpath
+    from: fix_map
+    expr: "$.batches[*].batch_id"
+  fix_now_keys:
+    kind: jsonpath
+    from: fix_map
+    expr: "$.batches[?(@.decision == 'fix_now')].bug_key"
+  fix_now_ids:
+    kind: jsonpath
+    from: fix_map
+    expr: "$.batches[?(@.decision == 'fix_now')].batch_id"
+  plan_batch_ids:
+    kind: regex
+    from: plan
+    section: "Batches"
+    pattern: '(?m)^###\s+(B-\d{2})\b'
+
+preconditions:
+  - id: audit_present
+    run: builtin:file_exists
+    args: {path: "docs/security/audit/findings.json"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: audit_report_present
+    run: builtin:file_exists
+    args: {path: "docs/security/audit/security-audit.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: fix_map
+    path: "docs/security/audit/fix-map.json"
+  - id: plan
+    path: "docs/security/audit/fix-plan.md"
+
+checks:
+  - id: fix_map_schema
+    run: builtin:json_schema
+    args: {artifact: fix_map, schema: templates/fix-map.schema.json}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: every_finding_triaged
+    run: builtin:set_relation
+    args: {left: facts.audit_ids, right: facts.triaged_ids, relation: equal, exactly_once: true}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: true_positives_batched_once
+    description: Every confirmed finding lands in exactly one batch; false positives and duplicates in none.
+    run: builtin:set_relation
+    args: {left: facts.true_positive_ids, right: facts.batched_ids, relation: equal, exactly_once: true}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: batch_ids_unique
+    run: builtin:unique_values
+    args: {fact: facts.batch_ids}
+    on_fail: changes_requested
+    reason_code: duplicate
+  - id: plan_matches_map
+    run: builtin:set_relation
+    args: {left: facts.batch_ids, right: facts.plan_batch_ids, relation: equal}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+  - id: fix_now_has_draft_key
+    description: Every fix-now batch carries a draft (or, on a re-run, real) bug key for tracker-sync.
+    run: builtin:regex_count
+    args: {artifact: plan, section: "Batches", pattern: '(?m)^\*\*Decision:\*\*\s*fix_now\b.*\*\*Draft bug:\*\*\s*none\b', max: 0}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: fix_now_keys_unique
+    run: builtin:unique_values
+    args: {fact: facts.fix_now_keys}
+    on_fail: changes_requested
+    reason_code: duplicate
+  - id: plan_sections
+    run: builtin:md_sections
+    args:
+      artifact: plan
+      required: ["Summary", "Batches", "Accepted and deferred", "False positives", "Not covered by tools", "Jira"]
+    on_fail: changes_requested
+    reason_code: structure
+  - id: done_when_on_fix_now
+    run: builtin:regex_count
+    args: {artifact: plan, section: "Batches", pattern: '(?m)^\*\*Done when:\*\*', min: 1}
+    when: "facts.fix_now_ids"
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: plan}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: plan_files_only
+    run: builtin:diff_paths
+    args: {allowed: ["docs/security/audit/fix-plan.md", "docs/security/audit/fix-map.json"]}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: no_tracker_writes
+    description: Authoring only — Jira writes belong to sdlc-tracker-sync (ADR-035).
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)(create|edit|update|transition|delete|comment).*(issue|jira)|createJiraIssue|editJiraIssue|transitionJiraIssue|addCommentToJiraIssue'}
+    on_fail: changes_requested
+    reason_code: policy
+
+judge:
+  tier: high
+  vendor: prefer_different
+  inputs: [plan, fix_map, "docs/security/audit/findings.json"]
+  criteria:
+    - id: false_positives_proven
+      critical: true
+      question: "Does every false_positive verdict quote or cite the specific line or configuration that makes the finding impossible, rather than a general claim such as 'input is trusted'?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: no_severe_finding_waved_away
+      critical: true
+      question: "Is every critical finding, and every high finding rated high or medium exploitability, in a fix_now batch, or, if accepted or deferred, does the reason name a concrete limit on the risk?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: batches_follow_rules
+      question: "Do the batches follow the batching rules: one root cause or module each, about five findings at most, each secret alone with a manual rotation action?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: jira_ready
+      question: "Could a developer who never saw the audit fix each fix_now batch from its section alone (findings with fingerprints, why it matters here, fix direction, done-when)?"
+      on_fail: changes_requested
+      reason_code: quality

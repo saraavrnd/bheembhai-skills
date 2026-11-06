@@ -1,0 +1,111 @@
+version: 1
+skill: sdlc-assess-security-full
+summary: >
+  The core scanners are on PATH before any tokens are spent. Afterwards findings.json matches its
+  schema with unique IDs, every finding ID appears in security-audit.md, every finding points at a
+  real path, the report has all its sections and all ten OWASP rows, raw tool output is kept, and
+  nothing outside docs/security/audit/ changed.
+verdicts_used: [failed_execution, changes_requested]
+
+facts:
+  finding_ids:
+    kind: jsonpath
+    from: findings
+    expr: "$.findings[*].id"
+  finding_paths:
+    kind: jsonpath
+    from: findings
+    expr: "$.findings[?(@.tool != 'gitleaks-history')].path"
+    description: A secret found only in git history may sit in a file that no longer exists.
+  report_ids:
+    kind: regex
+    from: report
+    section: "Findings"
+    pattern: '\|\s*(F-\d{3,4})\s*\|'
+
+preconditions:
+  - id: core_tools_present
+    description: The four core scanners come from the agent image's security layer; without them the audit would be hollow.
+    run: builtin:cmd_exit_code
+    args: {cmd: "sh -c 'for t in gitleaks opengrep osv-scanner trivy; do command -v \"$t\" >/dev/null || exit 1; done'", timeout_s: 30}
+    on_fail: failed_execution
+    reason_code: env_infra
+
+artifacts:
+  - id: findings
+    path: "docs/security/audit/findings.json"
+  - id: report
+    path: "docs/security/audit/security-audit.md"
+
+checks:
+  - id: findings_schema
+    run: builtin:json_schema
+    args: {artifact: findings, schema: templates/findings.schema.json}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: finding_ids_unique
+    run: builtin:unique_values
+    args: {fact: facts.finding_ids}
+    on_fail: changes_requested
+    reason_code: duplicate
+  - id: report_lists_every_finding
+    description: The reviewable report and the machine file list the same findings.
+    run: builtin:set_relation
+    args: {left: facts.finding_ids, right: facts.report_ids, relation: equal}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+  - id: finding_paths_exist
+    run: builtin:paths_exist
+    args: {fact: facts.finding_paths}
+    on_fail: changes_requested
+    reason_code: unsupported_claim
+  - id: report_sections
+    run: builtin:md_sections
+    args:
+      artifact: report
+      required: ["Summary", "Scope", "Tool coverage", "OWASP Top 10 coverage", "Findings", "Gaps and limits"]
+    on_fail: changes_requested
+    reason_code: structure
+  - id: all_owasp_rows
+    run: builtin:regex_count
+    args: {artifact: report, section: "OWASP Top 10 coverage", pattern: '(?m)^\|\s*A(0[1-9]|10)\b', min: 10, max: 10}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: raw_output_kept
+    run: builtin:glob_count
+    args: {glob: "docs/security/audit/raw/*", min: 4}
+    on_fail: changes_requested
+    reason_code: missing_artifact
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: report}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: audit_folder_only
+    description: Reports only; no code, config or scanner settings change (ADR-035).
+    run: builtin:diff_paths
+    args: {allowed: ["docs/security/audit/**"]}
+    on_fail: changes_requested
+    reason_code: scope
+
+judge:
+  tier: medium
+  vendor: same_ok
+  inputs: [report, findings]
+  criteria:
+    - id: findings_from_tools
+      question: "Does every finding with confidence 'tool' correspond to a tool and rule that the Tool coverage table shows as 'ran', with no finding invented or reworded beyond what the tool reported?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: nothing_dropped
+      question: "Is every reported issue kept, with no finding dropped or downgraded as a 'likely false positive' (that is triage's decision)?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: severity_and_owasp_mapped
+      question: "Do the severities follow the shared severity scale, and is each OWASP category consistent with the finding's CWE and description?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: gaps_honest
+      question: "Does the report name every missing or failed tool and the OWASP categories no tool covered, instead of implying full coverage?"
+      on_fail: changes_requested
+      reason_code: coverage_gap

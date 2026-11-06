@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BheemBhai security findings",
+  "type": "object",
+  "required": ["generated_at", "commit", "scope", "tools", "findings"],
+  "additionalProperties": false,
+  "properties": {
+    "generated_at": {"type": "string", "format": "date-time"},
+    "commit": {"type": "string", "pattern": "^[0-9a-f]{7,40}$"},
+    "scope": {"enum": ["full", "diff", "rescan"]},
+    "tools": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["name", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "version": {"type": ["string", "null"]},
+          "status": {"enum": ["ran", "not_available", "failed", "not_applicable"]},
+          "db_date": {"type": ["string", "null"]},
+          "reason": {"type": "string"}
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "fingerprint", "tool", "rule_id", "severity", "owasp", "path", "title", "confidence"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^F-\\d{3,4}$"},
+          "fingerprint": {"type": "string", "minLength": 8},
+          "tool": {"type": "string", "minLength": 1},
+          "rule_id": {"type": "string", "minLength": 1},
+          "severity": {"enum": ["critical", "high", "medium", "low", "info"]},
+          "cwe": {"type": ["string", "null"], "pattern": "^CWE-\\d+$"},
+          "owasp": {"type": ["string", "null"], "pattern": "^A(0[1-9]|10)$"},
+          "owasp_llm": {"type": ["string", "null"], "pattern": "^LLM(0[1-9]|10)$"},
+          "path": {"type": "string", "minLength": 1},
+          "line": {"type": ["integer", "null"], "minimum": 1},
+          "title": {"type": "string", "minLength": 1},
+          "message": {"type": "string"},
+          "confidence": {"enum": ["tool", "model-only"]},
+          "notes": {"type": "string"}
+        }
+      }
+    }
+  }
+}

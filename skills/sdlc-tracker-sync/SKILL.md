@@ -4,16 +4,18 @@ role: integration   # ADR-035: author | reviewer | integration
 description: >
   Publish approved planning and bug-triage artifacts to the tracker (Jira) through the Atlassian
   MCP: create or update the epics in `epic-map.json`, the stories in an epic's `story-map.json`
-  (parented to the epic), the approved "blocks" links in `epic-sequence.json`, and the tracker
-  action a bug's `bug-triage.md` records. Swaps draft `-PENDING` keys for the real Jira keys and
+  (parented to the epic), the approved "blocks" links in `epic-sequence.json`, the tracker
+  action a bug's `bug-triage.md` records, and one security bug per approved fix-now batch in the
+  security audit's `fix-map.json`. Swaps draft `-PENDING` keys for the real Jira keys and
   changes nothing else. Use this as its own step right after an authoring step whose output was
   approved — after `sdlc-plan-epics-create`, after `sdlc-plan-stories-write` / `sdlc-plan-epic-sequence`, after
-  `sdlc-fix-bug-triage` decides Fix. Trigger this even when the user just says "publish to Jira", "sync
+  `sdlc-fix-bug-triage` decides Fix, after `sdlc-assess-findings-triage`'s fix plan is approved. Trigger this even when the user just says "publish to Jira", "sync
   the stories to Jira", "create the epics in Jira", "set the blocks links", or "move the bug to In
   Progress". It decides nothing: every action comes from an artifact a person already approved.
 compatibility: >
-  Requires the Atlassian (Jira) MCP. Reads the planning artifacts and `bug-triage.md`; writes only
-  tracker keys back into `epic-map.json`, `epics.md`, `story-map.json` and `stories.md`.
+  Requires the Atlassian (Jira) MCP. Reads the planning artifacts, `bug-triage.md` and the security
+  `fix-map.json` / `fix-plan.md`; writes only tracker keys back into `epic-map.json`, `epics.md`,
+  `story-map.json`, `stories.md`, `fix-map.json` and `fix-plan.md`.
 model: haiku   # tier: cheap (haiku=cheap, sonnet=standard, opus=strong)
 
 ---
@@ -41,11 +43,14 @@ artifact exists and has something unpublished):
 3. **Links** — the epic's `epic-sequence.json` from `sdlc-plan-epic-sequence`, including any
    `retired_edges`. Approval is the gate after that step; this skill runs only after it.
 4. **Bug** — on a bug run, `bug-triage.md`'s **Jira** section with `Applied: no`.
+5. **Security batches** — on a security audit run, `docs/security/audit/fix-map.json` batches with
+   `decision: fix_now` and a `SEC-PENDING-N` key.
 
 ## Output it produces
 - Jira issues created or updated, links set, transitions applied — exactly what the artifacts say.
 - Draft keys swapped for real ones: `<FA-N>-PENDING` in `epic-map.json` / `epics.md`,
-  `<EPIC>-PENDING-N` in `story-map.json` / `stories.md`. No other line of those files changes.
+  `<EPIC>-PENDING-N` in `story-map.json` / `stories.md`, `SEC-PENDING-N` in `fix-map.json` /
+  `fix-plan.md`. No other line of those files changes.
 - A hand-off reply: a table of every tracker action (scope, key, action, result).
 
 ## Procedure
@@ -77,7 +82,18 @@ On a bug run where `bug-triage.md` says `Applied: no`: apply the intended action
 project's "work started" transition plus severity/component if those fields exist; otherwise the
 comment. Do not edit `bug-triage.md`; report the result in the hand-off.
 
-### Step 6 — Hand off
+### Step 6 — Security batches
+On a security audit run, for each `fix_now` batch with a `SEC-PENDING-N` key: search first for an
+open bug labelled `security` whose summary is the batch title (re-runs must not duplicate); create
+it if absent: type Bug, summary `[Security] <batch title>`, label `security`, priority from the
+batch severity (critical → Highest, high → High, medium → Medium, low → Low), and as description
+the batch's section from `fix-plan.md`, from its findings table to **Done when**, unchanged. The
+findings table with fingerprints must survive: `sdlc-assess-security-rescan` reads it later. Swap
+the draft key for the returned key in `fix-map.json` and in `fix-plan.md`. Accept and defer batches
+create nothing. The project key is `fix-map.json`'s `project_key`; if it is `PENDING`, stop with
+`failed_execution`.
+
+### Step 7 — Hand off
 Reply with the action table. Anything that failed is listed with the error; do not retry blindly.
 
 ## Outcomes

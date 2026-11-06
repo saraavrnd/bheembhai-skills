@@ -1,8 +1,8 @@
 version: 1
 skill: sdlc-tracker-sync
 summary: >
-  Integration only (ADR-035): every epic and story in the plan has a real Jira key and exists in
-  Jira (stories parented to their epic), the sequence's edges exist as Blocks links (the gate before this step approved them), human-set
+  Integration only (ADR-035): every epic and story in the plan, and every fix-now security batch,
+  has a real Jira key and exists in Jira (stories parented to their epic), the sequence's edges exist as Blocks links (the gate before this step approved them), human-set
   links survive, a Fix bug is in its work-started status, and the repo change is limited to the
   tracker-key swap in the plan files.
 verdicts_used: [failed_execution, changes_requested]
@@ -35,6 +35,11 @@ facts:
     section: "Decision"
     pattern: '(?im)^\**\s*Decision\s*:?\**\s*\**(Fix|Duplicate|Not a bug|Needs info)\b'
     when: "facts.is_bug"
+  security_keys:
+    kind: jsonpath
+    from: "docs/security/audit/fix-map.json"
+    expr: "$.batches[?(@.decision == 'fix_now')].bug_key"
+    when: "exists('docs/security/audit/fix-map.json')"
   human_links:
     kind: context
     key: baseline.jira_state.links
@@ -45,7 +50,7 @@ snapshot: [jira_state]
 preconditions:
   - id: plan_present
     description: A planning run publishes the epic map; without it there is nothing to sync.
-    when: "not facts.is_bug"
+    when: "not facts.is_bug and not exists('docs/security/audit/fix-map.json')"
     run: builtin:file_exists
     args: {path: "{layout.epic_map}"}
     on_fail: failed_execution
@@ -66,7 +71,7 @@ checks:
   - id: keys_only
     description: The only repo change is swapping draft keys for Jira keys in the plan files.
     run: builtin:diff_paths
-    args: {allowed: ["{layout.epic_map}", "{layout.epics}", "{layout.epic_dir}story-map.json", "{layout.epic_dir}stories.md"]}
+    args: {allowed: ["{layout.epic_map}", "{layout.epics}", "{layout.epic_dir}story-map.json", "{layout.epic_dir}stories.md", "docs/security/audit/fix-map.json", "docs/security/audit/fix-plan.md"]}
     on_fail: changes_requested
     reason_code: scope
   - id: no_pending_epic_keys
@@ -116,6 +121,18 @@ checks:
     args: {tool: '(?i)delete.*issue|deleteJiraIssue'}
     on_fail: changes_requested
     reason_code: unsafe_action
+  - id: no_pending_security_keys
+    when: "facts.security_keys"
+    run: builtin:regex_count
+    args: {path: "docs/security/audit/fix-map.json", pattern: 'SEC-PENDING-\d+', max: 0}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: security_bugs_exist
+    when: "facts.security_keys"
+    run: builtin:jira_issues_exist
+    args: {keys: facts.security_keys, issue_type: Bug}
+    on_fail: changes_requested
+    reason_code: external_action_missing
   - id: fix_bug_started
     when: "facts.is_bug and facts.bug_decision == 'Fix'"
     run: builtin:jira_field
@@ -126,9 +143,9 @@ checks:
 judge:
   tier: low
   vendor: same_ok
-  inputs: [handoff, "{layout.epic_map}", "{layout.epic_dir}story-map.json"]
+  inputs: [handoff, "{layout.epic_map}", "{layout.epic_dir}story-map.json", "docs/security/audit/fix-map.json"]
   criteria:
     - id: actions_match_artifacts
-      question: "Does every action in the hand-off table correspond to an epic, story, approved edge or bug action named in the artifacts, with nothing added that no artifact names?"
+      question: "Does every action in the hand-off table correspond to an epic, story, approved edge, bug action or fix-now security batch named in the artifacts, with nothing added that no artifact names?"
       on_fail: changes_requested
       reason_code: unsupported_claim

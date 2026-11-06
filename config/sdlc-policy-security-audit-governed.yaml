@@ -1,0 +1,11 @@
+# Default governance for security audits. A person approves the fix plan (true/false positives,
+# batches, fix now / accept / defer, and the Jira project key) before any Jira bug is filed.
+# Accepting a risk is a recorded human decision, never the agent's alone.
+policy: sdlc-policy-security-audit-governed
+version: 1
+applies_to: sdlc-wf-security-audit
+gates:
+  sdlc-assess-findings-triage:
+    review: required
+    role: lead
+    on_status: [completed]

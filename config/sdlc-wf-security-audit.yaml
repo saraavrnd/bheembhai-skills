@@ -1,0 +1,44 @@
+# BheemBhai Security Audit — one run per repository audit, ending with Jira security bugs.
+# Shape: assess-security-full (reviewer: run pinned scanners, normalise, report)
+#        -> assess-findings-triage (author: true/false positive, batches, fix/accept/defer)
+#        -> [gate: a person approves the fix plan]
+#        -> tracker-sync (integration: one Jira Bug labelled `security` per fix-now batch).
+# Each security bug is then fixed in its own sdlc-wf-security-fix run, on its own fix/<KEY>
+# branch with its own PR. Fan-out is deliberately not used here: fan-out children share the
+# parent's branch (platform ADR-027), and every batch needs a separate branch and PR.
+# The audit's files (docs/security/audit/) stay on this run's branch; merge them so later scans
+# and the accepted-risk record live on main.
+workflow: sdlc-wf-security-audit
+version: 1
+category: Software Delivery
+description: Scan the whole repository with pinned open-source scanners, triage the findings into fix batches, and file an approved Jira security bug for each batch.
+start: sdlc-assess-security-full
+
+steps:
+  - id: sdlc-assess-security-full
+    skill: sdlc-assess-security-full
+    model: medium
+    label: Run the security scanners
+    deadline: 2400
+    "on":
+      completed: sdlc-assess-findings-triage
+      changes_requested: sdlc-assess-security-full
+
+  - id: sdlc-assess-findings-triage
+    skill: sdlc-assess-findings-triage
+    model: high
+    label: Triage the findings into fix batches
+    deadline: 1800
+    "on":
+      completed: sdlc-tracker-sync
+      changes_requested: sdlc-assess-findings-triage
+
+  # Creates one Jira Bug per approved fix-now batch and swaps SEC-PENDING-N for the real keys.
+  - id: sdlc-tracker-sync
+    skill: sdlc-tracker-sync
+    model: low
+    label: File the security bugs in Jira
+    deadline: 600
+    "on":
+      completed: DONE
+      changes_requested: sdlc-tracker-sync

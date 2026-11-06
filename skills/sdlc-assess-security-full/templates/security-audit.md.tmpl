@@ -1,0 +1,47 @@
+# Security audit — {{repo_name}}
+
+**Date:** {{date}} · **Commit:** `{{commit}}` · **Scope:** full repository
+
+## Summary
+| Severity | Findings |
+|---|---|
+| critical | {{n_critical}} |
+| high | {{n_high}} |
+| medium | {{n_medium}} |
+| low | {{n_low}} |
+| info | {{n_info}} |
+
+{{two or three sentences: the most serious problems and where they cluster}}
+
+## Scope
+| Stack | Detected from |
+|---|---|
+| {{stack}} | `{{file}}` |
+
+## Tool coverage
+| Tool | Version | Status | Vulnerability DB date | Raw output |
+|---|---|---|---|---|
+| {{tool}} | {{version}} | {{ran | not_available | failed | not_applicable}} | {{db_date | "n/a"}} | `{{raw/tool.ext}}` |
+
+## OWASP Top 10 coverage
+| Category | Findings | Covered by | Gap |
+|---|---|---|---|
+| A01 Broken Access Control | {{n}} | {{tools}} | {{gap}} |
+| A02 Security Misconfiguration | {{n}} | {{tools}} | {{gap}} |
+| A03 Software Supply Chain Failures | {{n}} | {{tools}} | {{gap}} |
+| A04 Cryptographic Failures | {{n}} | {{tools}} | {{gap}} |
+| A05 Injection | {{n}} | {{tools}} | {{gap}} |
+| A06 Insecure Design | {{n}} | {{tools}} | {{gap}} |
+| A07 Authentication Failures | {{n}} | {{tools}} | {{gap}} |
+| A08 Software or Data Integrity Failures | {{n}} | {{tools}} | {{gap}} |
+| A09 Logging and Alerting Failures | {{n}} | {{tools}} | {{gap}} |
+| A10 Mishandling of Exceptional Conditions | {{n}} | {{tools}} | {{gap}} |
+
+## Findings
+| ID | Severity | OWASP | CWE | Location | Tool / rule | Title |
+|---|---|---|---|---|---|---|
+| {{F-001}} | {{severity}} | {{A05}} | {{CWE-89}} | `{{path}}:{{line}}` | {{tool}} / {{rule_id}} | {{title}} |
+
+## Gaps and limits
+- {{missing or failed tool — what it would have covered}}
+- {{categories that need manual review or DAST}}

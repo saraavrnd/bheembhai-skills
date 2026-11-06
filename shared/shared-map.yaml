@@ -36,3 +36,7 @@ _SHARED-project-layout.md:
   - sdlc-discovery-stack-detect
   - sdlc-discovery-structure-map
   - sdlc-discovery-test-coverage-map
+_SHARED-security-scanners.md:
+  - sdlc-assess-findings-triage
+  - sdlc-assess-security-full
+  - sdlc-assess-security-rescan

@@ -58,6 +58,11 @@ when the repo has no `AGENTS.md`. When both exist, `AGENTS.md` wins.
 | Service API surface | `docs/discovery/<SERVICE>/api-surface.md` |
 | Service data model | `docs/discovery/<SERVICE>/data-model.md` |
 | System-level discovery folder | `docs/discovery/_system/` |
+| Security audit folder | `docs/security/audit/` |
+| Security findings | `docs/security/audit/findings.json` |
+| Security audit report | `docs/security/audit/security-audit.md` |
+| Security fix plan | `docs/security/audit/fix-plan.md` and `fix-map.json` |
+| Security rescan (per security bug) | `docs/product/bugs/<BUG_KEY>/security-rescan.md` |
 
 ## Per-story folder rule (scales to hundreds of stories)
 All artifacts for ONE story live in that story's own folder:

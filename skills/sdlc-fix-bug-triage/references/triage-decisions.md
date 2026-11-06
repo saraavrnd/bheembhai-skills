@@ -39,3 +39,19 @@ Use when either holds:
 | Third-party outage caused the symptom and nothing in our code is wrong | Not a bug |
 | Third-party behaviour changed and our code no longer handles it | Fix |
 | Only reproducible in production data you cannot see | Fix if the data shape is described; otherwise Needs info |
+
+## Security bugs from the audit
+A bug labelled `security` and filed by `sdlc-wf-security-audit` carries a findings table (tool,
+rule, location, fingerprint) and was already confirmed as a true positive at the audit's gate.
+- Decide **Fix** unless the code at the listed location has changed so the finding no longer
+  applies; then decide **Not a bug** and say which commit removed it.
+- **Expected:** the secure behaviour the finding's OWASP category requires (for example "the
+  `sort` parameter only selects from a fixed list of columns"). **Source:** cite
+  `docs/security/audit/fix-plan.md` when it is on the branch; otherwise cite the vulnerable file
+  itself and quote the finding's CWE.
+- **Steps to reproduce:** the attack, as concrete as the finding allows (the request and the
+  payload). Do not run it here; `sdlc-fix-bug-reproduce` turns it into a failing test.
+- **Severity:** critical maps to S1, high to S2, medium to S3, low to S4, unless the findings
+  table's exploitability justifies one level lower.
+- Keep the findings table under Notes, unchanged: `sdlc-assess-security-rescan` reads it from the
+  bug later.

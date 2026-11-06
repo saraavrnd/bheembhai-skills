@@ -1,0 +1,51 @@
+# Security fix plan — {{repo_name}}
+
+**Date:** {{date}} · **Audit commit:** `{{audit_commit}}` · **Audit report:** `docs/security/audit/security-audit.md`
+
+## Summary
+| | Count |
+|---|---|
+| Findings in the audit | {{n_findings}} |
+| True positives | {{n_true}} |
+| False positives | {{n_false}} |
+| Duplicates | {{n_dup}} |
+| Batches to fix now | {{n_fix_now}} |
+| Batches accepted | {{n_accept}} |
+| Batches deferred | {{n_defer}} |
+
+{{one or two sentences: what to fix first and why}}
+
+## Batches
+
+### {{B-01}} — {{title}}
+**Decision:** {{fix_now | accept | defer}} · **Severity:** {{severity}} · **OWASP:** {{A05}} · **Draft bug:** {{SEC-PENDING-1 | none}}
+
+| Finding | Tool / rule | Location | Exploitability | Fingerprint |
+|---|---|---|---|---|
+| {{F-002}} | {{psalm / TaintedSql}} | `{{path}}:{{line}}` | {{high | medium | low}} | `{{fingerprint}}` |
+
+**Why it matters:** {{what an attacker could do in this application}}
+
+**Fix direction:** {{the approach, not the code}}
+
+**Manual action:** {{none | revoke and rotate the credential | decide on history rewrite}}
+
+**Done when:** a re-scan no longer reports these fingerprints, and a regression test shows the attack is blocked.
+
+## Accepted and deferred
+| Batch | Decision | Reason | Limits on the risk / waits for |
+|---|---|---|---|
+| {{B-05}} | {{accept}} | {{reason}} | {{limit}} |
+
+## False positives
+| Finding | Reason (with the line that proves it) |
+|---|---|
+| {{F-006}} | {{reason}} |
+
+## Not covered by tools
+{{OWASP categories the audit marked as gaps, and what a person or later DAST should check}}
+
+## Jira
+- Project key: {{KEY | PENDING — name it at the gate}}
+- To create: {{n_fix_now}} bugs, type Bug, label `security`, one per fix-now batch above.
+- Applied: no — sdlc-tracker-sync creates them after the gate (ADR-035)

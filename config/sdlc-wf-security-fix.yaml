@@ -1,0 +1,110 @@
+# BheemBhai Security Fix — one run per security bug filed by sdlc-wf-security-audit, ending at an
+# open PR on its own fix/<KEY> branch (never merges).
+# Shape: the bug-fix chain (triage -> reproduce as a failing test that demonstrates the attack ->
+#        root cause -> implement -> verify), then assess-security-rescan proves with the original
+#        scanners that every finding's fingerprint is gone and the change adds no new
+#        critical/high finding, then review -> docs-sync -> impact-flag -> PR.
+# Routing convention as sdlc-wf-bug-fix: changes_requested re-runs the same step, except
+# code-review (fix the code). A rescan BLOCK goes back to implement, like a tests-verify BLOCK.
+workflow: sdlc-wf-security-fix
+version: 1
+work_item: bug
+category: Software Delivery
+description: Fix one security bug from the audit — reproduce the attack as a failing test, fix it, prove with the scanners that the finding is gone, review, and open a PR.
+start: sdlc-fix-bug-triage
+steps:
+  - id: sdlc-fix-bug-triage
+    skill: sdlc-fix-bug-triage
+    model: low
+    label: Triage the security bug
+    deadline: 600
+    "on":
+      completed: sdlc-tracker-sync
+      changes_requested: sdlc-fix-bug-triage
+      escalation_required: DONE
+  - id: sdlc-tracker-sync
+    skill: sdlc-tracker-sync
+    model: low
+    label: Move the bug to In Progress
+    deadline: 300
+    "on":
+      completed: sdlc-fix-bug-reproduce
+      changes_requested: sdlc-tracker-sync
+  - id: sdlc-fix-bug-reproduce
+    skill: sdlc-fix-bug-reproduce
+    model: medium
+    label: Reproduce the attack as a failing test
+    deadline: 1200
+    "on":
+      completed: sdlc-fix-rootcause-analyze
+      changes_requested: sdlc-fix-bug-reproduce
+      escalation_required: DONE
+  - id: sdlc-fix-rootcause-analyze
+    skill: sdlc-fix-rootcause-analyze
+    model: high
+    label: Find the root cause
+    deadline: 1200
+    "on":
+      completed: sdlc-deliver-code-implement
+      changes_requested: sdlc-fix-rootcause-analyze
+      escalation_required: DONE
+  - id: sdlc-deliver-code-implement
+    skill: sdlc-deliver-code-implement
+    model: medium
+    label: Fix it
+    deadline: 1800
+    "on":
+      completed: sdlc-deliver-tests-verify
+      changes_requested: sdlc-deliver-code-implement
+      escalation_required: sdlc-fix-rootcause-analyze
+  - id: sdlc-deliver-tests-verify
+    skill: sdlc-deliver-tests-verify
+    model: low
+    label: Verify the tests pass
+    deadline: 1800
+    "on":
+      completed: sdlc-assess-security-rescan
+      changes_requested: sdlc-deliver-tests-verify
+      BLOCK: sdlc-deliver-code-implement
+  - id: sdlc-assess-security-rescan
+    skill: sdlc-assess-security-rescan
+    model: low
+    label: Prove the finding is gone
+    deadline: 1200
+    "on":
+      completed: sdlc-deliver-code-review
+      changes_requested: sdlc-assess-security-rescan
+      BLOCK: sdlc-deliver-code-implement
+  - id: sdlc-deliver-code-review
+    skill: sdlc-deliver-code-review
+    model: medium
+    label: Review the fix
+    deadline: 900
+    "on":
+      completed: sdlc-deliver-docs-sync
+      changes_requested: sdlc-deliver-code-implement
+  - id: sdlc-deliver-docs-sync
+    skill: sdlc-deliver-docs-sync
+    model: low
+    label: Sync the design docs
+    deadline: 900
+    "on":
+      completed: sdlc-deliver-impact-flag
+      changes_requested: sdlc-deliver-docs-sync
+      escalation_required: DONE
+  - id: sdlc-deliver-impact-flag
+    skill: sdlc-deliver-impact-flag
+    model: low
+    label: Flag overlapping stories
+    deadline: 600
+    "on":
+      completed: sdlc-deliver-pr-open
+      changes_requested: sdlc-deliver-impact-flag
+  - id: sdlc-deliver-pr-open
+    skill: sdlc-deliver-pr-open
+    model: low
+    label: Open the pull request
+    deadline: 600
+    "on":
+      completed: DONE
+      changes_requested: sdlc-deliver-pr-open

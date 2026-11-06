@@ -1,0 +1,26 @@
+# Security rescan — {{bug_key}}: {{bug_summary}}
+
+**Date:** {{date}} · **Branch:** `{{branch}}` · **Commit:** `{{commit}}`
+
+## Target findings
+| Finding | Tool / rule | Fingerprint | Status | Evidence |
+|---|---|---|---|---|
+| {{F-002}} | {{psalm / TaintedSql}} | `{{fingerprint}}` | {{fixed | still present | moved}} | {{what the tool reported now, or "not reported"}} |
+
+## New findings in the change
+| Tool / rule | Location | Severity | New in this change? |
+|---|---|---|---|
+| {{tool / rule | none}} | `{{path}}:{{line}}` | {{severity}} | {{yes | no — unchanged line, other batch}} |
+
+## Tools run
+```
+{{command lines and the trimmed output of each tool run}}
+```
+
+## Manual actions still open
+- {{none | revoke and rotate the credential (from the bug) | history rewrite decision}}
+
+## Verdict
+**Verdict:** {{PASS | BLOCK}}
+
+{{BLOCK: what sdlc-deliver-code-implement must change, with file and line}}

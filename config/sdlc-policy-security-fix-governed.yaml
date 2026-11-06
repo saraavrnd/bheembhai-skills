@@ -1,0 +1,40 @@
+# Default governance for security fixes (same shape as sdlc-policy-bug-fix-governed). A lead
+# approves the fix design before code is written, sees a failed honest-green gate or a failed
+# rescan, and approves the PR. changes_requested loops are not gated.
+policy: sdlc-policy-security-fix-governed
+version: 1
+applies_to: sdlc-wf-security-fix
+gates:
+  sdlc-fix-bug-triage:
+    review: required
+    role: any
+    on_status: [escalation_required]
+
+  sdlc-fix-bug-reproduce:
+    review: required
+    role: any
+    on_status: [escalation_required]
+
+  sdlc-fix-rootcause-analyze:
+    review: required
+    role: lead
+    on_status: [completed, escalation_required]
+
+  sdlc-deliver-tests-verify:
+    review: required
+    role: lead
+    on_status: [BLOCK]
+
+  sdlc-assess-security-rescan:
+    review: required
+    role: lead
+    on_status: [BLOCK]
+
+  sdlc-deliver-code-review:
+    review: required
+    role: lead
+    on_status: [completed]
+
+  sdlc-deliver-pr-open:
+    review: required
+    role: lead

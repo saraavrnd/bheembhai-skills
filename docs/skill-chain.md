@@ -85,8 +85,8 @@ a model from a different family, so content is never reviewed by the family that
 
 | Role | Does | Writes | Skills |
 |------|------|--------|--------|
-| `author` | creates, updates or deletes content | content in its own scope | prd-write, epics-create, stories-write, epic-sequence, arch-design, arch-ui-conventions, arch-repo-scaffold, story-design, tests-write, code-implement, docs-sync, fix-bug-triage, fix-bug-reproduce, fix-rootcause-analyze, all 16 discovery skills, adhoc-session |
-| `reviewer` | judges another step's output | its own report only | code-review, tests-verify, epic-review, story-review |
+| `author` | creates, updates or deletes content | content in its own scope | prd-write, epics-create, stories-write, epic-sequence, arch-design, arch-ui-conventions, arch-repo-scaffold, story-design, tests-write, code-implement, docs-sync, fix-bug-triage, fix-bug-reproduce, fix-rootcause-analyze, all 16 discovery skills, adhoc-session, assess-findings-triage |
+| `reviewer` | judges another step's output | its own report only | code-review, tests-verify, epic-review, story-review, assess-security-full, assess-security-rescan |
 | `integration` | carries out an approved decision in Jira / the code host | a short record, tracker keys | story-start, impact-flag, pr-open, tracker-sync |
 
 A reviewer reviews the step its `changes_requested` / `BLOCK` edge routes to; a workflow names any
@@ -117,6 +117,13 @@ other independence pair with `independent_of` (tests-write vs code-implement).
 | `sdlc-fix-bug-triage` | a Jira bug | `bug-triage.md`: expected vs actual with a source, steps, severity S1–S4, affected area, one decision and the intended Jira action (`sdlc-tracker-sync` applies it on Fix) |
 | `sdlc-fix-bug-reproduce` | `bug-triage.md` (Fix) | regression tests that fail with the reported symptom, guard tests, `reproduction.md`, `test-plan.md` |
 | `sdlc-fix-rootcause-analyze` | reproduction + red tests | `fix-design.md`: root cause, causal chain, fix approach, target modules, blast radius, scope |
+
+### Security skills
+| Skill | In | Out |
+|-------|----|----|
+| `sdlc-assess-security-full` | the whole repo + the agent image's scanners | `docs/security/audit/`: `findings.json` (severity, CWE, OWASP), `security-audit.md` with tool and OWASP coverage, raw tool output, SBOM; report only |
+| `sdlc-assess-findings-triage` | the audit | `fix-plan.md` + `fix-map.json`: true/false positive per finding, fix batches, fix now / accept / defer, draft keys `SEC-PENDING-N` (`sdlc-tracker-sync` files the bugs) |
+| `sdlc-assess-security-rescan` | a security bug's findings table + the fix branch | `security-rescan.md`: PASS/BLOCK, each fingerprint fixed / still present / moved, new critical/high findings in the change |
 
 ### Utility skills
 | Skill | In | Out |
@@ -179,6 +186,29 @@ the triage note and its good red means "fails **with the reported symptom**", wh
 `docs/product/bugs/<BUG_KEY>/`; see "Work items" in `_SHARED-project-layout.md` for how the shared
 skills find them. Policies: `sdlc-policy-bug-fix-governed` (a human approves the fix design and the
 PR) and `sdlc-policy-bug-fix-fast` (no gates, for S3/S4 bugs).
+
+### Security audit and fix: two workflows
+`sdlc-wf-security-audit` finds and plans; `sdlc-wf-security-fix` fixes one batch per run, each on
+its own `fix/<KEY>` branch with its own PR. See SK-003.
+
+```
+sdlc-assess-security-full ──► findings.json + security-audit.md   (scanners find; report only)
+        ▼
+sdlc-assess-findings-triage ──► fix-plan.md + fix-map.json        (real or not, batches, fix/accept/defer)
+        ▼  [gate: a lead approves the plan and every accepted risk]
+sdlc-tracker-sync ──► one Jira Bug labelled `security` per fix-now batch
+        ⋮  one sdlc-wf-security-fix run per security bug:
+sdlc-fix-bug-triage ► tracker-sync ► fix-bug-reproduce (the attack as a failing test)
+  ► fix-rootcause-analyze ► code-implement ► tests-verify
+  ► sdlc-assess-security-rescan ──► security-rescan.md  PASS / BLOCK (back to implement)
+  ► code-review ► docs-sync ► impact-flag ► pr-open
+```
+
+The scanners come from the agent image's security layer (platform ADR-018 D4); the tool set per
+stack, the severity scale, the OWASP mapping and the findings format are in
+`shared/_SHARED-security-scanners.md`. Policies: `sdlc-policy-security-audit-governed` (a lead
+approves the fix plan) and `sdlc-policy-security-fix-governed` (as bug-fix governed, plus a gate on
+a rescan BLOCK).
 
 ### Ordering stories: `sdlc-plan-epic-sequence`
 Before implementing an epic's stories, run **`sdlc-plan-epic-sequence`** to order them by dependency so a

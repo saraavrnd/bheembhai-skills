@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BheemBhai security fix map",
+  "type": "object",
+  "required": ["project_key", "audit_commit", "findings", "batches"],
+  "additionalProperties": false,
+  "properties": {
+    "project_key": {"type": "string", "pattern": "^([A-Z][A-Z0-9]+|PENDING)$"},
+    "audit_commit": {"type": "string", "pattern": "^[0-9a-f]{7,40}$"},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "verdict", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^F-\\d{3,4}$"},
+          "verdict": {"enum": ["true_positive", "false_positive", "duplicate"]},
+          "duplicate_of": {"type": ["string", "null"], "pattern": "^F-\\d{3,4}$"},
+          "exploitability": {"enum": ["high", "medium", "low", null]},
+          "reason": {"type": "string", "minLength": 10}
+        }
+      }
+    },
+    "batches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["batch_id", "title", "severity", "owasp", "finding_ids", "decision", "reason", "bug_key"],
+        "additionalProperties": false,
+        "properties": {
+          "batch_id": {"type": "string", "pattern": "^B-\\d{2}$"},
+          "title": {"type": "string", "minLength": 5},
+          "severity": {"enum": ["critical", "high", "medium", "low", "info"]},
+          "owasp": {"type": "array", "items": {"type": "string", "pattern": "^(A(0[1-9]|10)|LLM(0[1-9]|10))$"}},
+          "finding_ids": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^F-\\d{3,4}$"}},
+          "decision": {"enum": ["fix_now", "accept", "defer"]},
+          "reason": {"type": "string", "minLength": 10},
+          "manual_action": {"type": ["string", "null"]},
+          "bug_key": {"type": ["string", "null"], "pattern": "^(SEC-PENDING-\\d+|[A-Z][A-Z0-9]+-\\d+)$"}
+        }
+      }
+    }
+  }
+}

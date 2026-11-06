@@ -1,0 +1,101 @@
+version: 1
+skill: sdlc-assess-security-rescan
+work_items: [bug]
+summary: >
+  The tests passed and the scanners are on PATH before any tokens are spent. Afterwards
+  security-rescan.md has every section, raw tool output, exactly one PASS/BLOCK verdict that
+  agrees with the outcome, and nothing but the report changed.
+verdicts_used: [failed_execution, changes_requested, BLOCK]
+
+facts:
+  report_says:
+    kind: check_output
+    check: report_verdict
+    key: verdict
+
+preconditions:
+  - id: tests_passed
+    description: Rescan correct code, not broken code.
+    run: builtin:report_verdict
+    args: {path: "{layout.bug_dir}verification.md", pattern: '(?im)^\**\s*(?:verdict|result)\s*:?\**\s*\**(PASS|BLOCK)\b', allowed: [PASS]}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: core_tools_present
+    run: builtin:cmd_exit_code
+    args: {cmd: "sh -c 'for t in gitleaks opengrep; do command -v \"$t\" >/dev/null || exit 1; done'", timeout_s: 30}
+    on_fail: failed_execution
+    reason_code: env_infra
+
+artifacts:
+  - id: report
+    path: "{layout.bug_dir}security-rescan.md"
+
+checks:
+  - id: report_sections
+    run: builtin:md_sections
+    args:
+      artifact: report
+      required: ["Target findings", "New findings in the change", "Tools run", "Manual actions still open", "Verdict"]
+    on_fail: changes_requested
+    reason_code: structure
+  - id: fingerprints_listed
+    when: "facts.report_says"
+    run: builtin:regex_count
+    args: {artifact: report, section: "Target findings", pattern: '(?m)^\|\s*F-\d{3,4}\s*\|', min: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: raw_evidence_blocks
+    run: builtin:regex_count
+    args: {artifact: report, section: "Tools run", pattern: '^```', min: 2}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: report_verdict
+    run: builtin:report_verdict
+    args: {artifact: report, pattern: '(?im)^\**\s*(?:verdict|result)\s*:?\**\s*\**(PASS|BLOCK)\b', allowed: [PASS, BLOCK]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: pass_means_all_fixed
+    description: A PASS cannot leave a target finding still present or moved.
+    when: "facts.report_says == 'PASS'"
+    run: builtin:regex_count
+    args: {artifact: report, section: "Target findings", pattern: '(?im)\|\s*(still present|moved)\s*\|', max: 0}
+    on_fail: BLOCK
+    reason_code: report_inconsistent
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: report}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: read_only
+    description: The rescan inspects; it writes nothing but its report (ADR-035).
+    run: builtin:diff_paths
+    args: {allowed: ["{layout.bug_dir}security-rescan.md"]}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: outcome_matches_report
+    run: builtin:self_verdict_consistent
+    args: {fact: facts.report_says, map: {PASS: completed, BLOCK: BLOCK}}
+    on_fail: BLOCK
+    reason_code: report_inconsistent
+
+judge:
+  tier: medium
+  vendor: prefer_different
+  inputs: [report, diff, context.bug]
+  criteria:
+    - id: every_target_checked
+      critical: true
+      question: "Does the Target findings table contain every finding (with the same fingerprint) listed in the bug's findings table, each with tool evidence?"
+      on_fail: changes_requested
+      reason_code: coverage_gap
+    - id: fix_is_general
+      when: "facts.report_says == 'PASS'"
+      critical: true
+      question: "Reading the diff, does the change remove the flaw for every input path (for example a validated allow-list or parameter binding), rather than suppressing the scanner (an ignore comment, a rule disabled in config, a renamed variable) or special-casing the test payload?"
+      on_fail: BLOCK
+      reason_code: faked_green
+    - id: block_is_actionable
+      when: "facts.report_says == 'BLOCK'"
+      question: "Does every BLOCK item name the file and line and the change sdlc-deliver-code-implement must make?"
+      on_fail: changes_requested
+      reason_code: quality
