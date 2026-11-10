@@ -6,11 +6,12 @@
 
 Platform skills are edited only in `bheembhai-skills` (ADR-032), but the two existing test tiers
 are static: tier 1 checks the catalog's shape and tier 2 self-tests a verifier on examples.
-Neither actually runs a skill against real Jira, GitHub and a model, so an author cannot see what
-a skill did, fix it and run it again in the runtime the platform uses. Embedding that loop in the
-platform touched too much of the platform and made the process heavy. A separate skill builder,
-sharing only versioned platform components, gives authors a faithful edit → run → verify → scan →
-submit loop while keeping the platform and its projects untouched.
+Neither actually runs a skill against real Jira, GitHub and a model, so a skill author cannot see
+what a skill did, diagnose the failure and try again in the runtime the platform actually uses.
+The cost is paid twice: authors ship unproven skills and reviewers inherit problems that only
+appear on the platform, while attempting the loop inside the platform would change its data model,
+engine and UI for every project. There is an opportunity to give authors a faithful
+edit → run → verify → scan → submit loop that leaves the platform and its projects untouched.
 
 ## 2. Target Users
 
@@ -72,7 +73,8 @@ scan findings.
 | FA-8 | Runner CLI | Run and scan a skill without the web app, including for CI |
 | FA-9 | Catalog submission | Turn a Ready build into a reviewed pull request to `main` |
 | FA-10 | Platform kit pinning | Run exactly the platform's pinned runtime, images and verifier |
-| FA-11 | Deployment and operations | Single-host app, database, storage and least-privilege AWS access |
+| FA-11 | Deployment and operations | Single-host Docker deployment, schema lifecycle, per-run object storage and least-privilege AWS access |
+| FA-12 | Application backend and data | The builder's own server-side REST APIs, relational records and web UI delivery |
 
 ## 6. Functional Requirements
 
@@ -178,10 +180,11 @@ scan findings.
 | FR-098 | FA-10 | Updating an image, the verifier or the stepkit requires only a `kit.txt` version change in a PR. | MVP |
 | FR-099 | FA-11 | The web app and database deploy together with docker-compose on a local machine or a single host. | MVP |
 | FR-100 | FA-11 | The system initializes its database schema on deployment and preserves existing data on upgrade. | MVP |
-| FR-101 | FA-11 | The system keeps its own records for users, builds, projects, members, integrations, bundles, runs, Jira state and suites. | MVP |
+| FR-101 | FA-12 | The system keeps its own records for users, builds, projects, members, integrations, bundles, runs, Jira state and suites. | MVP |
 | FR-102 | FA-11 | The system stores run bundles, results, logs and transcripts under a per-run prefix in its own object-storage bucket. | MVP |
-| FR-103 | FA-11 | The system exposes the REST APIs used by the web UI and CLI. | MVP |
+| FR-103 | FA-12 | The system exposes the REST APIs used by the web UI and CLI. | MVP |
 | FR-104 | FA-11 | The system leaves the platform's data model, engine and UI unchanged. | MVP |
+| FR-105 | FA-12 | The system serves the web UI and its REST APIs from the same application process. | MVP |
 
 ## 7. Non-Functional Requirements
 
@@ -202,10 +205,13 @@ scan findings.
 
 ## 8. Constraints & Assumptions
 
-- **Input basis.** The launch notes name a target Jira story, "SkillBuilder". The configured
-  Atlassian site has no issue with that summary, and the `BSB` (bheembhai-skill-builder) project
-  contains no issues. This PRD therefore treats `docs/adr/SK-001-skill-builder.md` and the
-  launch notes as the authoritative product input; no story details were invented.
+- **Input basis.** The launch notes name a target Jira story, "SkillBuilder". On 2026-11-10 the
+  configured Atlassian site was searched across all issue types for that summary and for
+  "builder"; no matching issue exists, and the `BSB` (bheembhai-skill-builder) project contains no
+  issues at all. No summary, description or acceptance criteria could therefore be fetched. As
+  the launch notes direct, this PRD treats `docs/adr/SK-001-skill-builder.md` plus the notes as the
+  authoritative product input; no story details were invented, and the Jira story is assumed to be
+  created or linked later by the planning workflow.
 - **Platform dependency.** The builder consumes the platform's shared runtime kit (platform
   ADR-033). Platform rollout S0 — extracting `bheembhai-stepkit` and publishing a `kit-v*`
   release — must ship before a run can execute; the builder pins one kit version.
