@@ -39,7 +39,7 @@ checks:
   - id: raw_evidence_blocks
     description: Separate raw output blocks for suite, lint and coverage, run verbosely.
     run: builtin:regex_count
-    args: {artifact: report, pattern: '^```', min: 6}
+    args: {artifact: report, pattern: '(?m)^```', min: 6}
     on_fail: changes_requested
     reason_code: structure
   - id: report_verdict

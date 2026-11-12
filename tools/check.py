@@ -24,6 +24,9 @@ OUTCOME_WORD = re.compile(r"^\s*-\s*\*\*(\w+)\*\*:", re.M)
 # ADR-035 §1: every skill has exactly one role. Reviewers judge another step's output and
 # write only their own report; integration skills act in external tools and write no content.
 ROLES = ("author", "reviewer", "integration")
+# The verifier compiles patterns without flags, so a line anchor needs an inline (?m).
+INLINE_FLAGS = re.compile(r"^\(\?([a-zA-Z]+)\)")
+SINGLE_LINE_PATTERN_KEYS = {"title_pattern"}
 
 errors = []
 
@@ -42,6 +45,25 @@ def frontmatter(text):
 
 
 roles = {}
+
+
+def patterns(node, key=None):
+    """Yield (key, regex) for every string under a key ending in 'pattern' in a verify.yaml tree."""
+    if isinstance(node, dict):
+        for k, val in node.items():
+            yield from patterns(val, k)
+    elif isinstance(node, list):
+        for val in node:
+            yield from patterns(val, key)
+    elif isinstance(node, str) and key and str(key).endswith("pattern"):
+        yield key, node
+
+
+def anchors_lines(pattern):
+    """True if the pattern uses ^ or $ as an anchor (outside escapes and character classes)."""
+    bare = re.sub(r"\\.", "", pattern)
+    bare = re.sub(r"\[\^?\]?[^\]]*\]", "", bare)
+    return "^" in bare or "$" in bare
 
 
 def check_skills():
@@ -90,6 +112,10 @@ def check_skills():
                 for pat in (c.get("args") or {}).get("allowed") or []:
                     if pat == "**" or pat.endswith("/**") and pat.count("/") <= 1:
                         err(f"skills/{n}: role {roles[n]}: may not write '{pat}' (ADR-035: its own report or log only)")
+        for key, pat in patterns(v):
+            flags = INLINE_FLAGS.match(pat)
+            if key not in SINGLE_LINE_PATTERN_KEYS and anchors_lines(pat) and not (flags and "m" in flags.group(1)):
+                err(f"skills/{n}: verify.yaml pattern {pat!r} anchors with ^ or $ but has no (?m); it only matches the first or last line")
         used = set(v.get("verdicts_used") or [])
         on_fails = {c.get("on_fail") for k in ("preconditions", "checks") for c in (v.get(k) or [])}
         on_fails |= {c.get("on_fail") for c in ((v.get("judge") or {}).get("criteria") or [])}

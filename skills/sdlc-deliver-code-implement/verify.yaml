@@ -76,7 +76,7 @@ checks:
     reason_code: faked_green
   - id: no_swallowed_errors
     run: builtin:diff_forbids_added
-    args: {paths: ["**/*.py"], pattern: 'except(\s+\w+)?\s*:\s*(pass|\.\.\.)\s*$'}
+    args: {paths: ["**/*.py"], pattern: '(?m)except(\s+\w+)?\s*:\s*(pass|\.\.\.)\s*$'}
     on_fail: changes_requested
     reason_code: faked_green
   - id: no_design_doc_edits

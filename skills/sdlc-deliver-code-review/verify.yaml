@@ -51,7 +51,7 @@ checks:
     reason_code: structure
   - id: fix_list_present
     run: builtin:regex_count
-    args: {artifact: review, pattern: '(?i)^#+.*fix list', min: 1}
+    args: {artifact: review, pattern: '(?im)^#+.*fix list', min: 1}
     on_fail: changes_requested
     reason_code: structure
   - id: high_findings_route_to_fix
