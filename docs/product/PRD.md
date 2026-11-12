@@ -94,9 +94,13 @@ epic boundaries; every functional requirement in section 6 names its capability 
 | G-17 | Persistence, storage and runtime pinning | Persist the app's own data, store artifacts, and pin one platform kit |
 | G-18 | Deployment and operations | Deploy the app and database reproducibly on one host with health reporting |
 
-## 6. Functional Requirements — one testable capability per row; columns are ID, feature area, requirement, release and capability group
+## 6. Functional Requirements
+
+Each row states one testable capability. Columns: ID, feature area, requirement, release, capability group.
+
+| ID | Feature area | Requirement (one testable capability) | Release | Capability group |
+|------|--------------|----------------------------------------|---------|------------------|
 | FR-001 | FA-1 | A user signs in with their existing platform identity-provider account | MVP | G-1 |
-|--------|--------------|--------|---------|------------------|
 | FR-002 | FA-1 | The system refuses sign-in when the authenticated user is not a member of the skill-builders group | MVP | G-1 |
 | FR-003 | FA-1 | The system checks the skill-builders group claim on every authenticated request, not only at sign-in | MVP | G-1 |
 | FR-004 | FA-1 | On first successful sign-in the system creates a local user record keyed by the identity-provider subject identifier | MVP | G-1 |
@@ -104,7 +108,7 @@ epic boundaries; every functional requirement in section 6 names its capability 
 | FR-006 | FA-1 | The system ends the local session when the identity token expires | MVP | G-1 |
 | FR-007 | FA-1 | The system ends the local session when the user signs out | MVP | G-1 |
 | FR-008 | FA-1 | The system provides no in-app user-administration screen | MVP | G-1 |
-| FR-009 | FA-1 | The system never reads or writes the platform database | MVP | G-1 |
+| FR-009 | FA-1 | The system never accesses the platform database | MVP | G-1 |
 | FR-010 | FA-1 | A signed-in user creates a build by supplying a unique skill name and a one-line description | MVP | G-2 |
 | FR-011 | FA-1 | On create the system cuts a build branch from main whose name is build/ followed by the skill name | MVP | G-2 |
 | FR-012 | FA-1 | On create the system writes the default skill structure for the new skill | MVP | G-2 |
@@ -122,7 +126,7 @@ epic boundaries; every functional requirement in section 6 names its capability 
 | FR-024 | FA-1 | The system records each build's kind as create, clone or edit | MVP | G-3 |
 | FR-025 | FA-1 | The system records each build's current head commit SHA | MVP | G-3 |
 | FR-026 | FA-1 | A user views a list of builds showing each build's skill, kind, state and owner | MVP | G-3 |
-| FR-027 | FA-1 | A user abandons an open build and the build state becomes abandoned | MVP | G-3 |
+| FR-027 | FA-1 | Abandoning an open build moves its state to abandoned | MVP | G-3 |
 | FR-028 | FA-1 | The build state is one of open, submitted, merged or abandoned | MVP | G-3 |
 | FR-029 | FA-1 | The build page shows the four Ready checks at the build's head commit SHA | MVP | G-3 |
 | FR-030 | FA-1 | The build page shows the pass or fail state of each Ready check | MVP | G-3 |
@@ -138,161 +142,179 @@ epic boundaries; every functional requirement in section 6 names its capability 
 | FR-040 | FA-1 | Submit to catalog opens a pull request from the build branch to the main branch | MVP | G-4 |
 | FR-041 | FA-1 | Submitting a build moves it to the submitted state | MVP | G-4 |
 | FR-042 | FA-1 | The pull request description lists the four Ready check results at the submitted commit | MVP | G-4 |
-| FR-043 | FA-1 | The pull request description links the passing run and the static and LLM security reports | MVP | G-4 |
-| FR-044 | FA-1 | The pull request is opened under the submitting user's GitHub identity | MVP | G-4 |
-| FR-045 | FA-1 | The system marks a submitted build as merged when its pull request is merged | MVP | G-4 |
-| FR-046 | FA-1 | The build page links the submission pull request after submission | MVP | G-4 |
-| FR-047 | FA-1 | A signed-in user creates a test project by supplying a name | MVP | G-5 |
-| FR-048 | FA-1 | The creator of a test project is recorded as its owner | MVP | G-5 |
-| FR-049 | FA-1 | A project owner adds a skill builder user to the project as a member | MVP | G-5 |
-| FR-050 | FA-1 | A project owner removes a member from the project | MVP | G-5 |
-| FR-051 | FA-1 | A project owner views the project's member list with each member's role | MVP | G-5 |
-| FR-052 | FA-1 | Any project member can start a run in the project | MVP | G-5 |
-| FR-053 | FA-1 | Only the project owner can change the project's integrations | MVP | G-5 |
-| FR-054 | FA-1 | The system denies project access to a user who is not a project member | MVP | G-5 |
-| FR-055 | FA-1 | A user lists the projects they own or belong to | MVP | G-5 |
-| FR-056 | FA-1 | The project owner configures a Jira integration with a site URL, a project key or template project, an MCP server definition and an API token | MVP | G-6 |
-| FR-057 | FA-1 | The project owner configures a GitHub integration with a sandbox repository, a base branch, an MCP server definition and an access token | MVP | G-6 |
-| FR-058 | FA-1 | The system validates that a GitHub integration token can push build branches and open pull requests in the skills repository | MVP | G-6 |
-| FR-059 | FA-1 | The project owner configures an AI model profile with a vendor, a base URL, a tier-to-model mapping and an API key | MVP | G-6 |
-| FR-060 | FA-1 | The project owner configures more than one AI model profile in a project | MVP | G-6 |
-| FR-061 | FA-1 | The project owner designates one model profile as the default for LLM security scans | MVP | G-6 |
-| FR-062 | FA-1 | The system stores integration secret values in the external secret manager | MVP | G-6 |
-| FR-063 | FA-1 | The system stores only the secret reference in its database | MVP | G-6 |
-| FR-064 | FA-1 | The system verifies an integration's settings and records the verification time on success | MVP | G-6 |
-| FR-065 | FA-1 | The system shows each integration's verification status and time in the UI | MVP | G-6 |
-| FR-066 | FA-1 | The system warns when a GitHub integration points at a repository that a platform project also uses | MVP | G-6 |
-| FR-067 | FA-1 | The project owner updates an integration's settings | MVP | G-6 |
-| FR-068 | FA-1 | The project owner replaces an integration's stored secret | MVP | G-6 |
-| FR-069 | FA-1 | The project owner deletes an integration and its stored secret | MVP | G-6 |
-| FR-070 | FA-1 | The system never returns a secret value in an API response or renders one in the UI | MVP | G-6 |
-| FR-071 | FA-1 | A user starts a run by choosing a project, a skills branch and an input branch | MVP | G-7 |
-| FR-072 | FA-1 | A user optionally supplies run context for a run from a workflow step, reviewer feedback, or an upstream handoff | MVP | G-7 |
-| FR-073 | FA-1 | A user selects a model profile and tier, defaulting to the skill's declared tier | MVP | G-7 |
-| FR-074 | FA-1 | A user sets a turn cap and a spend cap for the run | MVP | G-7 |
-| FR-075 | FA-1 | At run start the system resolves the skills branch to a commit SHA and records that SHA on the run | MVP | G-7 |
-| FR-076 | FA-1 | The run form shows the resolved skills commit SHA before the user confirms | MVP | G-7 |
-| FR-077 | FA-1 | The system packs the skill at that SHA into a content-addressed bundle exactly as a catalog release would | MVP | G-7 |
-| FR-078 | FA-1 | The system reuses the stored bundle for the same skills commit SHA instead of packing it again | MVP | G-7 |
-| FR-079 | FA-1 | The system uploads the bundle to its own object storage | MVP | G-7 |
-| FR-080 | FA-1 | The system gives the agent run a time-limited bundle URL and the bundle SHA-256 checksum | MVP | G-7 |
-| FR-081 | FA-1 | The system creates the run branch from the input branch head and records that head SHA as the run baseline | MVP | G-7 |
-| FR-082 | FA-1 | A run never writes to its input branch | MVP | G-7 |
-| FR-083 | FA-1 | The system refuses to start a run when the skill fails verifier lint or selftest | MVP | G-7 |
-| FR-084 | FA-1 | The system refuses to start a run when the catalog's verifier requirement does not accept the pinned verifier version | MVP | G-7 |
-| FR-085 | FA-1 | The system refuses to start a run when the selected input branch does not exist | MVP | G-7 |
-| FR-086 | FA-1 | The system starts the run in the pinned agent image with the platform's agent environment contract | MVP | G-8 |
-| FR-087 | FA-1 | The system supplies integration secrets to the agent run only at start | MVP | G-8 |
-| FR-088 | FA-1 | The system refuses to start a run when the pinned agent image digest and step-kit version are incompatible | MVP | G-8 |
-| FR-089 | FA-1 | The system follows the run's progress and agent log while the run executes | MVP | G-8 |
-| FR-090 | FA-1 | The system shows live run status in the UI while the run executes | MVP | G-8 |
-| FR-091 | FA-1 | On run exit the system classifies the run from the exit status and the step result file | MVP | G-8 |
-| FR-092 | FA-1 | The system records the verdict claimed by the agent | MVP | G-8 |
-| FR-093 | FA-1 | The system records each run's skills commit SHA, agent image digest, step-kit version and verifier version | MVP | G-8 |
-| FR-094 | FA-1 | The system stops a run that reaches its turn cap | MVP | G-8 |
-| FR-095 | FA-1 | The system stops a run that reaches its spend cap | MVP | G-8 |
-| FR-096 | FA-1 | A user cancels a running run | MVP | G-8 |
-| FR-097 | FA-1 | A completed run's output branch can be selected as the input branch of a later run | MVP | G-8 |
-| FR-098 | FA-1 | After every run the system runs the pinned verifier outside the agent run against the output branch | MVP | G-9 |
-| FR-099 | FA-1 | Verification uses the run's recorded baseline SHA for must-change and precondition checks | MVP | G-9 |
-| FR-100 | FA-1 | Verification uses the verify.yaml from the run's pinned skills commit | MVP | G-9 |
-| FR-101 | FA-1 | The system records the final verdict after verification | MVP | G-9 |
-| FR-102 | FA-1 | The system records each L0 and L1 check result, and L2 results when L2 checks are enabled | MVP | G-9 |
-| FR-103 | FA-1 | The system shows the claimed verdict and the final verdict | MVP | G-9 |
-| FR-104 | FA-1 | The system marks whether the agent's claimed verdict was overturned by verification | MVP | G-9 |
-| FR-105 | FA-1 | Re-verify grades an existing output branch with a newer verify.yaml | MVP | G-9 |
-| FR-106 | FA-1 | Re-verify calls no model and starts no agent | MVP | G-9 |
-| FR-107 | FA-1 | Re-verify records which checks flipped against the parent run | MVP | G-9 |
-| FR-108 | FA-1 | Re-run starts the same run inputs against the skills branch latest commit SHA | MVP | G-9 |
-| FR-109 | FA-1 | Re-run links the new run to the run it was started from | MVP | G-9 |
-| FR-110 | FA-1 | The system runs a static security scan with the pinned scanner image on the exact bundle before every run | MVP | G-10 |
-| FR-111 | FA-1 | The static scan reads the bundle read-only and writes its report outside the bundle | MVP | G-10 |
-| FR-112 | FA-1 | The static scan runs with no network access | MVP | G-10 |
-| FR-113 | FA-1 | Each static scan is limited to 10 minutes | MVP | G-10 |
-| FR-114 | FA-1 | A static scan that exceeds 10 minutes is recorded as a failed scan | MVP | G-10 |
-| FR-115 | FA-1 | The system refuses a run when the static verdict is DO_NOT_INSTALL | MVP | G-10 |
-| FR-116 | FA-1 | The system refuses a run when the static scan reports a CRITICAL finding | MVP | G-10 |
-| FR-117 | FA-1 | The system refuses a run when the static scan reports incomplete coverage | MVP | G-10 |
-| FR-118 | FA-1 | No override can clear a static scan block | MVP | G-10 |
-| FR-119 | FA-1 | An accepted finding cannot clear a static scan block | MVP | G-10 |
-| FR-120 | FA-1 | The system caches a static scan result by bundle content SHA and reuses it for the same content SHA | MVP | G-10 |
-| FR-121 | FA-1 | The Security check action on a skill triggers a static scan | MVP | G-10 |
-| FR-122 | FA-1 | The system records each static scan with its bundle content SHA and scanner image digest | MVP | G-10 |
-| FR-123 | FA-1 | The system never uses the scanner's MCP server mode | MVP | G-10 |
-| FR-124 | FA-1 | The system shows each static finding with its severity, rule, file and line | MVP | G-10 |
-| FR-125 | FA-1 | The system queues the LLM security scan only after the static scan passes for the same content SHA | MVP | G-11 |
-| FR-126 | FA-1 | The LLM security scan runs only from the Security check action, never from a run | MVP | G-11 |
-| FR-127 | FA-1 | A run never waits for the LLM security scan | MVP | G-11 |
-| FR-128 | FA-1 | LLM security findings never block a run | MVP | G-11 |
-| FR-129 | FA-1 | The LLM security scan uses the project's default model profile | MVP | G-11 |
-| FR-130 | FA-1 | The LLM scan can reach only the configured model endpoint | MVP | G-11 |
-| FR-131 | FA-1 | Each LLM scan is limited to 10 minutes | MVP | G-11 |
-| FR-132 | FA-1 | An LLM scan that exceeds 10 minutes is recorded as a failed scan | MVP | G-11 |
-| FR-133 | FA-1 | The system records the LLM check as unavailable when no model profile can run it | MVP | G-11 |
-| FR-134 | FA-1 | The Security tab shows the scan score and recommendation | MVP | G-11 |
-| FR-135 | FA-1 | The Security tab presents the static and LLM results as separate checks | MVP | G-11 |
-| FR-136 | FA-1 | The Security tab names the model used for the LLM check | MVP | G-11 |
-| FR-137 | FA-1 | The run page shows the skill, skills commit SHA and input and output branches | MVP | G-12 |
-| FR-138 | FA-1 | The run page shows the agent image digest, step-kit version and verifier version | MVP | G-12 |
-| FR-139 | FA-1 | The run page shows the claimed verdict, final verdict and whether the claim was overturned | MVP | G-12 |
-| FR-140 | FA-1 | The run page shows each L0 and L1 check, and L2 checks when enabled | MVP | G-12 |
-| FR-141 | FA-1 | The run page shows the diff from the input branch to the output branch | MVP | G-12 |
-| FR-142 | FA-1 | The run page shows the Jira changes recorded for the run | Later | G-12 |
-| FR-143 | FA-1 | The run page shows turns, tokens, cost and a trace link when tracing is enabled | MVP | G-12 |
-| FR-144 | FA-1 | The run page provides the agent log and the transcript | MVP | G-12 |
-| FR-145 | FA-1 | The skill history lists every run of a skill with its commit, input branch, verdict and checks | Later | G-12 |
-| FR-146 | FA-1 | The compare view shows two runs side by side and highlights checks that flipped between them | Later | G-12 |
-| FR-147 | FA-1 | Before a run the runner seeds Jira issues from a named fixture file through the Jira REST API | Later | G-13 |
-| FR-148 | FA-1 | The runner replaces fixture aliases with the real Jira issue keys at seed time | Later | G-13 |
-| FR-149 | FA-1 | The runner records the alias-to-key mapping for the run | Later | G-13 |
-| FR-150 | FA-1 | Seeds issues carry a run-specific test label | Later | G-13 |
-| FR-151 | FA-1 | The runner records the Jira state after the run | Later | G-13 |
-| FR-152 | FA-1 | The runner cleans up the Jira issues it seeded at the end of a run | Later | G-13 |
-| FR-153 | FA-1 | A nightly sweep cleans up Jira issues left behind by failed runs | Later | G-13 |
-| FR-154 | FA-1 | The runner refuses to start a run when fixture seeding fails | Later | G-13 |
-| FR-155 | FA-1 | A user creates a saved suite as a named definition of runs with each run's skill, input branch, context and expectations | Later | G-13 |
-| FR-156 | FA-1 | A user edits a saved suite | Later | G-13 |
-| FR-157 | FA-1 | A user deletes a saved suite | Later | G-13 |
-| FR-158 | FA-1 | A user lists saved suites | Later | G-13 |
-| FR-159 | FA-1 | A user runs a saved suite from the UI and the system reports each expectation as pass or fail | Later | G-13 |
-| FR-160 | FA-1 | The runner CLI starts a run with a project, skill, skills ref and input branch | MVP | G-14 |
-| FR-161 | FA-1 | The CLI writes the same run results to the database or a local folder as the web app does | MVP | G-14 |
-| FR-162 | FA-1 | The CLI scan-only mode runs both security stages without an agent run | MVP | G-14 |
-| FR-163 | FA-1 | The CLI static-only option skips the LLM scan stage | MVP | G-14 |
-| FR-164 | FA-1 | The CLI runs a saved suite by name | Later | G-14 |
-| FR-165 | FA-1 | The CLI returns a non-zero exit code when a run fails or a scan blocks | MVP | G-14 |
-| FR-166 | FA-1 | The CLI runs without the web app and uses the same pinned kit and image digests as the web app | MVP | G-14 |
-| FR-167 | FA-1 | A CI job runs a saved suite nightly through the CLI | Later | G-14 |
-| FR-168 | FA-1 | A CI job runs a suite when a pull request carries the behavior-run label | Later | G-14 |
-| FR-169 | FA-1 | The server exposes a versioned REST API covering every app resource | MVP | G-15 |
-| FR-170 | FA-1 | The web UI and the CLI expose the same operations and return the same results | MVP | G-15 |
-| FR-171 | FA-1 | The REST API returns a structured JSON error body for invalid input | MVP | G-15 |
-| FR-172 | FA-1 | The REST API validates the identity token and the skill-builders group claim on every endpoint | MVP | G-15 |
-| FR-173 | FA-1 | The REST API enforces project membership on project and run endpoints | MVP | G-15 |
-| FR-174 | FA-1 | The REST API enforces owner-only integration changes | MVP | G-15 |
-| FR-175 | FA-1 | The REST API never returns a secret value | MVP | G-15 |
-| FR-176 | FA-1 | After sign-in the user lands on a dashboard that lists their builds and projects | MVP | G-16 |
-| FR-177 | FA-1 | Every page shows the signed-in user's display name | MVP | G-16 |
-| FR-178 | FA-1 | Every page offers a sign-out action | MVP | G-16 |
-| FR-179 | FA-1 | A user navigates from the dashboard to a build, project, run or suite page | MVP | G-16 |
-| FR-180 | FA-1 | A dashboard with no builds or projects shows a clear empty state | MVP | G-16 |
-| FR-181 | FA-1 | A failed page request shows an error message without removing navigation | MVP | G-16 |
-| FR-182 | FA-1 | The system persists users, builds, projects, members, integrations, bundles, runs and suites in its own database | MVP | G-17 |
-| FR-183 | FA-1 | The system upgrades its stored data to the current version on start and on upgrade | MVP | G-17 |
-| FR-184 | FA-1 | The system stores run artifacts under a per-run object-storage prefix | MVP | G-17 |
-| FR-185 | FA-1 | The system records the creator and timestamps for each build, project and run | MVP | G-17 |
-| FR-186 | FA-1 | The system pins exactly one platform kit version for all shared platform parts | MVP | G-17 |
-| FR-187 | FA-1 | The system installs only the package versions and image digests listed by the pinned kit | MVP | G-17 |
-| FR-188 | FA-1 | The system references every agent and scanner image by digest | MVP | G-17 |
-| FR-189 | FA-1 | The system refuses to start when an agent or scanner image is referenced by tag | MVP | G-17 |
-| FR-190 | FA-1 | Updating a runtime component requires only changing the pinned kit version in a pull request | MVP | G-17 |
-| FR-191 | FA-1 | The skill builder never writes to the platform catalog or to project skills | MVP | G-17 |
-| FR-192 | FA-1 | The skill builder performs no writes to the platform database | MVP | G-17 |
-| FR-193 | FA-1 | The system exposes a health endpoint | MVP | G-18 |
-| FR-194 | FA-1 | The system exposes a readiness endpoint that reports the app, data store and run environment status | MVP | G-18 |
-| FR-195 | FA-1 | The system starts reproducibly with one command on a single host | MVP | G-18 |
-| FR-196 | FA-1 | The app returns to a serving state after a restart without manual intervention | MVP | G-18 |
-| FR-197 | FA-1 | Runs and scans execute in a runtime isolated from the web application process | MVP | G-18 |
+| FR-043 | FA-1 | The pull request description links the passing run that satisfied the passing-run Ready check | MVP | G-4 |
+| FR-044 | FA-1 | The pull request description links the static security report for the submitted bundle | MVP | G-4 |
+| FR-045 | FA-1 | The pull request description links the LLM security report for the submitted bundle | MVP | G-4 |
+| FR-046 | FA-1 | The pull request is opened under the submitting user's GitHub identity | MVP | G-4 |
+| FR-047 | FA-1 | The system marks a submitted build as merged when its pull request is merged | MVP | G-4 |
+| FR-048 | FA-1 | The build page links the submission pull request after submission | MVP | G-4 |
+| FR-049 | FA-1 | A signed-in user creates a test project by supplying a name | MVP | G-5 |
+| FR-050 | FA-1 | The creator of a test project is recorded as its owner | MVP | G-5 |
+| FR-051 | FA-1 | A project owner adds a skill builder user to the project as a member | MVP | G-5 |
+| FR-052 | FA-1 | A project owner removes a member from the project | MVP | G-5 |
+| FR-053 | FA-1 | A project owner views the project's member list with each member's role | MVP | G-5 |
+| FR-054 | FA-1 | Any project member can start a run in the project | MVP | G-5 |
+| FR-055 | FA-1 | Only the project owner can change the project's integrations | MVP | G-5 |
+| FR-056 | FA-1 | The system denies project access to a user who is not a project member | MVP | G-5 |
+| FR-057 | FA-1 | A user lists the projects they own or belong to | MVP | G-5 |
+| FR-058 | FA-1 | The project owner configures a Jira integration with a site URL, a project key or template project, an MCP server definition and an API token | MVP | G-6 |
+| FR-059 | FA-1 | The project owner configures a GitHub integration with a sandbox repository, a base branch, an MCP server definition and an access token | MVP | G-6 |
+| FR-060 | FA-1 | The system validates that a GitHub integration token can push build branches in the skills repository | MVP | G-6 |
+| FR-061 | FA-1 | The system validates that a GitHub integration token can open pull requests in the skills repository | MVP | G-6 |
+| FR-062 | FA-1 | The project owner configures an AI model profile with a vendor, a base URL, a tier-to-model mapping and an API key | MVP | G-6 |
+| FR-063 | FA-1 | The project owner configures more than one AI model profile in a project | MVP | G-6 |
+| FR-064 | FA-1 | The project owner designates one model profile as the default for LLM security scans | MVP | G-6 |
+| FR-065 | FA-1 | The system stores integration secret values in the external secret manager | MVP | G-6 |
+| FR-066 | FA-1 | The system stores only the secret reference in its database | MVP | G-6 |
+| FR-067 | FA-1 | The system verifies an integration's settings on request | MVP | G-6 |
+| FR-068 | FA-1 | The system records the verification time when an integration verifies successfully | MVP | G-6 |
+| FR-069 | FA-1 | The system shows each integration's verification status and time in the UI | MVP | G-6 |
+| FR-070 | FA-1 | The system warns when a GitHub integration points at a repository that a platform project also uses | MVP | G-6 |
+| FR-071 | FA-1 | The project owner updates an integration's settings | MVP | G-6 |
+| FR-072 | FA-1 | The project owner replaces an integration's stored secret | MVP | G-6 |
+| FR-073 | FA-1 | The project owner deletes an integration | MVP | G-6 |
+| FR-074 | FA-1 | Deleting an integration deletes its stored secret | MVP | G-6 |
+| FR-075 | FA-1 | The system never renders a secret value in the UI | MVP | G-6 |
+| FR-076 | FA-1 | A user starts a run by choosing a project, a skills branch and an input branch | MVP | G-7 |
+| FR-077 | FA-1 | A user optionally supplies run context for a run from a workflow step, reviewer feedback, or an upstream handoff | MVP | G-7 |
+| FR-078 | FA-1 | A user selects a model profile and tier, defaulting to the skill's declared tier | MVP | G-7 |
+| FR-079 | FA-1 | A user sets a turn cap for the run | MVP | G-7 |
+| FR-080 | FA-1 | A user sets a spend cap for the run | MVP | G-7 |
+| FR-081 | FA-1 | At run start the system resolves the skills branch to a commit SHA and records that SHA on the run | MVP | G-7 |
+| FR-082 | FA-1 | The run form shows the resolved skills commit SHA before the user confirms | MVP | G-7 |
+| FR-083 | FA-1 | The system packs the skill at that SHA into a content-addressed bundle exactly as a catalog release would | MVP | G-7 |
+| FR-084 | FA-1 | The system reuses the stored bundle for the same skills commit SHA instead of packing it again | MVP | G-7 |
+| FR-085 | FA-1 | The system uploads the bundle to its own object storage | MVP | G-7 |
+| FR-086 | FA-1 | The system gives the agent run a time-limited bundle URL | MVP | G-7 |
+| FR-087 | FA-1 | The system gives the agent run the bundle SHA-256 checksum | MVP | G-7 |
+| FR-088 | FA-1 | The system creates the run branch from the input branch head | MVP | G-7 |
+| FR-089 | FA-1 | The system records the input branch head SHA as the run baseline | MVP | G-7 |
+| FR-090 | FA-1 | A run never writes to its input branch | MVP | G-7 |
+| FR-091 | FA-1 | The system refuses to start a run when the skill fails verifier lint or selftest | MVP | G-7 |
+| FR-092 | FA-1 | The system refuses to start a run when the catalog's verifier requirement does not accept the pinned verifier version | MVP | G-7 |
+| FR-093 | FA-1 | The system refuses to start a run when the selected input branch does not exist | MVP | G-7 |
+| FR-094 | FA-1 | The system starts the run in the pinned agent image with the platform's agent environment contract | MVP | G-8 |
+| FR-095 | FA-1 | The system supplies integration secrets to the agent run only at start | MVP | G-8 |
+| FR-096 | FA-1 | The system refuses to start a run when the pinned agent image digest and step-kit version are incompatible | MVP | G-8 |
+| FR-097 | FA-1 | The system follows the run's progress while the run executes | MVP | G-8 |
+| FR-098 | FA-1 | The system shows live run status in the UI while the run executes | MVP | G-8 |
+| FR-099 | FA-1 | On run exit the system classifies the run from the exit status and the step result file | MVP | G-8 |
+| FR-100 | FA-1 | The system records the verdict claimed by the agent | MVP | G-8 |
+| FR-101 | FA-1 | The system records each run's skills commit SHA, agent image digest, step-kit version and verifier version | MVP | G-8 |
+| FR-102 | FA-1 | The system stops a run that reaches its turn cap | MVP | G-8 |
+| FR-103 | FA-1 | The system stops a run that reaches its spend cap | MVP | G-8 |
+| FR-104 | FA-1 | A user cancels a running run | MVP | G-8 |
+| FR-105 | FA-1 | A completed run's output branch can be selected as the input branch of a later run | MVP | G-8 |
+| FR-106 | FA-1 | After every run the system runs the pinned verifier outside the agent run against the output branch | MVP | G-9 |
+| FR-107 | FA-1 | Verification uses the run's recorded baseline SHA for must-change and precondition checks | MVP | G-9 |
+| FR-108 | FA-1 | Verification uses the verify.yaml from the run's pinned skills commit | MVP | G-9 |
+| FR-109 | FA-1 | The system records the final verdict after verification | MVP | G-9 |
+| FR-110 | FA-1 | The system records each L0 and L1 check result, and L2 results when L2 checks are enabled | MVP | G-9 |
+| FR-111 | FA-1 | The system shows the claimed verdict and the final verdict | MVP | G-9 |
+| FR-112 | FA-1 | The system marks whether the agent's claimed verdict was overturned by verification | MVP | G-9 |
+| FR-113 | FA-1 | Re-verify grades an existing output branch with a newer verify.yaml | MVP | G-9 |
+| FR-114 | FA-1 | Re-verify calls no model | MVP | G-9 |
+| FR-115 | FA-1 | Re-verify starts no agent | MVP | G-9 |
+| FR-116 | FA-1 | Re-verify records which checks flipped against the parent run | MVP | G-9 |
+| FR-117 | FA-1 | Re-run starts the same run inputs against the skills branch latest commit SHA | MVP | G-9 |
+| FR-118 | FA-1 | Re-run links the new run to the run it was started from | MVP | G-9 |
+| FR-119 | FA-1 | The system runs a static security scan with the pinned scanner image on the exact bundle before every run | MVP | G-10 |
+| FR-120 | FA-1 | The static scan reads the bundle read-only | MVP | G-10 |
+| FR-121 | FA-1 | The static scan writes its report outside the bundle | MVP | G-10 |
+| FR-122 | FA-1 | The static scan runs with no network access | MVP | G-10 |
+| FR-123 | FA-1 | Each static scan is limited to 10 minutes | MVP | G-10 |
+| FR-124 | FA-1 | A static scan that exceeds 10 minutes is recorded as a failed scan | MVP | G-10 |
+| FR-125 | FA-1 | The system refuses a run when the static verdict is DO_NOT_INSTALL | MVP | G-10 |
+| FR-126 | FA-1 | The system refuses a run when the static scan reports a CRITICAL finding | MVP | G-10 |
+| FR-127 | FA-1 | The system refuses a run when the static scan reports incomplete coverage | MVP | G-10 |
+| FR-128 | FA-1 | No override can clear a static scan block | MVP | G-10 |
+| FR-129 | FA-1 | An accepted finding cannot clear a static scan block | MVP | G-10 |
+| FR-130 | FA-1 | The system caches a static scan result by bundle content SHA and reuses it for the same content SHA | MVP | G-10 |
+| FR-131 | FA-1 | The Security check action on a skill triggers a static scan | MVP | G-10 |
+| FR-132 | FA-1 | The system records each static scan with its bundle content SHA and scanner image digest | MVP | G-10 |
+| FR-133 | FA-1 | The system never uses the scanner's MCP server mode | MVP | G-10 |
+| FR-134 | FA-1 | The system shows each static finding with its severity, rule, file and line | MVP | G-10 |
+| FR-135 | FA-1 | The system queues the LLM security scan only after the static scan passes for the same content SHA | MVP | G-11 |
+| FR-136 | FA-1 | The LLM security scan runs only from the Security check action, never from a run | MVP | G-11 |
+| FR-137 | FA-1 | A run never waits for the LLM security scan | MVP | G-11 |
+| FR-138 | FA-1 | LLM security findings never block a run | MVP | G-11 |
+| FR-139 | FA-1 | The LLM security scan uses the project's default model profile | MVP | G-11 |
+| FR-140 | FA-1 | The LLM scan can reach only the configured model endpoint | MVP | G-11 |
+| FR-141 | FA-1 | Each LLM scan is limited to 10 minutes | MVP | G-11 |
+| FR-142 | FA-1 | An LLM scan that exceeds 10 minutes is recorded as a failed scan | MVP | G-11 |
+| FR-143 | FA-1 | The system records the LLM check as unavailable when no model profile can run it | MVP | G-11 |
+| FR-144 | FA-1 | The Security tab shows the scan score and recommendation | MVP | G-11 |
+| FR-145 | FA-1 | The Security tab presents the static and LLM results as separate checks | MVP | G-11 |
+| FR-146 | FA-1 | The Security tab names the model used for the LLM check | MVP | G-11 |
+| FR-147 | FA-1 | The run page shows the skill, skills commit SHA and input and output branches | MVP | G-12 |
+| FR-148 | FA-1 | The run page shows the agent image digest, step-kit version and verifier version | MVP | G-12 |
+| FR-149 | FA-1 | The run page shows the claimed verdict, final verdict and whether the claim was overturned | MVP | G-12 |
+| FR-150 | FA-1 | The run page shows each L0 and L1 check, and L2 checks when enabled | MVP | G-12 |
+| FR-151 | FA-1 | The run page shows the diff from the input branch to the output branch | MVP | G-12 |
+| FR-152 | FA-1 | The run page shows the Jira changes recorded for the run | Later | G-12 |
+| FR-153 | FA-1 | The run page shows turns, tokens, cost and a trace link when tracing is enabled | MVP | G-12 |
+| FR-154 | FA-1 | The run page provides the agent log | MVP | G-12 |
+| FR-155 | FA-1 | The run page provides the transcript | MVP | G-12 |
+| FR-156 | FA-1 | The skill history lists every run of a skill with its commit, input branch, verdict and checks | Later | G-12 |
+| FR-157 | FA-1 | The compare view shows two runs side by side with the checks that flipped between them highlighted | Later | G-12 |
+| FR-158 | FA-1 | Before a run the runner seeds Jira issues from a named fixture file through the Jira REST API | Later | G-13 |
+| FR-159 | FA-1 | The runner replaces fixture aliases with the real Jira issue keys at seed time | Later | G-13 |
+| FR-160 | FA-1 | The runner records the alias-to-key mapping for the run | Later | G-13 |
+| FR-161 | FA-1 | Seeds issues carry a run-specific test label | Later | G-13 |
+| FR-162 | FA-1 | The runner records the Jira state after the run | Later | G-13 |
+| FR-163 | FA-1 | The runner cleans up the Jira issues it seeded at the end of a run | Later | G-13 |
+| FR-164 | FA-1 | A nightly sweep cleans up Jira issues left behind by failed runs | Later | G-13 |
+| FR-165 | FA-1 | The runner refuses to start a run when fixture seeding fails | Later | G-13 |
+| FR-166 | FA-1 | A user creates a saved suite as a named definition of runs with each run's skill, input branch, context and expectations | Later | G-13 |
+| FR-167 | FA-1 | A user edits a saved suite | Later | G-13 |
+| FR-168 | FA-1 | A user deletes a saved suite | Later | G-13 |
+| FR-169 | FA-1 | A user lists saved suites | Later | G-13 |
+| FR-170 | FA-1 | A user runs a saved suite from the UI | Later | G-13 |
+| FR-171 | FA-1 | The system reports each expectation in a saved suite run as pass or fail | Later | G-13 |
+| FR-172 | FA-1 | The runner CLI starts a run with a project, skill, skills ref and input branch | MVP | G-14 |
+| FR-173 | FA-1 | The CLI writes the same run results to the database or a local folder as the web app does | MVP | G-14 |
+| FR-174 | FA-1 | The CLI scan-only mode runs both security stages without an agent run | MVP | G-14 |
+| FR-175 | FA-1 | The CLI static-only option skips the LLM scan stage | MVP | G-14 |
+| FR-176 | FA-1 | The CLI runs a saved suite by name | Later | G-14 |
+| FR-177 | FA-1 | The CLI returns a non-zero exit code when a run fails | MVP | G-14 |
+| FR-178 | FA-1 | The CLI returns a non-zero exit code when a scan blocks a run | MVP | G-14 |
+| FR-179 | FA-1 | The CLI runs without the web application process | MVP | G-14 |
+| FR-180 | FA-1 | The CLI uses the same pinned kit version as the web app | MVP | G-14 |
+| FR-181 | FA-1 | The CLI uses the same agent and scanner image digests as the web app | MVP | G-14 |
+| FR-182 | FA-1 | A CI job runs a saved suite nightly through the CLI | Later | G-14 |
+| FR-183 | FA-1 | A CI job runs a suite when a pull request carries the behavior-run label | Later | G-14 |
+| FR-184 | FA-1 | The server exposes a versioned REST API covering every app resource | MVP | G-15 |
+| FR-185 | FA-1 | The web UI and the CLI expose the same set of operations | MVP | G-15 |
+| FR-186 | FA-1 | The web UI and the CLI return the same results for the same operation | MVP | G-15 |
+| FR-187 | FA-1 | The REST API returns a structured JSON error body for invalid input | MVP | G-15 |
+| FR-188 | FA-1 | The REST API validates the identity token and the skill-builders group claim on every endpoint | MVP | G-15 |
+| FR-189 | FA-1 | The REST API enforces project membership on project and run endpoints | MVP | G-15 |
+| FR-190 | FA-1 | The REST API enforces owner-only integration changes | MVP | G-15 |
+| FR-191 | FA-1 | The REST API never returns a secret value | MVP | G-15 |
+| FR-192 | FA-1 | After sign-in the user lands on a dashboard that lists their builds and projects | MVP | G-16 |
+| FR-193 | FA-1 | Every page shows the signed-in user's display name | MVP | G-16 |
+| FR-194 | FA-1 | Every page offers a sign-out action | MVP | G-16 |
+| FR-195 | FA-1 | A user navigates from the dashboard to a build, project, run or suite page | MVP | G-16 |
+| FR-196 | FA-1 | A dashboard with no builds or projects shows a clear empty state | MVP | G-16 |
+| FR-197 | FA-1 | A failed page request shows an error message without removing navigation | MVP | G-16 |
+| FR-198 | FA-1 | The system persists users, builds, projects, members, integrations, bundles, runs and suites in its own database | MVP | G-17 |
+| FR-199 | FA-1 | The system upgrades its stored data to the current version on start and on upgrade | MVP | G-17 |
+| FR-200 | FA-1 | The system stores run artifacts under a per-run object-storage prefix | MVP | G-17 |
+| FR-201 | FA-1 | The system records the creator and timestamps for each build, project and run | MVP | G-17 |
+| FR-202 | FA-1 | The system pins exactly one platform kit version for all shared platform parts | MVP | G-17 |
+| FR-203 | FA-1 | The system installs only the package versions listed by the pinned kit | MVP | G-17 |
+| FR-204 | FA-1 | The system uses only the image digests listed by the pinned kit | MVP | G-17 |
+| FR-205 | FA-1 | The system references every agent and scanner image by digest | MVP | G-17 |
+| FR-206 | FA-1 | The system refuses to start when an agent or scanner image is referenced by tag | MVP | G-17 |
+| FR-207 | FA-1 | Updating a runtime component requires only changing the pinned kit version in a pull request | MVP | G-17 |
+| FR-208 | FA-1 | The skill builder never writes to the platform catalog | MVP | G-17 |
+| FR-209 | FA-1 | The skill builder never writes to project-owned skills | MVP | G-17 |
+| FR-210 | FA-1 | The skill builder performs no writes to the platform database | MVP | G-17 |
+| FR-211 | FA-1 | The system exposes a health endpoint | MVP | G-18 |
+| FR-212 | FA-1 | The system exposes a readiness endpoint that reports the app, data store and run environment status | MVP | G-18 |
+| FR-213 | FA-1 | The system starts reproducibly with one command on a single host | MVP | G-18 |
+| FR-214 | FA-1 | The app returns to a serving state after a restart without manual intervention | MVP | G-18 |
+| FR-215 | FA-1 | Runs and scans execute in a runtime isolated from the web application process | MVP | G-18 |
 
 ## 7. Non-Functional Requirements
 
@@ -305,29 +327,35 @@ epic boundaries; every functional requirement in section 6 names its capability 
 | NFR-005 | Security | Secret values never appear in database rows, logs, run results, error messages or rendered pages | MVP |
 | NFR-006 | Security | The static scan runs with no network access | MVP |
 | NFR-007 | Security | The LLM scan can reach only the configured model endpoint | MVP |
-| NFR-008 | Security | The application's cloud identity can read and write only skill-builder secrets and its own object-storage bucket | MVP |
-| NFR-009 | Security | Agent and scanner images are always referenced by digest, never by tag | MVP |
-| NFR-010 | Security | Removing a user from the skill-builders group takes effect within one hour, when the current token expires | MVP |
-| NFR-011 | Privacy | The skill builder stores only its own data and performs no writes to the platform or its catalog | MVP |
-| NFR-012 | Privacy | Every Jira, GitHub and model credential used by a test project is test-only, and production credentials are out of scope | MVP |
-| NFR-013 | Reliability | Every started run reaches a terminal state of pass, fail, error or cancelled within its configured limits | MVP |
-| NFR-014 | Reliability | A scan that exceeds 10 minutes is stopped and recorded as a failed scan | MVP |
-| NFR-015 | Reliability | The app returns to a serving state after a restart without manual intervention | MVP |
-| NFR-016 | Operability | The app and database deploy reproducibly with one command on a single host | MVP |
-| NFR-017 | Auditability | Every run records its skills commit SHA, agent image digest, step-kit version and verifier version | MVP |
-| NFR-018 | Observability | Every run records its turns, tokens and cost | MVP |
-| NFR-019 | Observability | When tracing is enabled, every run records a trace tagged for the skill-test environment | MVP |
-| NFR-020 | Accessibility | The web UI meets WCAG 2.1 AA | MVP |
-| NFR-021 | Compliance | Only test Jira sites, sandbox repositories and test model keys are used, and no production data is read or written | MVP |
-| NFR-022 | Scalability | The system supports at least five concurrent runs on one host | MVP |
+| NFR-008 | Security | The application's cloud identity can access only skill-builder secrets | MVP |
+| NFR-009 | Security | The application's cloud identity can access only its own object-storage bucket | MVP |
+| NFR-010 | Security | Agent and scanner images are always referenced by digest, never by tag | MVP |
+| NFR-011 | Security | Removing a user from the skill-builders group takes effect within one hour, when the current token expires | MVP |
+| NFR-012 | Privacy | The skill builder stores only its own data | MVP |
+| NFR-013 | Privacy | The skill builder performs no writes to any platform system | MVP |
+| NFR-014 | Privacy | Every Jira, GitHub and model credential used by a test project is test-only | MVP |
+| NFR-015 | Privacy | The system never uses production Jira, GitHub or model credentials | MVP |
+| NFR-016 | Reliability | Every started run reaches a terminal state of pass, fail, error or cancelled within its configured limits | MVP |
+| NFR-017 | Reliability | A scan that exceeds its 10-minute limit is stopped | MVP |
+| NFR-018 | Reliability | The app returns to a serving state after a restart without manual intervention | MVP |
+| NFR-019 | Operability | The app and database deploy reproducibly with one command on a single host | MVP |
+| NFR-020 | Auditability | Every run records its skills commit SHA, agent image digest, step-kit version and verifier version | MVP |
+| NFR-021 | Observability | Every run records its turns, tokens and cost | MVP |
+| NFR-022 | Observability | When tracing is enabled, every run records a trace tagged for the skill-test environment | MVP |
+| NFR-023 | Accessibility | The web UI meets WCAG 2.1 AA | MVP |
+| NFR-024 | Compliance | Only test Jira sites, sandbox repositories and test model keys are used | MVP |
+| NFR-025 | Compliance | The system never accesses production data | MVP |
+| NFR-026 | Scalability | The system supports at least five concurrent runs on one host | MVP |
 
 ## 8. Constraints & Assumptions
 
 **Authoritative input and missing story.** The run's work item is the story key `SkillBuilder4`.
-The Atlassian MCP server configured for this repository was queried for that key and for its
-summary, description and acceptance criteria; the key does not match Jira's issue-key format, and
-searches for `SkillBuilder4` in the issue summary, description and full text returned no issue.
-The `BSB` (`bheembhai-skill-builder`) project exists but contains no issues. No issue-level
+The Atlassian site configured for this repository (`https://saraavrnd.atlassian.net`) was queried
+with the credentials in `.mcp.json` for that key and for its summary, description and acceptance
+criteria. The issue endpoint returned 404 ("Issue does not exist or you do not have permission to
+see it"); JQL text searches for `SkillBuilder4` and `SkillBuilder`, including scoped to the `BSB`
+(`bheembhai-skill-builder`) project, returned no issues; the site's projects are `BEEM`, `BSB`,
+`EX`, `GRAP` and `LNPRTL`, and none of them holds an issue for this work item. No issue-level
 summary, description or acceptance criteria were therefore available. This PRD treats
 `docs/adr/SK-001-skill-builder.md` ("Skill builder — create, test, scan and ready platform
 skills", status Proposed, 2026-11-02, decider Saraav) as the authoritative product description and
@@ -398,8 +426,9 @@ app feature, and is not enumerated as a functional requirement here.
 
 ## 9. Open Questions
 
-- Where is the Jira story `SkillBuilder4`? The configured Atlassian site has no such issue.
-  Confirm the story and its acceptance criteria and reconcile them with this PRD.
+- Where is the Jira story `SkillBuilder4`? The configured Atlassian site returned 404 for that key
+  and full-text searches found no matching issue. Confirm the story and its acceptance criteria
+  and reconcile them with this PRD.
 - Which sandbox GitHub repository, Jira test project and input branches form the pilot?
 - What are the default turn and spend caps for a run, and who may raise them?
 - How long are run records, bundles, logs and transcripts retained, and what deletes them?
