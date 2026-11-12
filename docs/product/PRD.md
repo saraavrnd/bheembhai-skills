@@ -79,16 +79,16 @@ the skill builder.
 | FR-002 | FA-1 | Creating a build writes the default skill structure: SKILL.md, a verify.yaml stub, a references README, and empty templates and examples directories | MVP |
 | FR-003 | FA-1 | A newly created skill passes tier 1 validation with a no-checks-yet warning and no errors | MVP |
 | FR-004 | FA-1 | A user can clone an existing catalog skill into a new build under a new name | MVP |
-| FR-005 | FA-1 | Clone copies the complete skill folder and rewrites the frontmatter name to the new name | MVP |
+| FR-005 | FA-1 | Clone copies the complete skill folder into the new build | MVP |
 | FR-006 | FA-1 | Clone leaves the source skill's files unchanged | MVP |
-| FR-007 | FA-1 | Create and Clone reject a name that already exists on the main branch | MVP |
-| FR-008 | FA-1 | Create and Clone reject a name used by another open build | MVP |
-| FR-009 | FA-1 | Create and Clone reject a name that does not match the sdlc-area-action pattern | MVP |
+| FR-007 | FA-1 | The system rejects a new build name that already exists on the main branch | MVP |
+| FR-008 | FA-1 | The system rejects a new build name that another open build already uses | MVP |
+| FR-009 | FA-1 | The system rejects a new build name that does not match the sdlc-area-action pattern | MVP |
 | FR-010 | FA-1 | Each build is placed on its own build branch named for the skill and cut from main | MVP |
 | FR-011 | FA-1 | A user can open an existing catalog skill as an edit build on a new branch | MVP |
 | FR-012 | FA-1 | A user can abandon an open build, which moves it to the abandoned state | MVP |
 | FR-013 | FA-1 | A user can view a list of builds showing each build's skill, state, and owner | MVP |
-| FR-014 | FA-2 | Each save to a build records a commit and stores that commit's SHA on the build | MVP |
+| FR-014 | FA-2 | Each save to a build records a commit | MVP |
 | FR-015 | FA-2 | The build page shows the four Ready checks at the build's head commit: manifest valid, passing run, static security, and LLM security | MVP |
 | FR-016 | FA-2 | A build is Ready only when all four Ready checks hold at the same head commit | MVP |
 | FR-017 | FA-2 | A new commit clears Ready until all four checks pass again at the new head commit | MVP |
@@ -96,32 +96,32 @@ the skill builder.
 | FR-019 | FA-2 | Submit to catalog opens a pull request from the build branch to main | MVP |
 | FR-020 | FA-2 | Submitting a build moves it to the submitted state | MVP |
 | FR-021 | FA-2 | The system marks a build merged when its pull request is merged | MVP |
-| FR-022 | FA-2 | The pull request description lists the Ready checks at the submitted commit and links the supporting run and scan reports | MVP |
+| FR-022 | FA-2 | The pull request description lists the Ready checks at the submitted commit | MVP |
 | FR-023 | FA-2 | The pull request is opened under the submitting user's GitHub identity | MVP |
 | FR-024 | FA-3 | A user signs in with an existing platform account | MVP |
 | FR-025 | FA-3 | The system refuses sign-in for a user who is not a member of the skill-builders group | MVP |
 | FR-026 | FA-3 | The system checks the skill-builders group claim on every request rather than only at sign-in | MVP |
 | FR-027 | FA-3 | The system records the signed-in user against the identity-provider subject on first sign-in | MVP |
-| FR-028 | FA-3 | The system provides no user-administration screen, and group membership is managed outside the skill builder | MVP |
+| FR-028 | FA-3 | The system provides no user-administration screen | MVP |
 | FR-029 | FA-4 | A signed-in user can create a test project by supplying a name | MVP |
 | FR-030 | FA-4 | The creator of a test project is recorded as its owner | MVP |
-| FR-031 | FA-4 | A project owner can add and remove project members | MVP |
+| FR-031 | FA-4 | A project owner can add a project member | MVP |
 | FR-032 | FA-4 | Every project member can start test runs in that project | MVP |
-| FR-033 | FA-4 | Only the project owner can create or change the project's integrations | MVP |
+| FR-033 | FA-4 | Only the project owner can create a project integration | MVP |
 | FR-034 | FA-4 | A project owner can configure a Jira integration with a site URL, project key, MCP server definition, and API token | MVP |
 | FR-035 | FA-4 | A project owner can configure a GitHub integration with a sandbox repository, base branch, MCP server definition, and access token | MVP |
 | FR-036 | FA-4 | The system validates that the GitHub integration token can push build branches and open pull requests in the skills repository | MVP |
 | FR-037 | FA-4 | A project owner can define one or more AI model profiles, each with a vendor, base URL, tier-to-model mapping, and API key | MVP |
-| FR-038 | FA-4 | The system stores integration secrets in an external secrets store and keeps only a secret reference in its database | MVP |
-| FR-039 | FA-4 | The system checks each integration's connection when it is configured and records the last successful check time | MVP |
+| FR-038 | FA-4 | The system can retrieve an integration's credential when launching a run | MVP |
+| FR-039 | FA-4 | The system checks an integration's connection when it is configured | MVP |
 | FR-040 | FA-4 | The system warns when a GitHub integration points at a repository that a platform project also uses | MVP |
-| FR-041 | FA-4 | Integration secret values are injected into a run at launch only and never appear in the database, logs, results, or run pages | MVP |
+| FR-041 | FA-4 | Integration secret values are made available to a run only at launch | MVP |
 | FR-042 | FA-4 | A project owner can select the project's default AI model profile for LLM security checks | MVP |
 | FR-043 | FA-5 | A user can start a run by selecting a skills branch and one skill from that branch | MVP |
 | FR-044 | FA-5 | The system resolves the selected skills branch to a commit SHA at run start and records that SHA on the run | MVP |
 | FR-045 | FA-5 | The system packages the selected skill at that commit into a content-addressed bundle produced by the same packer a catalog release uses | MVP |
 | FR-046 | FA-5 | The system reuses an existing bundle when the same skill and commit have been packed before | MVP |
-| FR-047 | FA-5 | The system delivers the exact bundle to the run with a checksum that the run verifies | MVP |
+| FR-047 | FA-5 | The system delivers the exact bundle to the run | MVP |
 | FR-048 | FA-5 | A user can select an input branch in the project's sandbox repository as the run's starting state | MVP |
 | FR-049 | FA-5 | A user can optionally attach run context from a workflow step, reviewer feedback, or an upstream handoff | MVP |
 | FR-050 | FA-5 | A user can select the model profile and tier for a run, defaulting to the skill's declared tier | MVP |
@@ -129,7 +129,7 @@ the skill builder.
 | FR-052 | FA-5 | A run stops when it reaches its turn cap or its spend cap | MVP |
 | FR-053 | FA-5 | The system creates a new run branch named for the run from the input branch head | MVP |
 | FR-054 | FA-5 | The system records the input branch head commit as the run's baseline | MVP |
-| FR-055 | FA-5 | A run never writes to its input branch, and all run commits go to the run branch | MVP |
+| FR-055 | FA-5 | A run never writes to its input branch | MVP |
 | FR-056 | FA-5 | The system starts a run in the same pinned agent runtime that the platform uses for a workflow step | MVP |
 | FR-057 | FA-5 | The system displays run progress and the agent log while the run is in progress | MVP |
 | FR-058 | FA-5 | On completion, the system classifies the run outcome exactly as the platform engine classifies a step result | MVP |
@@ -141,7 +141,7 @@ the skill builder.
 | FR-064 | FA-6 | The run page shows the verdict the agent claimed, the final verdict after verification, and whether the verdict was overturned | MVP |
 | FR-065 | FA-6 | A user can re-run a run with the same inputs against the latest commit of the skills branch | MVP |
 | FR-066 | FA-6 | A user can re-verify an existing output branch after only verify.yaml changes, with no agent run and no model tokens | MVP |
-| FR-067 | FA-6 | Re-verification grades with the new commit's verify.yaml and reports which checks flipped | MVP |
+| FR-067 | FA-6 | Re-verification grades with the verify.yaml from the newer skills commit | MVP |
 | FR-068 | FA-6 | The system refuses to start a run when the skill's manifest fails verifier lint or self-test | MVP |
 | FR-069 | FA-6 | The system refuses to start a run when catalog.yaml's verifier requirement does not accept the pinned verifier version | MVP |
 | FR-070 | FA-7 | The run page shows the run's skill, skills commit, input and output branches, agent image digest, stepkit version, and verifier version | MVP |
@@ -150,7 +150,7 @@ the skill builder.
 | FR-073 | FA-7 | The run page shows the Jira changes recorded for the run | Later |
 | FR-074 | FA-7 | The run page shows turns, tokens, cost, and a trace link when tracing is enabled | MVP |
 | FR-075 | FA-7 | Only members of a project can view that project's runs | MVP |
-| FR-076 | FA-7 | The system stores run records in its database and run artifacts in its own object-storage bucket | MVP |
+| FR-076 | FA-7 | The system retains each run's record and artifacts after the run completes | MVP |
 | FR-077 | FA-7 | A user can view a skill's run history with one row per run showing commit, input branch, verdict, and checks | Later |
 | FR-078 | FA-7 | A user can compare two runs side by side and see which checks changed | Later |
 | FR-079 | FA-8 | The system runs the static security scan on the exact bundle a run will use before the run starts | MVP |
@@ -160,17 +160,17 @@ the skill builder.
 | FR-083 | FA-8 | The system refuses to start a run when the static scan reports a CRITICAL finding | MVP |
 | FR-084 | FA-8 | The system refuses to start a run when the static scan reports incomplete coverage | MVP |
 | FR-085 | FA-8 | The system shows each static finding with its severity, rule, file, and line | MVP |
-| FR-086 | FA-8 | The system offers no override for a blocked static scan, and the only remedy is to fix the skill and save | MVP |
+| FR-086 | FA-8 | The system offers no override for a blocked static scan | MVP |
 | FR-087 | FA-9 | The system queues the LLM security scan only after the static scan passes for the same content hash | MVP |
 | FR-088 | FA-9 | The LLM security scan runs only from the Security check action, never from a run | MVP |
 | FR-089 | FA-9 | A run never waits for the LLM security scan | MVP |
 | FR-090 | FA-9 | LLM security findings never block a run | MVP |
 | FR-091 | FA-9 | The system displays the LLM security check as completed or as unavailable | MVP |
-| FR-092 | FA-9 | Each security scan runs in a short-lived scanner container that mounts the skill bundle read-only | MVP |
-| FR-093 | FA-9 | The static security scan runs in a container with no network access | MVP |
-| FR-094 | FA-9 | The LLM security scan container has network access only to the configured model endpoint | MVP |
+| FR-092 | FA-9 | A security scan cannot modify the skill bundle it scans | MVP |
+| FR-093 | FA-9 | The static security scan cannot reach the network | MVP |
+| FR-094 | FA-9 | The LLM security scan can reach only the configured model endpoint | MVP |
 | FR-095 | FA-9 | A security scan that exceeds its 10-minute limit is recorded as a failed scan | MVP |
-| FR-096 | FA-9 | The system never runs the scanner in its MCP server mode | MVP |
+| FR-096 | FA-9 | Users cannot start an interactive security-scanner session | MVP |
 | FR-097 | FA-9 | The security tab shows the scan score, recommendation, each finding, and the model used for the LLM check | MVP |
 | FR-098 | FA-9 | The security tab presents the static and LLM results as separate checks | MVP |
 | FR-099 | FA-10 | Before a run, the system can seed Jira issues from a named fixture | Later |
@@ -184,7 +184,7 @@ the skill builder.
 | FR-107 | FA-11 | The CLI provides a scan command that runs both security stages without a test run | MVP |
 | FR-108 | FA-11 | The CLI scan command supports a static-only mode that skips the LLM stage | MVP |
 | FR-109 | FA-11 | A user can save a named suite of runs with a skill, input branch, context, and expectations | Later |
-| FR-110 | FA-11 | A user can run a saved suite from the web app or the CLI | Later |
+| FR-110 | FA-11 | A user can run a saved suite from the web app | Later |
 | FR-111 | FA-11 | A user can schedule a saved suite to run nightly | Later |
 | FR-112 | FA-11 | A pull request labeled for behavior runs triggers a run of the affected skill | Later |
 | FR-113 | FA-12 | The system takes its verifier, stepkit, agent image, and scanner image versions from one pinned platform kit | MVP |
@@ -192,23 +192,37 @@ the skill builder.
 | FR-115 | FA-12 | The system refuses to start a run when the pinned stepkit and agent image declare each other incompatible | MVP |
 | FR-116 | FA-12 | Updating a runtime component requires only changing the pinned kit version in a pull request | MVP |
 | FR-117 | FA-12 | The skill builder never writes to the platform catalog or to project skills | MVP |
-| FR-118 | FA-12 | The skill builder uses its own database and never reads or writes the platform database | MVP |
+| FR-118 | FA-12 | The skill builder never reads or writes the platform database | MVP |
+| FR-119 | FA-1 | Clone rewrites the copied skill's frontmatter name to the new name | MVP |
+| FR-120 | FA-5 | All of a run's commits are made on the run branch | MVP |
+| FR-121 | FA-6 | Re-verification reports which checks changed verdict | MVP |
+| FR-122 | FA-8 | After a blocked static scan, saving a fixed skill is the only action that can clear the block | MVP |
+| FR-123 | FA-2 | The pull request description links the run and scan reports that support the Ready checks | MVP |
+| FR-124 | FA-4 | A project owner can remove a project member | MVP |
+| FR-125 | FA-11 | A user can run a saved suite from the CLI | Later |
+| FR-126 | FA-2 | Each build stores the SHA of its current head commit | MVP |
+| FR-127 | FA-4 | The system records the last successful connection check time for each integration | MVP |
+| FR-128 | FA-5 | The run verifies the checksum of the delivered bundle | MVP |
+| FR-129 | FA-4 | Only the project owner can change a project integration | MVP |
 
 ## 7. Non-Functional Requirements
 
 | ID | Category | Requirement | Release |
 |------|----------|-------------|---------|
-| NFR-001 | Security | Integration credentials are stored only in an external secrets store, and the database, logs, results, and run pages never contain a secret value | MVP |
-| NFR-002 | Security | The skill builder's cloud role can read and write only secrets under its own secret path | MVP |
+| NFR-001 | Security | Integration credentials are never disclosed in skill builder records | MVP |
+| NFR-002 | Security | The skill builder can read only the integration secrets that belong to its own test projects | MVP |
 | NFR-003 | Security | A user whose skill-builders group membership is removed loses access within one hour, when the current token expires | MVP |
-| NFR-004 | Security | Outbound access is limited to the sandbox GitHub repository, the Jira test project, the configured model endpoints, and the skill builder's own AWS services | MVP |
-| NFR-005 | Privacy | Test projects must use test-only Jira, GitHub, and model credentials, and the system warns when a GitHub repository is shared with a platform project | MVP |
-| NFR-006 | Performance | Jira seeding and cleanup together complete within 60 seconds per run | Later |
+| NFR-004 | Security | Outbound network access is limited to the sandbox GitHub repository, the Jira test project, the configured model endpoints, and the skill builder's own storage services | MVP |
+| NFR-005 | Privacy | Every Jira, GitHub, and model credential used by a test project is test-only | MVP |
+| NFR-006 | Performance | Jira seeding completes within 30 seconds per run | Later |
 | NFR-007 | Reliability | A run aborted by a container, scanner, or infrastructure failure is recorded with a failed state rather than a pass verdict | MVP |
-| NFR-008 | Operational | The skill builder deploys as a web app plus database on a single host | MVP |
-| NFR-009 | Operational | The skill builder host provides a container runtime for run and scan containers | MVP |
-| NFR-010 | Observability | Every run records turns, tokens, and cost, and, when tracing is enabled, a trace tagged for the skill-test environment | MVP |
+| NFR-008 | Operational | The skill builder is reachable as a web application | MVP |
+| NFR-009 | Operational | Runs and scans execute in a runtime isolated from the web application process | MVP |
+| NFR-010 | Observability | Every run records its turns, tokens, and cost | MVP |
 | NFR-011 | Accessibility | The web interface meets WCAG 2.1 AA | MVP |
+| NFR-012 | Operational | Skill builder data survives a restart of the application | MVP |
+| NFR-013 | Observability | When tracing is enabled, every run records a trace tagged for the skill-test environment | MVP |
+| NFR-014 | Performance | Jira cleanup completes within 30 seconds per run | Later |
 
 ## 8. Constraints & Assumptions
 
@@ -233,6 +247,13 @@ the skill builder.
   skill-builders group, the image registry repositories, the secrets path, the object-storage
   bucket, the cloud role, the sandbox GitHub repository, the Jira test project, and the sandbox
   input branches are provisioned outside the skill builder before first use.
+- **Other external dependencies.** Each user's GitHub identity and token are held by the user or
+  the GitHub integration, not created by the skill builder. Jira fixture files, run context from a
+  workflow step, reviewer feedback, upstream handoffs, and the tracing service are authored or
+  provided outside the skill builder. None of these is created or administered by the skill
+  builder.
+- **Group administration.** Membership in the `skill-builders` group is managed in Cognito by a
+  platform administrator; the skill builder has no user-administration screen of its own.
 - **Credential policy.** Every Jira, GitHub, and model credential used by a test project is
   test-only; the skill builder never receives production credentials.
 - **Added affordances.** The build list, the abandon action, member-only run visibility, and the
@@ -240,9 +261,15 @@ the skill builder.
   and the catalog pull-request flow in SK-001, not new product scope.
 - **Accessibility target.** WCAG 2.1 AA is an added assumption; SK-001 does not state an
   accessibility target.
-- **Web and storage stack.** The web app is server-rendered using the platform theme, and the
-  database is PostgreSQL or SQLite for a single host, both from SK-001. These are implementation
-  constraints and are not decomposed into requirements.
+- **Web and storage stack.** The web app is server-rendered using the platform theme; the
+  database is PostgreSQL or SQLite for a single host; integration secrets live in the external
+  secrets store; run artifacts live in the skill builder's object-storage bucket; runs and scans
+  use the pinned scanner and agent containers. These are implementation choices from SK-001 and
+  are not decomposed into numbered requirements, which state only their observable behavior.
+- **Threshold sources.** SK-001 states the one-hour token-expiry window, the 10-minute scan limit,
+  the roughly one-minute Jira seeding and cleanup budget, the trace tagging, and the use of the
+  user's GitHub identity. The 20-skill paired test set and the exact outbound allowlist are
+  assumptions for this release, not values stated in SK-001.
 
 ## 9. Open Questions
 
