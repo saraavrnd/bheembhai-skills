@@ -5,4 +5,4 @@
 #
 # Updating the pin: cut/pick a tag in saraavrnd/bheembhai-mvp, set it here, and
 # keep `catalog.yaml`'s requires_verify satisfied.
-bheembhai-verify==2.0.0
+bheembhai-verify==2.1.2
