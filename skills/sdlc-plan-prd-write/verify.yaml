@@ -8,17 +8,17 @@ facts:
     kind: regex
     from: prd
     section: "6. Functional Requirements"
-    pattern: '^\|\s*(FR-\d{3})\s*\|'
+    pattern: '(?m)^\|\s*(FR-\d{3})\s*\|'
   nfr_ids:
     kind: regex
     from: prd
     section: "7. Non-Functional Requirements"
-    pattern: '^\|\s*(NFR-\d{3})\s*\|'
+    pattern: '(?m)^\|\s*(NFR-\d{3})\s*\|'
   fr_rows_tagged:
     kind: regex
     from: prd
     section: "6. Functional Requirements"
-    pattern: '^\|\s*(FR-\d{3})\s*\|\s*FA-\d+\s*\|[^|]+\|\s*(?:MVP|Later)\s*\|'
+    pattern: '(?m)^\|\s*(FR-\d{3})\s*\|\s*FA-\d+\s*\|[^|]+\|\s*(?:MVP|Later)\s*\|'
   fa_codes:
     kind: md_table_column
     from: prd
@@ -28,7 +28,7 @@ facts:
     kind: regex
     from: prd
     section: "6. Functional Requirements"
-    pattern: '^\|\s*FR-\d{3}\s*\|\s*(FA-\d+)\s*\|'
+    pattern: '(?m)^\|\s*FR-\d{3}\s*\|\s*(FA-\d+)\s*\|'
 
 artifacts:
   - id: prd

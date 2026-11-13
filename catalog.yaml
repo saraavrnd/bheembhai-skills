@@ -1,5 +1,5 @@
 # BheemBhai skills catalog (ADR-032). A release tag vX.Y.Z must match `version`.
-version: 0.7.0
+version: 0.7.1
 # The instance must satisfy both, or the Catalog page disables this release.
 # 0.2.0 carries ADR-031's work-item bindings (the bug-fix skills plus the
 # `work_items:` / `{layout.bug_*}` checks) and ADR-030's verify.yaml v2

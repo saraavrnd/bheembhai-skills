@@ -7,7 +7,7 @@ facts:
   prd_req_ids:
     kind: regex
     from: "{layout.prd}"
-    pattern: '^\|\s*(N?FR-\d{3})\s*\|'
+    pattern: '(?m)^\|\s*(N?FR-\d{3})\s*\|'
   map_req_ids:
     kind: jsonpath
     from: epic_map
@@ -29,7 +29,7 @@ preconditions:
     reason_code: missing_input
   - id: prd_has_ids
     run: builtin:regex_count
-    args: {path: "{layout.prd}", pattern: '^\|\s*N?FR-\d{3}\s*\|', min: 1}
+    args: {path: "{layout.prd}", pattern: '(?m)^\|\s*N?FR-\d{3}\s*\|', min: 1}
     on_fail: failed_execution
     reason_code: missing_input
 

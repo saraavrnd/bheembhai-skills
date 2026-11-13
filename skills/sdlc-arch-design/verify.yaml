@@ -20,7 +20,7 @@ facts:
   prd_req_ids:
     kind: regex
     from: "{layout.prd}"
-    pattern: '^\|\s*(N?FR-\d{3})\s*\|'
+    pattern: '(?m)^\|\s*(N?FR-\d{3})\s*\|'
   design_req_refs:
     kind: regex
     from: data_model

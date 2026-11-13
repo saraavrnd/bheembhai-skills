@@ -19,7 +19,7 @@ facts:
   story_titles:
     kind: regex
     from: stories_md
-    pattern: '^#+\s*STORY:\s*(.+)$'
+    pattern: '(?m)^#+\s*STORY:\s*(.+)$'
   scenarios:
     kind: gherkin_scenarios
     from: stories_md
