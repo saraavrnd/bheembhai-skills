@@ -108,7 +108,7 @@ checks:
 judge:
   tier: medium
   vendor: prefer_different
-  inputs: [prd, context.query]
+  inputs: [prd, context.query, cited_sources]
   criteria:
     - id: atomic_testable
       question: "Is every FR and NFR a single capability for which a one-sentence pass/fail acceptance check could be written (no 'and also' hiding a second capability)?"
@@ -118,6 +118,7 @@ judge:
       question: "Do the requirements describe WHAT the system must do rather than HOW to implement it (no premature technology or design choices)?"
       on_fail: changes_requested
       reason_code: quality
+      min_confidence: 0.6
     - id: problem_not_solution
       question: "Does the Problem & Opportunity section name the user and the pain without describing the solution?"
       on_fail: changes_requested
