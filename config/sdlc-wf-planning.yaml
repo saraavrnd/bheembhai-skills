@@ -4,7 +4,7 @@
 #   -> foreach epic: sdlc-wf-planning-epic (stories, cross-vendor review, sequence, publish).
 # Authors run on the run's primary model; reviewer steps in the child run on the reviewer model.
 workflow: sdlc-wf-planning
-version: 1
+version: 2
 category: Software Delivery
 description: Turn a product idea into a PRD, epics and reviewed, sequenced stories in Jira — authors and reviewers on different model families.
 start: sdlc-plan-prd-write
@@ -41,7 +41,10 @@ steps:
 
   - id: per-epic-fanout
     foreach:
-      items_from: docs/product/epic-map.json   # written by epics-create, keys set by tracker-sync
+      # epics.md — NOT epic-map.json: the items file must carry one ```bheembhai:foreach
+      # block (ADR-027), and a .json map cannot. epics-create writes the block with
+      # draft keys; tracker-sync has swapped them for the real Jira keys by now.
+      items_from: docs/product/epics.md
       select: "$.epics[*]"
       as: ITEM                                  # ITEM.epic_key, ITEM.summary, ...
       run: sdlc-wf-planning-epic
@@ -50,5 +53,5 @@ steps:
       join: all_terminal
       then_require: all_completed               # v1: the ONLY legal value
       policy: sdlc-policy-planning-epic-governed
-    label: Stories for each epic (fan-out over epic-map.json)
+    label: Stories for each epic (fan-out over epics.md)
     "on": {completed: DONE, partial: DONE, failed: DONE}

@@ -1,3 +1,47 @@
+```yaml bheembhai:foreach
+epics:
+  - id: LEARN-10
+    epic_key: LEARN-10
+    summary: Socratic dialogue engine
+    feature_area: FA-1
+    release: MVP
+  - id: LEARN-11
+    epic_key: LEARN-11
+    summary: Curriculum knowledge base
+    feature_area: FA-2
+    release: MVP
+  - id: LEARN-12
+    epic_key: LEARN-12
+    summary: Visual & diagram learning
+    feature_area: FA-3
+    release: mixed
+  - id: LEARN-13
+    epic_key: LEARN-13
+    summary: Answer grounding & accuracy
+    feature_area: FA-4
+    release: mixed
+  - id: LEARN-14
+    epic_key: LEARN-14
+    summary: Teacher dashboard
+    feature_area: FA-5
+    release: mixed
+  - id: LEARN-15
+    epic_key: LEARN-15
+    summary: SIS integration
+    feature_area: FA-6
+    release: MVP
+  - id: LEARN-16
+    epic_key: LEARN-16
+    summary: Safety, privacy & compliance
+    feature_area: FA-7
+    release: MVP
+  - id: LEARN-17
+    epic_key: LEARN-17
+    summary: Deployment & operations
+    feature_area: FA-8
+    release: MVP
+```
+
 # Epics — decomposed from Learn Portal PRD
 
 Project: **LEARN** · Source: `PRD.md` · 8 epics · every FR/NFR mapped exactly once.

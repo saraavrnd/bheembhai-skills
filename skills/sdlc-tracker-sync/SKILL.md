@@ -42,8 +42,10 @@ artifact exists and has something unpublished):
 
 ## Output it produces
 - Jira issues created or updated, links set, transitions applied — exactly what the artifacts say.
-- Draft keys swapped for real ones: `<FA-N>-PENDING` in `epic-map.json` / `epics.md`,
-  `<EPIC>-PENDING-N` in `story-map.json` / `stories.md`. No other line of those files changes.
+- Draft keys swapped for real ones: `<FA-N>-PENDING` in `epic-map.json` / `epics.md` — including
+  both `id` and `epic_key` of every entry in `epics.md`'s `bheembhai:foreach` block (the planning
+  fan-out reads it right after this step) — and `<EPIC>-PENDING-N` in `story-map.json` /
+  `stories.md`. No other line of those files changes.
 - A hand-off reply: a table of every tracker action (scope, key, action, result).
 
 ## Procedure
@@ -55,8 +57,11 @@ Find the Jira tools, the project key (`epic-map.json`'s `project_key`; if it is 
 ### Step 2 — Epics
 For each epic with a `-PENDING` key: search by summary first (re-runs must not duplicate); create
 it if absent (type Epic, summary, description from its `epics.md` section, labels); swap the
-draft key for the returned key in `epic-map.json` and in `epics.md`. For an epic that already has
-a real key, update its summary/description only if `epics.md` differs.
+draft key for the returned key in `epic-map.json` and in `epics.md` — in the epic's section
+heading **and** in both `id` and `epic_key` of its entry in the `bheembhai:foreach` block at the
+top of the file. For an epic that already has a real key, update its summary/description only if
+`epics.md` differs. When this step finishes, no `-PENDING` may remain in the map or the block:
+the per-epic fan-out launches one child run per block entry immediately after this step.
 
 ### Step 3 — Stories
 For each story with a `-PENDING-N` key: search first; create it (type Story, summary, description

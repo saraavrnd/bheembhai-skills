@@ -1,6 +1,6 @@
 version: 1
 skill: sdlc-plan-epics-create
-summary: Every PRD requirement lands in exactly one epic, epic-map.json matches its schema, only the epic plan files change, and nothing is written to Jira (tracker-sync publishes, ADR-035).
+summary: Every PRD requirement lands in exactly one epic, epic-map.json matches its schema, epics.md carries the one bheembhai:foreach block the per-epic fan-out reads, only the epic plan files change, and nothing is written to Jira (tracker-sync publishes, ADR-035).
 verdicts_used: [failed_execution, changes_requested]
 
 facts:
@@ -16,6 +16,11 @@ facts:
     kind: jsonpath
     from: epic_map
     expr: "$.epics[*].epic_key"
+  epics_block_ids:
+    kind: yaml_block
+    from: epics_md
+    info: "yaml bheembhai:foreach"
+    expr: "$.epics[*].id"
   epics_md_req_ids:
     kind: regex
     from: epics_md
@@ -61,6 +66,43 @@ checks:
     args: {fact: facts.map_epic_keys}
     on_fail: changes_requested
     reason_code: duplicate
+  - id: foreach_block
+    description: >
+      epics.md opens with the one machine block the planning fan-out reads (ADR-027); a
+      missing or unparseable block fails the parent run at the fan-out node, after the gate.
+    run: builtin:yaml_block
+    args: {artifact: epics_md, info: "yaml bheembhai:foreach", required_keys: [epics]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: block_ids_present
+    description: Every block entry names its id — the child run's ITEM.id and the fan-out's uniqueness key.
+    run: builtin:jsonpath_assert
+    args: {artifact: epics_md, info: "yaml bheembhai:foreach", expr: "$.epics[?(!@.id)]", op: empty}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: block_keys_present
+    description: Every block entry names its epic_key — the child run's {epic} (its docs/product/epics/<EPIC_KEY>/ folder).
+    run: builtin:jsonpath_assert
+    args: {artifact: epics_md, info: "yaml bheembhai:foreach", expr: "$.epics[?(!@.epic_key)]", op: empty}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: block_summaries_present
+    description: Every block entry names its summary — ITEM.summary for the child run.
+    run: builtin:jsonpath_assert
+    args: {artifact: epics_md, info: "yaml bheembhai:foreach", expr: "$.epics[?(!@.summary)]", op: empty}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: block_ids_unique
+    run: builtin:unique_values
+    args: {fact: facts.epics_block_ids}
+    on_fail: changes_requested
+    reason_code: duplicate
+  - id: block_matches_map
+    description: The fan-out block and the traceability map name the same epic keys.
+    run: builtin:set_relation
+    args: {left: facts.map_epic_keys, right: facts.epics_block_ids, relation: equal, exactly_once: true}
+    on_fail: changes_requested
+    reason_code: traceability_gap
   - id: epic_sections
     run: builtin:md_sections
     args:
