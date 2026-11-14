@@ -35,6 +35,13 @@ facts:
     section: "Decision"
     pattern: '(?im)^\**\s*Decision\s*:?\**\s*\**(Fix|Duplicate|Not a bug|Needs info)\b'
     when: "facts.is_bug"
+  epics_block_keys:
+    kind: yaml_block
+    from: "{layout.epics}"
+    info: "yaml bheembhai:foreach"
+    expr: "$.epics[*].epic_key"
+    when: "exists('{layout.epics}')"
+    description: The per-epic fan-out's items block in epics.md; the swap must reach every entry.
   human_links:
     kind: context
     key: baseline.jira_state.links
@@ -75,6 +82,26 @@ checks:
     args: {path: "{layout.epic_map}", pattern: '-PENDING\b', max: 0}
     on_fail: changes_requested
     reason_code: external_action_missing
+  - id: block_present
+    description: epics.md still carries the one machine block the per-epic fan-out reads (ADR-027).
+    when: "facts.epic_keys"
+    run: builtin:yaml_block
+    args: {path: "{layout.epics}", info: "yaml bheembhai:foreach", required_keys: [epics]}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_pending_block_keys
+    when: "facts.epic_keys"
+    run: builtin:regex_count
+    args: {path: "{layout.epics}", pattern: '-PENDING\b', max: 0}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: block_matches_map
+    description: Every epic key swapped in the map was swapped in the fan-out block too.
+    when: "facts.epic_keys"
+    run: builtin:set_relation
+    args: {left: facts.epic_keys, right: facts.epics_block_keys, relation: equal, exactly_once: true}
+    on_fail: changes_requested
+    reason_code: traceability_gap
   - id: epics_exist
     when: "facts.epic_keys"
     run: builtin:jira_issues_exist

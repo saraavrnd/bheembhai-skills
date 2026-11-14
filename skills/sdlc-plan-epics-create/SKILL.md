@@ -48,7 +48,10 @@ A `PRD.md` produced by the `sdlc-plan-prd-write` skill (numbered FR/NFR requirem
 areas FA-N). If given a free-form PRD, first normalise it into that shape before decomposing.
 
 ## Output it produces
-1. `epics.md` — the proposed epics with their mapped requirements (the reviewable plan).
+1. `epics.md` — the proposed epics with their mapped requirements (the reviewable plan). It
+   **opens with the `bheembhai:foreach` machine block** naming every epic — the planning
+   workflow's per-epic fan-out reads exactly that block, so each entry becomes one child run's
+   `ITEM` (and `ITEM.epic_key` its `docs/product/epics/<EPIC_KEY>/` folder).
 2. `epic-map.json` — a machine-readable map of `{epic_key -> [requirement IDs]}` so the next
    skill (`sdlc-plan-stories-write`) knows which requirements each epic must cover. Traceability lives here.
    New epics use draft keys `<FA-N>-PENDING` (e.g. `FA-3-PENDING`); `project_key` is the target
@@ -92,9 +95,26 @@ Each epic needs:
 - **Labels** — feature-area code + release, for filtering in Jira.
 
 ### Step 3 — Write the map and hand off
-Write `epics.md` and `epic-map.json` (draft keys). Tell the user: N epics planned, every PRD
-requirement lands in exactly one epic, and the next steps are `sdlc-tracker-sync` (publish the
-epics to Jira) and then `sdlc-plan-stories-write` for each epic.
+Write `epics.md` and `epic-map.json` (draft keys). `epics.md` must open with **exactly one**
+fenced block whose info string is `yaml bheembhai:foreach`:
+
+````markdown
+```yaml bheembhai:foreach
+epics:
+  - id: FA-1-PENDING          # unique; the child run's ITEM.id
+    epic_key: FA-1-PENDING    # same draft key — tracker-sync swaps both for the Jira key
+    summary: "<the epic's one-line title>"
+    feature_area: FA-1
+    release: MVP|Later|mixed
+```
+````
+
+followed by the human epic sections from `templates/epic.md.tmpl`. The rest of the file is
+free prose for reviewers; the fan-out never parses it. Keep every entry's `id` equal to its
+`epic_key` — `sdlc-tracker-sync` swaps both in one pass, and the keys in this block must be
+the same real Jira keys as in `epic-map.json` before the per-epic runs start. Tell the user:
+N epics planned, every PRD requirement lands in exactly one epic, and the next steps are
+`sdlc-tracker-sync` (publish the epics to Jira) and then `sdlc-plan-stories-write` for each epic.
 
 ## Boundary heuristics (quick reference)
 - One feature area → usually one epic.

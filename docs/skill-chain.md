@@ -96,7 +96,7 @@ other independence pair with `independent_of` (tests-write vs code-implement).
 | Skill | In | Out |
 |-------|----|----|
 | `sdlc-plan-prd-write` | idea / domain notes / whitepaper | `PRD.md` — numbered, atomic, testable requirements grouped into feature areas |
-| `sdlc-plan-epics-create` | `PRD.md` | `epics.md` + `epic-map.json` traceability (draft keys; `sdlc-tracker-sync` publishes) |
+| `sdlc-plan-epics-create` | `PRD.md` | `epics.md` (opening with the `bheembhai:foreach` block the planning fan-out reads) + `epic-map.json` traceability (draft keys; `sdlc-tracker-sync` publishes) |
 | `sdlc-plan-stories-write` | an epic + `epic-map.json`; or a review report (revise mode) | `stories.md` with Gherkin acceptance criteria + `story-map.json` (draft keys; `sdlc-tracker-sync` publishes) |
 | `sdlc-arch-design` | PRD + epics (create); escalated story (amend) | **approved** architecture, ADRs, data model, API contracts, tech stack, testing strategy. **Amend mode**: updates the design + adds an ADR when a story needs an architecture change |
 | `sdlc-arch-ui-conventions` | approved design with a frontend | thin `ui-conventions.md` starter (split out of `sdlc-arch-design`) |
@@ -109,7 +109,7 @@ other independence pair with `independent_of` (tests-write vs code-implement).
 | `sdlc-deliver-docs-sync` | merged story diff + committed design + AGENTS.md | updates **architecture / data-model / contracts / AGENTS.md** on the branch (proportionate; no-op when nothing changed) |
 | `sdlc-deliver-impact-flag` | this run's diff + other in-progress stories' designs | Jira comment on each overlapping in-progress story + `impact-flags.md`; never blocks |
 | `sdlc-deliver-pr-open` | verified, reviewed and doc-synced story | GitHub/Bitbucket **PR** (via MCP) + Jira story → **In Review** (via MCP); does not merge |
-| `sdlc-tracker-sync` | approved epics / stories / sequence / bug-triage action | the matching Jira issues, links and transitions; swaps draft keys for Jira keys |
+| `sdlc-tracker-sync` | approved epics / stories / sequence / bug-triage action | the matching Jira issues, links and transitions; swaps draft keys for Jira keys (in `epic-map.json` and in `epics.md`'s fan-out block) |
 
 ### Bug-fix skills
 | Skill | In | Out |
@@ -192,6 +192,17 @@ prerequisites aren't merged. Flow:
 — the `sdlc-wf-planning` / `sdlc-wf-planning-epic` workflows run exactly this. Running
 `sdlc-plan-epic-review` first means `sdlc-plan-epic-sequence` sorts a story set whose cross-story contradictions and
 missing dependency notes are already resolved, rather than baking them into the dependency graph.
+
+### Fanning the planning run out per epic: `sdlc-wf-planning`
+`sdlc-wf-planning` runs `sdlc-plan-prd-write` → `sdlc-plan-epics-create` → `sdlc-tracker-sync`, then a
+`foreach` node launches **one child run of `sdlc-wf-planning-epic` per epic**. The items file is
+`docs/product/epics.md`, not `epic-map.json`: an ADR-027 items file must carry exactly one fenced
+block whose info string contains `bheembhai:foreach` (and every item a non-empty unique `id`), and
+a JSON map cannot. `sdlc-plan-epics-create` writes that block with draft keys; `sdlc-tracker-sync`
+swaps both `id` and `epic_key` for the real Jira keys on the step before the fan-out; both skills'
+`verify.yaml` enforce the block's presence and completeness. Each child receives one block entry as
+its run item (`ITEM.epic_key`, `ITEM.summary`, …), and `ITEM.epic_key` is also what binds the
+child's `{epic}` so its artifacts land in `docs/product/epics/<EPIC_KEY>/`.
 
 ### Keeping the design current (anti-drift, for parallel teams)
 Two distinct paths keep the system design and `AGENTS.md` from going stale as multiple developers
