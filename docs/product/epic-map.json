@@ -1,9 +1,9 @@
 {
-  "project_key": "PENDING",
+  "project_key": "BSB",
   "source_prd": "docs/product/PRD.md",
   "epics": [
     {
-      "epic_key": "FA-1-PENDING",
+      "epic_key": "BSB-1",
       "summary": "Access & identity",
       "feature_area": "FA-1",
       "release": "MVP",
@@ -18,7 +18,7 @@
       ]
     },
     {
-      "epic_key": "FA-2A-PENDING",
+      "epic_key": "BSB-2",
       "summary": "Build creation & cloning",
       "feature_area": "FA-2",
       "release": "MVP",
@@ -38,7 +38,7 @@
       ]
     },
     {
-      "epic_key": "FA-2B-PENDING",
+      "epic_key": "BSB-3",
       "summary": "Build state & readiness tracking",
       "feature_area": "FA-2",
       "release": "MVP",
@@ -51,7 +51,7 @@
       ]
     },
     {
-      "epic_key": "FA-3A-PENDING",
+      "epic_key": "BSB-4",
       "summary": "Test projects & membership",
       "feature_area": "FA-3",
       "release": "MVP",
@@ -65,7 +65,7 @@
       ]
     },
     {
-      "epic_key": "FA-3B-PENDING",
+      "epic_key": "BSB-5",
       "summary": "Integrations & credentials",
       "feature_area": "FA-3",
       "release": "MVP",
@@ -83,7 +83,7 @@
       ]
     },
     {
-      "epic_key": "FA-4A-PENDING",
+      "epic_key": "BSB-6",
       "summary": "Run setup & skill packaging",
       "feature_area": "FA-4",
       "release": "MVP",
@@ -100,7 +100,7 @@
       ]
     },
     {
-      "epic_key": "FA-4B-PENDING",
+      "epic_key": "BSB-7",
       "summary": "Run execution & outcome capture",
       "feature_area": "FA-4",
       "release": "MVP",
@@ -115,7 +115,7 @@
       ]
     },
     {
-      "epic_key": "FA-6A-PENDING",
+      "epic_key": "BSB-8",
       "summary": "Static security scanning",
       "feature_area": "FA-6",
       "release": "MVP",
@@ -135,7 +135,7 @@
       ]
     },
     {
-      "epic_key": "FA-6B-PENDING",
+      "epic_key": "BSB-9",
       "summary": "LLM security scanning",
       "feature_area": "FA-6",
       "release": "MVP",
@@ -150,7 +150,7 @@
       ]
     },
     {
-      "epic_key": "FA-4C-PENDING",
+      "epic_key": "BSB-10",
       "summary": "Run guardrails & re-runs",
       "feature_area": "FA-4",
       "release": "MVP",
@@ -168,7 +168,7 @@
       ]
     },
     {
-      "epic_key": "FA-5-PENDING",
+      "epic_key": "BSB-11",
       "summary": "Verification & readiness",
       "feature_area": "FA-5",
       "release": "MVP",
@@ -190,7 +190,7 @@
       ]
     },
     {
-      "epic_key": "FA-7A-PENDING",
+      "epic_key": "BSB-12",
       "summary": "Run results & audit trail",
       "feature_area": "FA-7",
       "release": "MVP",
@@ -209,7 +209,7 @@
       ]
     },
     {
-      "epic_key": "FA-4D-PENDING",
+      "epic_key": "BSB-13",
       "summary": "Jira fixture seeding",
       "feature_area": "FA-4",
       "release": "Later",
@@ -222,7 +222,7 @@
       ]
     },
     {
-      "epic_key": "FA-7B-PENDING",
+      "epic_key": "BSB-14",
       "summary": "Skill history & run comparison",
       "feature_area": "FA-7",
       "release": "Later",
@@ -235,7 +235,7 @@
       ]
     },
     {
-      "epic_key": "FA-8-PENDING",
+      "epic_key": "BSB-15",
       "summary": "Catalog submission",
       "feature_area": "FA-8",
       "release": "MVP",
@@ -252,7 +252,7 @@
       ]
     },
     {
-      "epic_key": "FA-9-PENDING",
+      "epic_key": "BSB-16",
       "summary": "Command line & suites",
       "feature_area": "FA-9",
       "release": "mixed",
@@ -268,7 +268,7 @@
       ]
     },
     {
-      "epic_key": "FA-X-PENDING",
+      "epic_key": "BSB-17",
       "summary": "Accessibility conformance",
       "feature_area": "cross-cutting",
       "release": "MVP",

@@ -8,14 +8,14 @@
 > the source of truth. If a separate Jira description is produced later, reconcile it against this
 > plan before publishing.
 >
-> Draft keys end in `-PENDING`; `sdlc-tracker-sync` replaces them with the real Jira keys after
-> approval. `project_key` is left as `PENDING` because no target Jira project was named for this
-> run; the publishing step must stop and ask for one rather than guess.
+> `sdlc-tracker-sync` replaced the draft keys with the real Jira keys in the `BSB`
+> (bheembhai-skill-builder) project, which the PRD names as the skill-builder project.
+> `project_key` is `BSB`.
 
 ---
 
 ## EPIC: Access & identity
-**Draft key:** `FA-1-PENDING` · **Feature area:** FA-1 · **Release:** MVP · **Labels:** FA-1, MVP
+**Draft key:** `BSB-1` · **Feature area:** FA-1 · **Release:** MVP · **Labels:** FA-1, MVP
 
 ### Description
 The builder is an internal tool that spends model tokens, can reach external Jira and GitHub
@@ -77,7 +77,7 @@ are external; the builder has no user-administration screen.
 ---
 
 ## EPIC: Build creation & cloning
-**Draft key:** `FA-2A-PENDING` · **Feature area:** FA-2 · **Release:** MVP · **Labels:** FA-2, MVP
+**Draft key:** `BSB-2` · **Feature area:** FA-2 · **Release:** MVP · **Labels:** FA-2, MVP
 
 ### Description
 A build is the author's working copy of one skill. This epic lets an author start a build either
@@ -146,7 +146,7 @@ component consumed, not modified, by the builder.
 ---
 
 ## EPIC: Build state & readiness tracking
-**Draft key:** `FA-2B-PENDING` · **Feature area:** FA-2 · **Release:** MVP · **Labels:** FA-2, MVP
+**Draft key:** `BSB-3` · **Feature area:** FA-2 · **Release:** MVP · **Labels:** FA-2, MVP
 
 ### Description
 Once a build exists, the author needs a trustworthy answer to two questions: what exactly is the
@@ -196,7 +196,7 @@ value is tied to the head SHA and is invalidated whenever the head moves.
 ---
 
 ## EPIC: Test projects & membership
-**Draft key:** `FA-3A-PENDING` · **Feature area:** FA-3 · **Release:** MVP · **Labels:** FA-3, MVP
+**Draft key:** `BSB-4` · **Feature area:** FA-3 · **Release:** MVP · **Labels:** FA-3, MVP
 
 ### Description
 Test projects give authors a shared container for runs, members and integration settings. This epic
@@ -246,7 +246,7 @@ integration configuration itself is delivered by FA-3B; this epic delivers the p
 ---
 
 ## EPIC: Integrations & credentials
-**Draft key:** `FA-3B-PENDING` · **Feature area:** FA-3 · **Release:** MVP · **Labels:** FA-3, MVP
+**Draft key:** `BSB-5` · **Feature area:** FA-3 · **Release:** MVP · **Labels:** FA-3, MVP
 
 ### Description
 A test project needs to reach Jira, GitHub and a model provider, but the builder must never become
@@ -311,7 +311,7 @@ responsible for keeping references opaque.
 ---
 
 ## EPIC: Run setup & skill packaging
-**Draft key:** `FA-4A-PENDING` · **Feature area:** FA-4 · **Release:** MVP · **Labels:** FA-4, MVP
+**Draft key:** `BSB-6` · **Feature area:** FA-4 · **Release:** MVP · **Labels:** FA-4, MVP
 
 ### Description
 A run starts with a precise question: which skill content, which input state, which model profile
@@ -373,7 +373,7 @@ to a moving head.
 ---
 
 ## EPIC: Run execution & outcome capture
-**Draft key:** `FA-4B-PENDING` · **Feature area:** FA-4 · **Release:** MVP · **Labels:** FA-4, MVP
+**Draft key:** `BSB-7` · **Feature area:** FA-4 · **Release:** MVP · **Labels:** FA-4, MVP
 
 ### Description
 This epic actually runs one packaged skill in the same runtime the platform uses, rather than a
@@ -431,7 +431,7 @@ by FA-4C, FA-5, FA-7A and FA-8. Runtime and component versions are recorded, nev
 ---
 
 ## EPIC: Static security scanning
-**Draft key:** `FA-6A-PENDING` · **Feature area:** FA-6 · **Release:** MVP · **Labels:** FA-6, MVP
+**Draft key:** `BSB-8` · **Feature area:** FA-6 · **Release:** MVP · **Labels:** FA-6, MVP
 
 ### Description
 No run may execute skill content that has not passed a static security scan. This epic builds the
@@ -503,7 +503,7 @@ infrastructure.
 ---
 
 ## EPIC: LLM security scanning
-**Draft key:** `FA-6B-PENDING` · **Feature area:** FA-6 · **Release:** MVP · **Labels:** FA-6, MVP
+**Draft key:** `BSB-9` · **Feature area:** FA-6 · **Release:** MVP · **Labels:** FA-6, MVP
 
 ### Description
 The model-based scan looks for risks that static rules cannot express. It is intentionally
@@ -561,7 +561,7 @@ apply to this scan as well.
 ---
 
 ## EPIC: Run guardrails & re-runs
-**Draft key:** `FA-4C-PENDING` · **Feature area:** FA-4 · **Release:** MVP · **Labels:** FA-4, MVP
+**Draft key:** `BSB-10` · **Feature area:** FA-4 · **Release:** MVP · **Labels:** FA-4, MVP
 
 ### Description
 An unbounded or unsafe run wastes tokens and can damage the environment, so every run has explicit
@@ -624,7 +624,7 @@ experiments without workflow orchestration.
 ---
 
 ## EPIC: Verification & readiness
-**Draft key:** `FA-5-PENDING` · **Feature area:** FA-5 · **Release:** MVP · **Labels:** FA-5, MVP
+**Draft key:** `BSB-11` · **Feature area:** FA-5 · **Release:** MVP · **Labels:** FA-5, MVP
 
 ### Description
 A run's own claim is not trusted on its own. After the agent exits, this epic runs the selected
@@ -705,7 +705,7 @@ blocking failure.
 ---
 
 ## EPIC: Run results & audit trail
-**Draft key:** `FA-7A-PENDING` · **Feature area:** FA-7 · **Release:** MVP · **Labels:** FA-7, MVP
+**Draft key:** `BSB-12` · **Feature area:** FA-7 · **Release:** MVP · **Labels:** FA-7, MVP
 
 ### Description
 After a run finishes, the author needs to understand what happened without reading raw logs or
@@ -768,7 +768,7 @@ pull-request description. History and comparison over multiple runs are delibera
 ---
 
 ## EPIC: Jira fixture seeding
-**Draft key:** `FA-4D-PENDING` · **Feature area:** FA-4 · **Release:** Later · **Labels:** FA-4, Later
+**Draft key:** `BSB-13` · **Feature area:** FA-4 · **Release:** Later · **Labels:** FA-4, Later
 
 ### Description
 Skills that touch Jira need realistic issues to work against without depending on hand-made
@@ -820,7 +820,7 @@ lifecycle events. Fixture data is curated outside the builder.
 ---
 
 ## EPIC: Skill history & run comparison
-**Draft key:** `FA-7B-PENDING` · **Feature area:** FA-7 · **Release:** Later · **Labels:** FA-7, Later
+**Draft key:** `BSB-14` · **Feature area:** FA-7 · **Release:** Later · **Labels:** FA-7, Later
 
 ### Description
 An author iterating on a skill needs to see how the current attempt relates to earlier ones. This
@@ -868,7 +868,7 @@ retention configuration. Comparison is limited to two runs by the PRD.
 ---
 
 ## EPIC: Catalog submission
-**Draft key:** `FA-8-PENDING` · **Feature area:** FA-8 · **Release:** MVP · **Labels:** FA-8, MVP
+**Draft key:** `BSB-15` · **Feature area:** FA-8 · **Release:** MVP · **Labels:** FA-8, MVP
 
 ### Description
 Submission is the hand-off from the isolated builder to the reviewed catalog, and it must be
@@ -933,7 +933,7 @@ builder's responsibility ends at the pull request.
 ---
 
 ## EPIC: Command line & suites
-**Draft key:** `FA-9-PENDING` · **Feature area:** FA-9 · **Release:** mixed · **Labels:** FA-9, mixed
+**Draft key:** `BSB-16` · **Feature area:** FA-9 · **Release:** mixed · **Labels:** FA-9, mixed
 
 ### Description
 Authors who work from a terminal, or who want a run to happen outside a browser session, need the
@@ -995,7 +995,7 @@ interface rather than reimplementing run or scan logic.
 ---
 
 ## EPIC: Accessibility conformance
-**Draft key:** `FA-X-PENDING` · **Feature area:** cross-cutting · **Release:** MVP · **Labels:** cross-cutting, accessibility, MVP
+**Draft key:** `BSB-17` · **Feature area:** cross-cutting · **Release:** MVP · **Labels:** cross-cutting, accessibility, MVP
 
 ### Description
 Every authoring surface in the builder is a web interface, and it must be usable by people who rely
