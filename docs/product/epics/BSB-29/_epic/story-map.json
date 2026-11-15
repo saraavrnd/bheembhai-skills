@@ -1,0 +1,26 @@
+{
+  "epic_key": "BSB-29",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-29-PENDING-1",
+      "summary": "Grade a terminated run with the pinned shared verifier",
+      "requirement_ids": ["FR-063", "FR-064", "FR-153"]
+    },
+    {
+      "story_key": "BSB-29-PENDING-2",
+      "summary": "Record claimed, final and overturned verdicts",
+      "requirement_ids": ["FR-065", "FR-066", "FR-067", "FR-164"]
+    },
+    {
+      "story_key": "BSB-29-PENDING-3",
+      "summary": "Record verification failures as non-passing verdicts",
+      "requirement_ids": ["FR-066", "FR-164"]
+    },
+    {
+      "story_key": "BSB-29-PENDING-4",
+      "summary": "Reproduce the same verification result for identical inputs",
+      "requirement_ids": ["NFR-010"]
+    }
+  ]
+}
