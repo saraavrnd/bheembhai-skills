@@ -1,0 +1,153 @@
+{
+  "project_key": "BSB",
+  "source_prd": "docs/product/PRD.md",
+  "epics": [
+    {
+      "epic_key": "FA-1-PENDING",
+      "summary": "Access, identity & the authoring gate",
+      "feature_area": "FA-1",
+      "release": "MVP",
+      "requirement_ids": ["FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-138", "FR-141", "FR-142", "NFR-002", "NFR-003"]
+    },
+    {
+      "epic_key": "FA-2A-PENDING",
+      "summary": "Skill build creation & scaffolding",
+      "feature_area": "FA-2",
+      "release": "MVP",
+      "requirement_ids": ["FR-006", "FR-007", "FR-008", "FR-009", "FR-010", "FR-015", "FR-016", "FR-017", "FR-143", "FR-144"]
+    },
+    {
+      "epic_key": "FA-2B-PENDING",
+      "summary": "Skill cloning & edit builds",
+      "feature_area": "FA-2",
+      "release": "MVP",
+      "requirement_ids": ["FR-011", "FR-012", "FR-013", "FR-014", "FR-124", "FR-125", "FR-126"]
+    },
+    {
+      "epic_key": "FA-3-PENDING",
+      "summary": "Skill editing, build state & readiness tracking",
+      "feature_area": "FA-3",
+      "release": "MVP",
+      "requirement_ids": ["FR-018", "FR-019", "FR-020", "FR-021", "FR-022", "FR-127", "FR-162"]
+    },
+    {
+      "epic_key": "FA-4-PENDING",
+      "summary": "Test projects & membership",
+      "feature_area": "FA-4",
+      "release": "MVP",
+      "requirement_ids": ["FR-023", "FR-024", "FR-025", "FR-026", "FR-027", "FR-028"]
+    },
+    {
+      "epic_key": "FA-5-PENDING",
+      "summary": "Integrations, credentials & MCP definitions",
+      "feature_area": "FA-5",
+      "release": "MVP",
+      "requirement_ids": ["FR-029", "FR-030", "FR-031", "FR-032", "FR-033", "FR-034", "FR-035", "FR-036", "FR-128", "FR-129", "NFR-004", "NFR-006"]
+    },
+    {
+      "epic_key": "FA-6A-PENDING",
+      "summary": "Run start & input selection",
+      "feature_area": "FA-6",
+      "release": "MVP",
+      "requirement_ids": ["FR-037", "FR-145", "FR-146", "FR-147", "FR-148", "FR-149", "FR-150"]
+    },
+    {
+      "epic_key": "FA-6B-PENDING",
+      "summary": "Skill packaging & run branch preparation",
+      "feature_area": "FA-6",
+      "release": "MVP",
+      "requirement_ids": ["FR-038", "FR-039", "FR-040", "FR-041", "FR-042", "FR-043", "NFR-001", "NFR-009"]
+    },
+    {
+      "epic_key": "FA-7-PENDING",
+      "summary": "Run execution & outcome capture",
+      "feature_area": "FA-7",
+      "release": "MVP",
+      "requirement_ids": ["FR-044", "FR-045", "FR-046", "FR-047", "FR-048", "FR-049", "FR-151", "FR-152"]
+    },
+    {
+      "epic_key": "FA-8-PENDING",
+      "summary": "Run guardrails, deadlines & re-runs",
+      "feature_area": "FA-8",
+      "release": "MVP",
+      "requirement_ids": ["FR-050", "FR-051", "FR-052", "FR-053", "FR-054", "FR-055", "FR-056", "FR-057", "NFR-007", "NFR-008", "NFR-019"]
+    },
+    {
+      "epic_key": "FA-9-PENDING",
+      "summary": "Jira fixture seeding",
+      "feature_area": "FA-9",
+      "release": "Later",
+      "requirement_ids": ["FR-058", "FR-059", "FR-060", "FR-061", "FR-062"]
+    },
+    {
+      "epic_key": "FA-10A-PENDING",
+      "summary": "Run verification & verdicts",
+      "feature_area": "FA-10",
+      "release": "MVP",
+      "requirement_ids": ["FR-063", "FR-064", "FR-065", "FR-066", "FR-067", "FR-153", "FR-164", "NFR-010"]
+    },
+    {
+      "epic_key": "FA-10B-PENDING",
+      "summary": "Readiness checks & re-verification",
+      "feature_area": "FA-10",
+      "release": "MVP",
+      "requirement_ids": ["FR-068", "FR-069", "FR-070", "FR-071", "FR-072", "FR-073", "FR-074", "FR-075"]
+    },
+    {
+      "epic_key": "FA-11-PENDING",
+      "summary": "Static security scanning",
+      "feature_area": "FA-11",
+      "release": "MVP",
+      "requirement_ids": ["FR-076", "FR-077", "FR-078", "FR-079", "FR-080", "FR-081", "FR-087", "FR-088", "FR-089", "FR-091", "FR-092", "FR-154", "FR-155", "NFR-005"]
+    },
+    {
+      "epic_key": "FA-12-PENDING",
+      "summary": "LLM security scanning",
+      "feature_area": "FA-12",
+      "release": "MVP",
+      "requirement_ids": ["FR-082", "FR-083", "FR-084", "FR-085", "FR-086", "FR-090", "FR-093", "FR-139", "FR-156", "FR-163"]
+    },
+    {
+      "epic_key": "FA-13A-PENDING",
+      "summary": "Run report & change evidence",
+      "feature_area": "FA-13",
+      "release": "MVP",
+      "requirement_ids": ["FR-094", "FR-095", "FR-096", "FR-097", "FR-098", "FR-099", "FR-100", "FR-101", "FR-140", "FR-157", "FR-158"]
+    },
+    {
+      "epic_key": "FA-13B-PENDING",
+      "summary": "Run usage, trace & data retention",
+      "feature_area": "FA-13",
+      "release": "MVP",
+      "requirement_ids": ["FR-102", "FR-103", "FR-159", "FR-160", "NFR-011", "NFR-013", "NFR-014", "NFR-015", "NFR-016", "NFR-017", "NFR-018"]
+    },
+    {
+      "epic_key": "FA-14-PENDING",
+      "summary": "Skill history & run comparison",
+      "feature_area": "FA-14",
+      "release": "Later",
+      "requirement_ids": ["FR-104", "FR-105", "FR-106"]
+    },
+    {
+      "epic_key": "FA-15-PENDING",
+      "summary": "Catalog submission",
+      "feature_area": "FA-15",
+      "release": "MVP",
+      "requirement_ids": ["FR-107", "FR-108", "FR-109", "FR-110", "FR-111", "FR-112", "FR-113", "FR-114", "FR-115", "FR-161"]
+    },
+    {
+      "epic_key": "FA-16-PENDING",
+      "summary": "Command line & saved suites",
+      "feature_area": "FA-16",
+      "release": "mixed",
+      "requirement_ids": ["FR-116", "FR-117", "FR-118", "FR-119", "FR-120", "FR-121", "FR-122", "FR-123"]
+    },
+    {
+      "epic_key": "FA-17-PENDING",
+      "summary": "Accessibility conformance",
+      "feature_area": "FA-17",
+      "release": "MVP",
+      "requirement_ids": ["FR-130", "FR-131", "FR-132", "FR-133", "FR-134", "FR-135", "FR-136", "FR-137", "NFR-012"]
+    }
+  ]
+}
