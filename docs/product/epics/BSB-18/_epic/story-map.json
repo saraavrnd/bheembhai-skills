@@ -1,0 +1,26 @@
+{
+  "epic_key": "BSB-18",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-18-PENDING-1",
+      "summary": "Require a signed-in session for every authoring request",
+      "requirement_ids": ["FR-001", "NFR-002"]
+    },
+    {
+      "story_key": "BSB-18-PENDING-2",
+      "summary": "Sign in with platform credentials as a current skill-builders member",
+      "requirement_ids": ["FR-002", "FR-003", "FR-138"]
+    },
+    {
+      "story_key": "BSB-18-PENDING-3",
+      "summary": "Re-check skill-builders membership on every request and revoke within one hour",
+      "requirement_ids": ["FR-004", "FR-141", "NFR-003"]
+    },
+    {
+      "story_key": "BSB-18-PENDING-4",
+      "summary": "Maintain one local user record per identity-provider subject",
+      "requirement_ids": ["FR-005", "FR-142"]
+    }
+  ]
+}
