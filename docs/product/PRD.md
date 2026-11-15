@@ -74,12 +74,12 @@ accessibility scope. See §8.
 | FR-001 | FA-1 | An unauthenticated visitor cannot open any authoring page. | MVP |
 | FR-002 | FA-1 | A user signs in with the platform's existing identity-provider credentials. | MVP |
 | FR-003 | FA-1 | A signed-in user reaches authoring features only while that user is a current member of the skill-builders group. | MVP |
-| FR-004 | FA-1 | Group membership is evaluated on every request, so a removed member is rejected no later than their next token refresh, at most one hour after removal. | MVP |
-| FR-005 | FA-1 | The builder creates one local user record per identity-provider subject on first successful sign-in and reuses it thereafter. | MVP |
+| FR-004 | FA-1 | The builder checks the requesting user's skill-builders membership claim on every request, not only at sign-in. | MVP |
+| FR-005 | FA-1 | The builder creates one local user record per identity-provider subject on first successful sign-in. | MVP |
 | FR-006 | FA-2 | An author creates a build from a skill name and a one-line description. | MVP |
 | FR-007 | FA-2 | The builder creates the build branch from the current head of main. | MVP |
 | FR-008 | FA-2 | The builder scaffolds the skill's own folder under the catalog's skills directory on the build branch. | MVP |
-| FR-009 | FA-2 | The scaffold contains SKILL.md with frontmatter, a verify.yaml stub, and the standard references, templates and examples folders. | MVP |
+| FR-009 | FA-2 | The scaffold contains SKILL.md with the skill's frontmatter. | MVP |
 | FR-010 | FA-2 | A newly scaffolded skill passes the catalog's static manifest checks without any edit. | MVP |
 | FR-011 | FA-2 | An author clones an existing catalog skill under a new name. | MVP |
 | FR-012 | FA-2 | Cloning copies the skill's whole folder to the new skill path. | MVP |
@@ -97,7 +97,7 @@ accessibility scope. See §8.
 | FR-024 | FA-4 | The builder records the project creator as the project owner. | MVP |
 | FR-025 | FA-4 | The project owner adds another skill-builder user as a project member. | MVP |
 | FR-026 | FA-4 | The project owner removes a project member. | MVP |
-| FR-027 | FA-4 | A project member can start a test run in that project. | MVP |
+| FR-027 | FA-4 | Project membership authorizes starting a test run in that project. | MVP |
 | FR-028 | FA-4 | Only the project owner can change the project's integrations. | MVP |
 | FR-029 | FA-5 | The owner configures a Jira integration with a site URL and either a project key or a template project. | MVP |
 | FR-030 | FA-5 | The owner configures a source-control integration with a sandbox repository and a base branch. | MVP |
@@ -107,7 +107,7 @@ accessibility scope. See §8.
 | FR-034 | FA-5 | The builder records when an integration's credentials were last verified. | MVP |
 | FR-035 | FA-5 | The builder warns when a source-control integration targets a repository also used by a platform project. | MVP |
 | FR-036 | FA-5 | The builder never displays an integration's credential value in its interface. | MVP |
-| FR-037 | FA-6 | An author starts a run in a test project the author is a member of by choosing a skills branch, an input branch, an optional workflow-step context (including reviewer feedback or an upstream handoff), a model profile and a tier. | MVP |
+| FR-037 | FA-6 | An author starts a run in a test project the author is a member of. | MVP |
 | FR-038 | FA-6 | The builder resolves the skills branch to a commit SHA at run start. | MVP |
 | FR-039 | FA-6 | The builder packages the skill at that commit into a content-addressed bundle. | MVP |
 | FR-040 | FA-6 | The builder reuses an existing bundle when the same skills commit is packaged again. | MVP |
@@ -118,8 +118,8 @@ accessibility scope. See §8.
 | FR-045 | FA-7 | The run page shows progress while the run executes. | MVP |
 | FR-046 | FA-7 | The run page shows logs while the run executes. | MVP |
 | FR-047 | FA-7 | The builder classifies the run outcome using the platform engine's result rules. | MVP |
-| FR-048 | FA-7 | The builder records the exact execution-component and verifier versions used by the run. | MVP |
-| FR-049 | FA-7 | The builder records the model profile and tier used by the run. | MVP |
+| FR-048 | FA-7 | The builder records the exact execution-component versions used by the run. | MVP |
+| FR-049 | FA-7 | The builder records the model profile used by the run. | MVP |
 | FR-050 | FA-8 | The author sets a turn cap for a run. | MVP |
 | FR-051 | FA-8 | A run stops when it reaches its turn cap. | MVP |
 | FR-052 | FA-8 | The author sets a spend cap for a run. | MVP |
@@ -134,7 +134,7 @@ accessibility scope. See §8.
 | FR-061 | FA-9 | The builder cleans up the issues it seeded when the run ends, deleting only issues marked with that run's ID. | Later |
 | FR-062 | FA-9 | A nightly sweep removes seeded issues carrying a run marker. | Later |
 | FR-063 | FA-10 | The builder runs the selected verifier on the run branch after the agent exits. | MVP |
-| FR-064 | FA-10 | The verifier receives the baseline SHA and the verify.yaml from the skills commit. | MVP |
+| FR-064 | FA-10 | The verifier receives the run's baseline SHA. | MVP |
 | FR-065 | FA-10 | The builder records the verdict the agent claimed. | MVP |
 | FR-066 | FA-10 | The builder records the final verdict after verification. | MVP |
 | FR-067 | FA-10 | The builder records whether verification overturned the agent's claimed verdict. | MVP |
@@ -159,20 +159,20 @@ accessibility scope. See §8.
 | FR-086 | FA-12 | LLM scan findings are shown to the author. | MVP |
 | FR-087 | FA-11 | A security scan times out after ten minutes. | MVP |
 | FR-088 | FA-11 | A timed-out scan is recorded as failed. | MVP |
-| FR-089 | FA-11 | The static scan report shows the score and recommendation and lists each finding's severity, rule, file and line. | MVP |
-| FR-090 | FA-12 | The LLM scan report shows the model used and lists each finding's severity, rule, file and line. | MVP |
+| FR-089 | FA-11 | The static scan report shows the scan's score. | MVP |
+| FR-090 | FA-12 | The LLM scan report shows which model ran the scan. | MVP |
 | FR-091 | FA-11 | The builder's scan verdict matches the platform's for the same content and scanner version. | MVP |
 | FR-092 | FA-11 | An author starts a static-only scan from the skill page for a test project the author is a member of, without a run. | MVP |
-| FR-093 | FA-12 | An author starts a full security scan from the skill page for a test project the author is a member of, without a run, choosing a model profile from that project. | MVP |
-| FR-094 | FA-13 | The run page shows the skill and skills commit SHA. | MVP |
+| FR-093 | FA-12 | An author starts a full security scan from the skill page for a test project the author is a member of, without a run. | MVP |
+| FR-094 | FA-13 | The run page shows the skill that ran. | MVP |
 | FR-095 | FA-13 | The run page shows the input branch. | MVP |
 | FR-096 | FA-13 | The run page shows the output branch. | MVP |
 | FR-097 | FA-13 | The run page shows the component versions used. | MVP |
-| FR-098 | FA-13 | The run page shows the claimed verdict and the final verdict. | MVP |
+| FR-098 | FA-13 | The run page shows the verdict the agent claimed. | MVP |
 | FR-099 | FA-13 | The run page shows each check result. | MVP |
 | FR-100 | FA-13 | The run page shows the diff from the input branch to the run branch. | MVP |
 | FR-101 | FA-13 | The run page shows the Jira changes the run made. | MVP |
-| FR-102 | FA-13 | The run page shows token usage, turns and cost. | MVP |
+| FR-102 | FA-13 | The run page shows the run's turn count. | MVP |
 | FR-103 | FA-13 | The run page links to the run's trace when tracing is enabled. | MVP |
 | FR-104 | FA-14 | The skill history lists every run of a skill with its commit SHA, input branch, verdict and checks. | Later |
 | FR-105 | FA-14 | The compare view shows two runs side by side. | Later |
@@ -182,7 +182,7 @@ accessibility scope. See §8.
 | FR-109 | FA-15 | The pull-request description lists the readiness checks at the head SHA. | MVP |
 | FR-110 | FA-15 | The pull-request description links to the run report. | MVP |
 | FR-111 | FA-15 | The pull-request description links to the scan reports. | MVP |
-| FR-112 | FA-15 | The builder records the pull-request URL and state on the build. | MVP |
+| FR-112 | FA-15 | The builder records the pull-request URL on the build. | MVP |
 | FR-113 | FA-15 | The build state moves through open, submitted, merged or abandoned. | MVP |
 | FR-114 | FA-15 | A save on a submitted build clears its readiness status. | MVP |
 | FR-115 | FA-15 | The builder never writes directly to the platform catalog, platform projects or project skills. | MVP |
@@ -197,7 +197,7 @@ accessibility scope. See §8.
 | FR-124 | FA-2 | An author opens an existing catalog skill in an edit build on a branch cut from main. | MVP |
 | FR-125 | FA-2 | An edit build changes the existing skill folder rather than creating a second skill folder. | MVP |
 | FR-126 | FA-2 | The builder rejects an edit build for a skill name that does not exist on main. | MVP |
-| FR-127 | FA-3 | An author edits the content of a file in a build's skill folder and saves the change to the build branch. | MVP |
+| FR-127 | FA-3 | An author edits the content of a file in a build's skill folder. | MVP |
 | FR-128 | FA-5 | The owner records the MCP server definition that the Jira integration exposes to a run. | MVP |
 | FR-129 | FA-5 | The owner records the MCP server definition that the source-control integration exposes to a run. | MVP |
 | FR-130 | FA-17 | Every interactive control in the builder is operable with a keyboard. | MVP |
@@ -211,10 +211,33 @@ accessibility scope. See §8.
 | FR-138 | FA-1 | The builder rejects a sign-in attempt by a user who is not a current member of the skill-builders group. | MVP |
 | FR-139 | FA-12 | The builder records an LLM scan that cannot run as unavailable. | MVP |
 | FR-140 | FA-13 | The builder records the Jira changes a run makes. | MVP |
+| FR-141 | FA-1 | A user removed from the skill-builders group is denied authoring access no later than one hour after removal. | MVP |
+| FR-142 | FA-1 | The builder reuses the existing local user record on a later sign-in by the same identity-provider subject. | MVP |
+| FR-143 | FA-2 | The scaffold contains a verify.yaml stub. | MVP |
+| FR-144 | FA-2 | The scaffold contains the standard references, templates and examples folders. | MVP |
+| FR-145 | FA-6 | A run start offers the author a choice of skills branch. | MVP |
+| FR-146 | FA-6 | A run start offers the author a choice of input branch. | MVP |
+| FR-147 | FA-6 | A run start offers the author a choice of workflow and step context. | MVP |
+| FR-148 | FA-6 | A run start lets the author optionally supply reviewer feedback or an upstream handoff. | MVP |
+| FR-149 | FA-6 | A run start offers the author a choice of model profile. | MVP |
+| FR-150 | FA-6 | A run start offers the author a choice of model tier. | MVP |
+| FR-151 | FA-7 | The builder records the exact verifier version used by the run. | MVP |
+| FR-152 | FA-7 | The builder records the model tier used by the run. | MVP |
+| FR-153 | FA-10 | The verifier receives the verify.yaml from the skills commit. | MVP |
+| FR-154 | FA-11 | The static scan report shows the scan's recommendation. | MVP |
+| FR-155 | FA-11 | The static scan report lists each finding's severity, rule, file and line. | MVP |
+| FR-156 | FA-12 | The LLM scan report lists each finding's severity, rule, file and line. | MVP |
+| FR-157 | FA-13 | The run page shows the skills commit SHA. | MVP |
+| FR-158 | FA-13 | The run page shows the final verdict after verification. | MVP |
+| FR-159 | FA-13 | The run page shows the run's token usage. | MVP |
+| FR-160 | FA-13 | The run page shows the run's cost. | MVP |
+| FR-161 | FA-15 | The builder records the pull-request state on the build. | MVP |
+| FR-162 | FA-3 | The author saves an edited file to the build branch. | MVP |
+| FR-163 | FA-12 | A full security scan start offers the author a choice of model profile from the scan's test project. | MVP |
 
 ## 7. Non-Functional Requirements
 
-NFR-001's numeric limits, the run deadline (NFR-007, NFR-008), accessibility (NFR-012) and
+NFR-001's numeric limits, the run deadline (NFR-007, NFR-008), the reflow criterion (NFR-012) and
 retention and purge (NFR-013, NFR-014) are added assumptions, not ADR-given values. See §8.
 
 | ID | Category | Requirement | Release |
@@ -230,20 +253,25 @@ retention and purge (NFR-013, NFR-014) are added assumptions, not ADR-given valu
 | NFR-009 | Reproducibility | Preparing the same skills commit twice produces an identical skill bundle. | MVP |
 | NFR-010 | Reproducibility | The same inputs and component versions produce the same verification result. | MVP |
 | NFR-011 | Compliance | When tracing is enabled, every run's trace identifies it as a test-environment run. | MVP |
-| NFR-012 | Accessibility | The web interface meets WCAG 2.1 AA. | MVP |
+| NFR-012 | Accessibility | Every builder web surface reflows to a 320 CSS-pixel viewport without two-dimensional scrolling. | MVP |
 | NFR-013 | Privacy | Run transcripts, logs and results are retained only for a configured period. | MVP |
 | NFR-014 | Privacy | Run transcripts, logs and results can be purged on request. | MVP |
-| NFR-015 | Cost | Each run records its token usage, turns and cost. | MVP |
+| NFR-015 | Cost | Each run records its cost. | MVP |
+| NFR-016 | Usage | Each run records its token usage. | MVP |
+| NFR-017 | Usage | Each run records its turn count. | MVP |
 
 ## 8. Constraints & Assumptions
 
-**Source.** No separate product-idea input was supplied for this run. The single source is the
-product definition in `docs/adr/SK-001-skill-builder.md`; it is treated as the product idea. The
-BSB epic set (BSB-1 to BSB-17) currently published in the Atlassian project was generated from an
-earlier revision of this PRD, so it is a downstream traceability view rather than a second source of
-truth; it is not used here to justify scope. Requirements FR-124 onward are new in this revision and
-will be mapped on the next epics pass; the earlier FR and NFR identifiers are kept stable so
-existing traceability remains valid.
+**Source.** No separate product-idea input was supplied for this run, and the Atlassian project
+`bheembhai-skill-builder` contains no issue titled `SkillBuilder`; its only issues are the BSB-1 to
+BSB-17 epics. The single source is therefore the product definition in
+`docs/adr/SK-001-skill-builder.md`; it is treated as the product idea. The BSB epic set currently
+published in that project was generated from an earlier revision of this PRD, so it is a downstream
+traceability view rather than a second source of truth; it is not used here to justify scope.
+Requirements FR-124 onward were added in a preceding revision and will be mapped on the next epics
+pass. In this revision, capabilities split out of an existing requirement are appended as new
+identifiers starting at FR-141; no existing FR or NFR identifier is renumbered, so existing
+traceability remains valid.
 
 **Assumptions added beyond the source.** The following are choices this PRD makes. The ADR does not
 contain them, and nothing downstream should treat them as given until a human confirms them.
@@ -252,7 +280,10 @@ contain them, and nothing downstream should treat them as given until a human co
   treating accessibility as MVP, is this PRD's proposal.
 - **Accessibility.** The ADR describes only server-rendered HTML with the platform's theme and says
   nothing about accessibility, WCAG, assistive technology or automated accessibility checks. FA-17,
-  FR-130 through FR-137, G6 and NFR-012 are added here.
+  FR-130 through FR-137, G6 and NFR-012 are added here. NFR-012 is deliberately narrowed to a single
+  testable reflow criterion; the WCAG 2.1 AA conformance target is carried by G6 and by the separate
+  FA-17 functional requirements, not restated as one umbrella requirement. The 320 CSS-pixel width
+  in NFR-012 is also an added value.
 - **Retention and purge.** The ADR stores run data in the builder's database and S3 bucket but sets
   no retention period and no purge operation. NFR-013, NFR-014 and the installation-level retention
   setting are added here.
