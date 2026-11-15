@@ -55,8 +55,12 @@ FR-043); this epic consumes it. The run columns and the `skill_bundles` columns 
 | `projects` fixture | exactly ten rows with ids `1` to `10`; id `7` has `name` = `Payment regression`, `owner_id` = `42`, `created_at` = `2026-11-14T09:00:00Z`; id `8` has `name` = `Search smoke`, `owner_id` = `43`; ids `1` to `6`, `9` and `10` are unrelated fixture projects |
 | `project_members` fixture | exactly three rows: `(project_id 7, user_id 42, role owner)`, `(project_id 7, user_id 43, role member)` and `(project_id 8, user_id 43, role owner)`; Alan has no row for project `7` |
 | `ai_model` integration (project 7) | row `id` = `7`, `kind` = `ai_model`, `config` = `{"profiles":[{"id":3,"name":"Anthropic test","vendor":"anthropic","base_url":"https://api.anthropic.test","tiers":{"high":"test-model-high","medium":"test-model-medium"}},{"id":4,"name":"Smoke","vendor":"anthropic","base_url":"https://api.anthropic.test","tiers":{"medium":"test-model-medium"}}]}`, `secret_ref` = `skill-builder/7/ai_model` |
+| `github` integration (project 7) | row `id` = `6`, `kind` = `github`, `config` = `{"repo":"saraavrnd/bheembhai-skill-fixtures","base_branch":"main"}`, `secret_ref` = `skill-builder/7/github`, `mcp` = `null`, `verified_at` = `2026-11-14T09:02:00Z` |
+| `jira` integration (project 7) | row `id` = `5`, `kind` = `jira`, `config` = `{"site_url":"https://old.atlassian.net","project_key":"OLD"}`, `secret_ref` = `skill-builder/7/jira`, `mcp` = `{"servers":[{"name":"jira","transport":"stdio","command":"mcp-atlassian","args":["--jira-url","https://old.atlassian.net"]}]}`, `verified_at` = `2026-11-14T09:00:00Z` |
+| Integration credentials | the secret held at `skill-builder/7/ai_model` has exactly the value `sk-ant-test-5f2c8e1d`; the `github` and `jira` credentials are held at their `secret_ref` values. Every credential is injected into the runtime by reference and never appears in the stored environment or the log |
 | Run 1 (the prepared run) | exactly one row: `id` = `1`, `project_id` = `7`, `user_id` = `42`, `skill` = `sdlc-fix-bug-triage`, `skills_ref` = `test/ada/fix-reproduce`, `skills_commit_sha` = `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b`, `input_branch` = `main`, `run_branch` = `skilltest/1`, `context` = `{"workflow":"bug-fix","step":"triage"}`, `model_profile_id` = `3`, `tier` = `high`, `state` = `queued`, `kind` = `run`, `created_at` = `2026-11-15T10:00:00Z`; `agent_image_digest`, `stepkit_version`, `verify_version`, `claimed_verdict`, `final_verdict`, `verification`, `cost_usd` and `parent_run_id` are `NULL` |
 | Run 2 (only the kit-v8 scenario) | prepared exactly like run `1` except `id` = `2` and `run_branch` = `skilltest/2`; the rest of the row is identical apart from `created_at` = `2026-11-15T10:00:01Z` |
+| Run 3 (only the reviewer-feedback scenario) | prepared exactly like run `1` except `id` = `3`, `run_branch` = `skilltest/3` and `context` = `{"workflow":"bug-fix","step":"triage","reviewer_feedback":"Please handle an empty issue title without failing.","upstream_handoff":{"step":"reproduce","result_status":"completed","summary":"Reproduction confirmed on the input branch."}}`; `created_at` = `2026-11-15T10:00:02Z` |
 | `skill_bundles` row | `skills_commit_sha` = `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b`, `skill` = `sdlc-fix-bug-triage`, `bundle_sha256` = `b7e3c1a9f5d2e8b4a6c0f1d3e5b7a9c2d4f6e8b0a1c3e5d7f9b2a4c6e8d0f13a`, `s3_key` = `bundles/4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b/sdlc-fix-bug-triage.tar.gz` |
 | Object-store bucket | `skill-builder-runs`; the run prefix is `runs/1/` |
 | Bundle URL | a presigned GET URL on `skill-builder-runs` whose path is exactly `/bundles/4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b/sdlc-fix-bug-triage.tar.gz`; the query string is generated per launch and is not asserted |
@@ -76,9 +80,12 @@ FR-043); this epic consumes it. The run columns and the `skill_bundles` columns 
 characters), not the repository prefix. The ECR repository and tag are never stored on the run; a
 tag such as `:latest` is never accepted in place of a digest.
 
-**Run state values.** The values below are the whole state vocabulary for this epic. The starting
+**Run state values.** The values below are the states these stories set or read. The starting
 value `queued` is created by epic BSB-24; the terminal values are created here, except
-`failed_timeout`, which epic BSB-27 owns.
+`failed_timeout`, which epic BSB-27 owns. Two further terminal values belong to sibling epics and
+are not set by these stories: the value epic BSB-27 records when a run stops at its turn or spend
+cap (FR-051, FR-053), and the value epic BSB-25 records when preparation fails. Their exact names
+are still open (Open question 3 of this epic's review), so no scenario below asserts them.
 
 | `runs.state` | Meaning | Set by |
 |--------------|---------|--------|
@@ -89,6 +96,11 @@ value `queued` is created by epic BSB-24; the terminal values are created here, 
 | `failed_execution` | the runtime exited non-zero and produced no valid result | BSB-26-PENDING-3 |
 | `failed_incomplete` | the runtime exited but the uploaded result was missing, malformed, or not an allowed status | BSB-26-PENDING-3 |
 | `failed_timeout` | the run exceeded its deadline | epic BSB-27; never set by these stories |
+
+**Terminal-write rule.** Every transition out of `running` is a single compare-and-set update on
+`state = 'running'`; the first terminal write wins and a later writer that finds the row no longer
+`running` leaves it unchanged. Epic BSB-27 writes its terminal state before it stops the
+container.
 
 **Executor claim contract.** The builder runs one or more executor processes. On each claim pass
 (interval exactly 1 second) an executor claims the oldest run matching
@@ -127,8 +139,8 @@ The run page renders the outcome region with exactly one of these texts:
 While the run is `running` the outcome region is absent.
 
 **Environment handed to the runtime.** For run `1` the executor starts the agent container with
-the image from `kit.json` and, among the builder-set variables, exactly these values; the model key
-and other integration credentials are injected from Secrets Manager by epic BSB-23's mechanism and
+the image from `kit.json` and, among the builder-set variables, exactly these values; the model,
+`github` and `jira` credentials are injected from Secrets Manager by epic BSB-23's mechanism and
 are not stored or logged.
 
 | Variable | Value |
@@ -139,21 +151,39 @@ are not stored or logged.
 | `BB_SKILL_SHA256` | `b7e3c1a9f5d2e8b4a6c0f1d3e5b7a9c2d4f6e8b0a1c3e5d7f9b2a4c6e8d0f13a` |
 | `BB_MODEL` | `test-model-high` (profile `3`, tier `high`) |
 | `BB_CONTEXT` | the pinned step kit's `build_step_context` output for run `1`; its `allowed_result_statuses` is exactly `["completed","BLOCK","changes_requested","escalation_required"]` and its `gate_follows`, `gate_role`, `reviewer_feedback` and `upstream_handoff` are `false`, `null`, `null` and `null`. The rest of the object's shape belongs to the platform step kit and is not restated here |
+| `BB_REPO_URL` | `https://github.com/saraavrnd/bheembhai-skill-fixtures.git`, built from the `github` integration's `config.repo` |
+| `BB_BASE_BRANCH` | `main`, built from the `github` integration's `config.base_branch` |
+| `BB_MCP_CONFIG` | the JSON value `{"servers":[{"name":"jira","transport":"stdio","command":"mcp-atlassian","args":["--jira-url","https://old.atlassian.net"]}]}`, built from the `jira` integration's `mcp` value; the `github` integration's `mcp` is `null` and contributes no server |
+| `BB_PROGRESS_PUT_URL` | a presigned PUT URL on `skill-builder-runs` whose path is exactly `/runs/1/progress.json`; the query string is generated per launch and is not asserted |
+| `BB_RESULT_PUT_URL` | a presigned PUT URL on `skill-builder-runs` whose path is exactly `/runs/1/bb_step_result.json`; the query string is generated per launch and is not asserted |
+
+`BB_REPO_URL`, `BB_BASE_BRANCH` and `BB_MCP_CONFIG` are built from the project's `github` and
+`jira` integrations; the two PUT URLs are the ADR-014 presigned URLs the step kit's env contract
+requires. No credential value appears in the stored environment or the log (NFR-004, epic
+BSB-23).
 
 **Progress contract.** While the agent runs, it writes `progress.json` to
 `s3://skill-builder-runs/runs/1/progress.json`. The builder reads that object once per second and
-the progress API returns the latest read plus the run id:
+the progress API returns the latest read plus the run id and the run's current state:
 
 ```
 {"run_id":1,"step":"triage","state":"running","message":"Reading issue LEARN-87","percent":40,"updated_at":"2026-11-15T10:01:05Z"}
 ```
 
-The run page shows the progress region with the exact text
+The progress region is the element with id `run-progress`. The `state` in the API body and in that
+region is always `runs.state`, never the `state` field the agent writes inside `progress.json`; the
+agent's own value is ignored. The run page shows the progress region with the exact text
 `Running step triage — Reading issue LEARN-87 (40%)`. Before the first `progress.json` is readable
 the progress API returns
 `{"run_id":1,"step":null,"state":"running","message":null,"percent":0,"updated_at":null}` and the
 page's progress region shows `Waiting for the skill to report progress.` A `percent` outside `0` to
 `100` is clamped to that range for display.
+
+Once `runs.state` is terminal the run page has no element with id `run-progress`, exactly as it has
+no outcome region while the run is `running`. The progress API keeps returning the last read values
+with `state` set to the run's `runs.state` value; when no `progress.json` was ever readable it
+returns `{"run_id":1,"step":null,"state":"failed_infra","message":null,"percent":0,"updated_at":null}`
+for a `failed_infra` run, with the `state` value following `runs.state`.
 
 **Log contract.** While the agent runs, its standard output and standard error are captured to
 `s3://skill-builder-runs/runs/1/agent.log`. The log API returns the last `tail` lines, split on
@@ -178,24 +208,41 @@ In that case the log API sets `"truncated":true`, returns the marker as `lines[0
 with the last `tail` lines of the stored log; the run page shows the marker above the log.
 Truncation never changes `runs.state`.
 
-**Error responses** (each has `Content-Type: application/json`; the BSB-18 session and group gates
-and the BSB-22 project-membership decision run before these checks, and their fixed bodies are not
-restated here):
+The log API and the page's `run-log` element keep serving the stored log after `runs.state` becomes
+terminal, so a start-failure line or a truncation marker stays readable until epic BSB-33 replaces
+the page; ending a run never deletes or hides its log.
+
+Before the captured log is stored or served, every occurrence of a known credential value is
+replaced with exactly `[REDACTED]` (NFR-004, using epic BSB-23's redaction mechanism). Which
+process writes `agent.log` — the builder's capture of the container's standard output and standard
+error, or an upload by the image — is still open (Open question 2 of this epic's review); this
+contract fixes the stored object and the lines the API and page serve, not the writer.
+
+**Error responses** (each has `Content-Type: application/json`). The checks run in this fixed
+order: BSB-18's session and group gates, then BSB-22's `project_not_found` on the path project,
+then BSB-22's membership check on the path project, then this epic's `run_not_found`. The earlier
+checks' fixed bodies are not restated here.
 
 | Situation | Status | Exact response body |
 |-----------|--------|---------------------|
 | `run_id` names no `runs` row | 404 | `{"error":{"code":"run_not_found","message":"Run 999 does not exist."}}` |
+| the run's `project_id` differs from the path's `project_id` | 404 | `{"error":{"code":"run_not_found","message":"Run 1 does not exist."}}` |
 | the run's `project_id` has no `project_members` row for the caller | 403 | `{"error":{"code":"project_membership_required","message":"You are not a member of this project."}}` |
 
 In `run_not_found` the number is the `run_id` from the path.
 
 **Cross-epic notes.**
 
-- **BSB-24's workflow fixture.** Epic BSB-24 owns workflow and step selection and its fixture
-  already declares workflow `bug-fix` with steps `triage`, `reproduce`, `root-cause` and
-  `implement`. This epic consumes one more field of that fixture, step `triage`'s
+- **BSB-24's workflow fixture and the default context.** Epic BSB-24 owns workflow and step
+  selection and its fixture already declares workflow `bug-fix` with steps `triage`, `reproduce`,
+  `root-cause` and `implement`. This epic consumes one more field of that fixture, step `triage`'s
   `allowed_result_statuses`. BSB-24's scenarios assert only the workflow and step names, so no
-  BSB-24 scenario changes.
+  BSB-24 scenario changes. When the author omits `context`, BSB-24 stores `{}` and defers default
+  workflow and step resolution to this epic. Who resolves the default — run start or BSB-26 at
+  claim — and what a run whose skill is used by no workflow, or by more than one, does is still
+  open (BSB-24 Open question 4, repeated as Open question 1 of this epic's review). No scenario
+  below asserts a `BB_CONTEXT` or an `allowed_result_statuses` value for an omitted context until
+  that answer is recorded.
 - **BSB-25 hand-off.** Epic BSB-25 (FR-038 to FR-043) has no stories yet. This epic assumes its
   outputs: `skills_commit_sha`, `run_branch`, the `skill_bundles` row and the run branch
   `skilltest/1`, per §5 of the ADR. A prepared run stays `queued` until an executor claims it. If
@@ -237,7 +284,29 @@ And that container's image is exactly `123456789012.dkr.ecr.eu-west-1.amazonaws.
 And the container's label `bb.stepkit` is exactly `0.4.0`
 And the container's environment contains `RUN_BRANCH` = `skilltest/1`, `BB_RUN_ID` = `1`, `BB_SKILL_SHA256` = `b7e3c1a9f5d2e8b4a6c0f1d3e5b7a9c2d4f6e8b0a1c3e5d7f9b2a4c6e8d0f13a` and `BB_MODEL` = `test-model-high`
 And the container's `BB_SKILL_URL` is a presigned URL whose path is exactly `/bundles/4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b/sdlc-fix-bug-triage.tar.gz`
+And the container's `BB_PROGRESS_PUT_URL` is a presigned URL whose path is exactly `/runs/1/progress.json`
+And the container's `BB_RESULT_PUT_URL` is a presigned URL whose path is exactly `/runs/1/bb_step_result.json`
 And the container's `BB_CONTEXT` is the pinned step kit's `build_step_context` output for run `1`, whose `allowed_result_statuses` is exactly `["completed","BLOCK","changes_requested","escalation_required"]`
+
+#### Scenario: The runtime receives the project's git coordinates and MCP configuration
+Given run `1` exists prepared and `state` = `queued` as in the contract
+And `skill-builder/kit.txt` contains `kit-v7`
+And the builder executor is running with a 1-second claim interval
+When the executor claims run `1`
+Then the runtime has started exactly one container labelled `bb.run_id` = `1`
+And that container's environment contains `BB_REPO_URL` = `https://github.com/saraavrnd/bheembhai-skill-fixtures.git` and `BB_BASE_BRANCH` = `main`
+And that container's `BB_MCP_CONFIG` is the JSON value `{"servers":[{"name":"jira","transport":"stdio","command":"mcp-atlassian","args":["--jira-url","https://old.atlassian.net"]}]}`
+And none of that container's environment values is exactly `sk-ant-test-5f2c8e1d`
+
+#### Scenario: Reviewer feedback and upstream handoff reach the runtime context
+Given run `3` exists prepared and `state` = `queued` with the context in the fixture table
+And `skill-builder/kit.txt` contains `kit-v7`
+And the builder executor is running with a 1-second claim interval
+When the executor claims run `3`
+Then within 2 seconds `SELECT state FROM runs WHERE id = 3` returns `running`
+And the runtime has started exactly one container labelled `bb.run_id` = `3`
+And that container's `BB_CONTEXT` is the pinned step kit's `build_step_context` output for run `3`, whose `reviewer_feedback` is exactly `Please handle an empty issue title without failing.`
+And that container's `BB_CONTEXT`'s `upstream_handoff` is exactly the JSON value `{"step":"reproduce","result_status":"completed","summary":"Reproduction confirmed on the input branch."}`
 
 #### Scenario: A run that is not prepared is not claimed
 Given run `1` exists with `state` = `queued`, `skills_commit_sha` = `NULL` and `run_branch` = `NULL`
@@ -262,6 +331,7 @@ When the executor claims run `1`
 Then within 2 seconds `SELECT state, claimed_verdict FROM runs WHERE id = 1` returns exactly `failed_infra | NULL`
 And the first line of `s3://skill-builder-runs/runs/1/agent.log` is exactly `[skill-builder] runtime start failed: Error response from daemon: No such image`
 And the run page at `GET https://builder.skillbuilder.internal/projects/7/runs/1` contains the exact text `The runtime could not be started.`
+And that page's element with id `run-log` contains the exact text `[skill-builder] runtime start failed: Error response from daemon: No such image`
 And a further claim pass leaves `SELECT state FROM runs WHERE id = 1` as `failed_infra`
 And the runtime has started no container labelled `bb.run_id` = `1`
 
@@ -274,18 +344,31 @@ recording the baseline (epic BSB-25, FR-038 to FR-043). Classifying the outcome 
 container exits (BSB-26-PENDING-3). Recording component versions, verifier version, model profile
 and tier on the run row (BSB-26-PENDING-4). Turn and spend caps, the deadline, `failed_timeout`,
 scan refusals and re-runs (epic BSB-27). Verifying the run's output (epic BSB-29). Run reports,
-history, comparison, token usage and cost (epics BSB-33, BSB-34 and BSB-35). The CLI entry point
-that starts the same runner (epic BSB-37).
+history, comparison, tracing, token usage and cost (epics BSB-33, BSB-34 and BSB-35). The CLI
+entry point that starts the same runner (epic BSB-37).
 
 ### Notes / dependencies
 - Depends on epic BSB-24 for the `runs` row and its `queued` starting state, on epic BSB-25 for the
   prepared `skills_commit_sha`, `run_branch` and `skill_bundles` row, and on epic BSB-23 for the
-  `ai_model` integration whose profile `3`/tier `high` resolves to `test-model-high`.
+  `ai_model`, `github` and `jira` integrations and for FR-128/FR-129's stored MCP definitions,
+  which this story renders into the container environment. It also depends on the
+  installation-provisioned `skill-builder-runs` bucket (SK-001 §6, the same bucket BSB-25 writes
+  bundles to).
+- This story renders FR-128/FR-129's stored MCP definitions and the `github` integration's
+  repository coordinates into `BB_MCP_CONFIG`, `BB_REPO_URL` and `BB_BASE_BRANCH`, and supplies
+  the step kit's presigned PUT URLs for `progress.json` and `bb_step_result.json`. Credential values
+  are injected by `secret_ref` and never appear in the stored environment or the log (NFR-004,
+  epic BSB-23).
 - The agent image and the launch spec are the platform's own, pinned by `kit.txt` and `kit.json`;
   this story reuses the step kit's launcher and does not build a bespoke executor. The test asserts
   the digest, the step kit label and the environment contract rather than the launch code path.
+- The launch environment carries the step kit's tracing settings with the test-environment marker
+  required by NFR-011; epic BSB-34 owns the trace store and the marker's value.
 - The claim is one compare-and-set update, so two executors cannot both start a container. The
   executor does not claim a row until BSB-25 has set both `skills_commit_sha` and `run_branch`.
+  A run BSB-25 leaves `queued` because its preparation failed is BSB-25's to terminate and is
+  never claimed here. After an executor restart, an executor finds its in-flight runs by the
+  `bb.run_id` container label.
 - A start failure is terminal: there is no automatic retry in this epic. Re-running a failed run
   belongs to epic BSB-27 (FR-056). The reason is durable in two places: the `runs.state` value and
   the first line of the stored log.
@@ -344,6 +427,28 @@ And the response body's element with id `run-log` contains the exact text `Waiti
 And the progress API returns the JSON value `{"run_id":1,"step":null,"state":"running","message":null,"percent":0,"updated_at":null}`
 And the log API returns the JSON value `{"run_id":1,"lines":[],"truncated":false}`
 
+#### Scenario: A run that failed to start keeps its log and reports no progress
+Given run `1` exists with `state` = `failed_infra`
+And `s3://skill-builder-runs/runs/1/agent.log`'s first line is exactly `[skill-builder] runtime start failed: Error response from daemon: No such image`
+And `s3://skill-builder-runs/runs/1/progress.json` does not exist
+And Ada has a valid member session with local `users.id` = `42`
+When Ada sends `GET https://builder.skillbuilder.internal/projects/7/runs/1` and `GET https://builder.skillbuilder.internal/api/projects/7/runs/1/progress` and `GET https://builder.skillbuilder.internal/api/projects/7/runs/1/log?tail=200` carrying that `sb_session` cookie
+Then the run page responds with HTTP status 200 and contains the exact text `The runtime could not be started.`
+And the run page has no element with id `run-progress` and does not contain the text `Waiting for the skill to report progress.`
+And the progress response is HTTP 200 and its body equals the JSON value `{"run_id":1,"step":null,"state":"failed_infra","message":null,"percent":0,"updated_at":null}`
+And the log response's `lines[0]` is exactly `[skill-builder] runtime start failed: Error response from daemon: No such image`
+And the run page's element with id `run-log` contains the exact text `[skill-builder] runtime start failed: Error response from daemon: No such image`
+
+#### Scenario: A credential value in the log is redacted before it is stored
+Given run `1` exists with `state` = `running`
+And the runtime emits the line `2026-11-15T10:01:02Z WARN using key sk-ant-test-5f2c8e1d`
+And the `ai_model` credential's value is exactly `sk-ant-test-5f2c8e1d`
+And the builder's redaction mask is exactly `[REDACTED]`
+When the captured log is stored and served
+Then `s3://skill-builder-runs/runs/1/agent.log` contains the line `2026-11-15T10:01:02Z WARN using key [REDACTED]` and no line containing `sk-ant-test-5f2c8e1d`
+And `GET https://builder.skillbuilder.internal/api/projects/7/runs/1/log?tail=200` returns `lines` containing exactly `2026-11-15T10:01:02Z WARN using key [REDACTED]` and no element containing `sk-ant-test-5f2c8e1d`
+And the run page does not contain the text `sk-ant-test-5f2c8e1d`
+
 #### Scenario: A truncated log is marked, not silently shortened
 Given run `1` exists with `state` = `running`
 And the runtime emitted `12582912` bytes of log output
@@ -364,6 +469,33 @@ And the `Content-Type` response header is `application/json`
 And the response body is exactly `{"error":{"code":"project_membership_required","message":"You are not a member of this project."}}`
 And the response body contains no log line or progress message text
 
+#### Scenario: A non-member cannot open the run page
+Given run `1` exists in project `7` with `state` = `running`
+And Alan has no `project_members` row for project `7`
+And Alan has a valid member session with local `users.id` = `44`
+When Alan sends `GET https://builder.skillbuilder.internal/projects/7/runs/1` carrying that `sb_session` cookie
+Then the builder responds with HTTP status 403
+And the `Content-Type` response header is `application/json`
+And the response body is exactly `{"error":{"code":"project_membership_required","message":"You are not a member of this project."}}`
+And the response body contains no log line or progress message text
+
+#### Scenario: An unknown run id is not found
+Given Ada is a member of project `7` with local `users.id` = `42`
+And no `runs` row has `id` = `999`
+When Ada sends `GET https://builder.skillbuilder.internal/api/projects/7/runs/999/progress` carrying that `sb_session` cookie
+Then the builder responds with HTTP status 404
+And the `Content-Type` response header is `application/json`
+And the response body is exactly `{"error":{"code":"run_not_found","message":"Run 999 does not exist."}}`
+
+#### Scenario: A run from another project is not found through this path
+Given run `1` exists in project `7` with `state` = `running`
+And Grace is a member of project `7` with role `member` and owner of project `8`
+And Grace has a valid member session with local `users.id` = `43`
+When Grace sends `GET https://builder.skillbuilder.internal/api/projects/8/runs/1/progress` carrying that `sb_session` cookie
+Then the builder responds with HTTP status 404
+And the `Content-Type` response header is `application/json`
+And the response body is exactly `{"error":{"code":"run_not_found","message":"Run 1 does not exist."}}`
+
 ### Covered requirements (traceability)
 - FR-045
 - FR-046
@@ -377,15 +509,26 @@ the transport). Accessibility of the progress and log regions (epic BSB-38, FR-1
 NFR-012).
 
 ### Notes / dependencies
-- Depends on BSB-26-PENDING-1 for a run in state `running` and on epic BSB-23's object-store
-  configuration for the bucket. It depends on the agent image's existing `progress.json` and
-  `agent.log` outputs, which are part of the platform image contract.
+- Depends on BSB-26-PENDING-1 for a run in state `running` and on the installation-provisioned
+  `skill-builder-runs` bucket (SK-001 §6, the same bucket BSB-25 writes bundles to). It depends on
+  the agent image's existing `progress.json` output, which is part of the platform image contract.
+  Which process writes `agent.log` — the builder's capture of the container's standard output and
+  standard error, or an upload by the image — is still open (Open question 2 of this epic's
+  review); this story asserts the stored object and the served lines, not the writer.
+- The captured log passes through epic BSB-23's NFR-004 redaction before it is stored or served.
+  Every occurrence of a known credential value is replaced with exactly `[REDACTED]`; the mask is
+  this fixture's contract constant and epic BSB-23 owns the mechanism.
 - The run page route and both APIs apply the same BSB-18 session and group gates and the BSB-22
-  project-membership check as the run-start routes. A non-member gets the fixed BSB-22 403 body.
+  project-membership check as the run-start routes. A non-member gets the fixed BSB-22 403 body on
+  both the page and the APIs. The two 404 bodies follow the preamble's fixed check order, so a
+  path/run project mismatch is answered by `run_not_found`, not by disclosure of the other
+  project's run.
 - The log cap is a capture/display cap, not a retention policy: retention and purge belong to epic
   BSB-34. The truncation marker is the durable record that bytes were discarded.
-- The page is server-rendered with a progress region and a log element with id `run-log`; BSB-33
-  extends that page with the full report and must keep these ids and texts for runs in `running`.
+- The page is server-rendered with a progress region with id `run-progress` and a log element with
+  id `run-log`; BSB-33 extends that page with the full report and must keep these ids and texts.
+  The progress region is absent once the run is terminal, while the log element keeps serving the
+  stored log.
 - Progress and log content are untrusted text from the skill; the page escapes it as text and the
   APIs return it as JSON strings. Rendering is not HTML.
 
@@ -408,6 +551,7 @@ And `s3://skill-builder-runs/runs/1/bb_step_result.json` contains exactly `{"res
 When the executor reconciles the exit
 Then within 2 seconds `SELECT state, claimed_verdict, final_verdict FROM runs WHERE id = 1` returns exactly `completed | completed | NULL`
 And the run page contains the exact text `Outcome: completed`
+And the run page has no element with id `run-progress`
 
 #### Scenario: A BLOCK result is preserved rather than treated as a failure
 Given run `1` exists with `state` = `running`
@@ -449,6 +593,22 @@ When the executor reconciles the exit
 Then `SELECT state, claimed_verdict, final_verdict FROM runs WHERE id = 1` returns exactly `failed_incomplete | NULL | NULL`
 And the run page contains the exact text `The runtime exited without a classifiable result.`
 
+#### Scenario: A run already terminated at its deadline is not overwritten
+Given run `1` exists with `state` = `failed_timeout` and `claimed_verdict` = `NULL`
+And the agent container labelled `bb.run_id` = `1` exits with status `137`
+And `s3://skill-builder-runs/runs/1/bb_step_result.json` does not exist
+When the executor reconciles the exit
+Then within 2 seconds `SELECT state, claimed_verdict, final_verdict FROM runs WHERE id = 1` returns exactly `failed_timeout | NULL | NULL`
+
+#### Scenario: A restarted executor reconciles a container that already exited
+Given run `1` exists with `state` = `running`
+And a container labelled `bb.run_id` = `1` exists, is not running, and exited with status `0`
+And `s3://skill-builder-runs/runs/1/bb_step_result.json` contains exactly `{"result_status":"completed","summary":"Triage finished."}`
+And a builder executor process starts with no in-memory record of run `1`
+When the executor performs its startup reconciliation by the `bb.run_id` label
+Then within 2 seconds `SELECT state, claimed_verdict, final_verdict FROM runs WHERE id = 1` returns exactly `completed | completed | NULL`
+And the run page contains the exact text `Outcome: completed`
+
 ### Covered requirements (traceability)
 - FR-047
 
@@ -463,15 +623,24 @@ spend caps, the deadline and `failed_timeout` (epic BSB-27). Retrying or re-runn
 - Depends on BSB-26-PENDING-1 for a started run in state `running`, and on the pinned step kit's
   outcome join (the same join the platform engine uses). The fixture statuses are the platform
   step kit's domain statuses; the allowed set comes from the selected workflow step's config on
-  the skills commit.
+  the skills commit. `bb_step_result.json` is read from the object at the key PENDING-1's
+  `BB_RESULT_PUT_URL` points at (`runs/1/bb_step_result.json`). When the author omitted `context`,
+  which workflow step supplies `allowed_result_statuses` is still open (Open question 1 of this
+  epic's review); no scenario here classifies an omitted-context run.
+- Every terminal write is a compare-and-set from `state = 'running'`; the first terminal write
+  wins. A run already in a terminal state — for example `failed_timeout` written by epic BSB-27 —
+  is left unchanged when its container later exits.
+- An executor that starts after a restart finds in-flight runs by the `bb.run_id` container label
+  and reconciles a container that has already exited, using the same compare-and-set.
 - A valid uploaded result takes precedence over the process exit status. A skill that reports
   `BLOCK` and exits non-zero is a completed execution with claimed verdict `BLOCK`; the verdict is
   not a run failure. Failure classifications are reserved for exits with no valid allowed result.
 - The run row is the durable record: `state` records the engine classification and
   `claimed_verdict` records the agent's claimed verdict only when one is valid. `final_verdict` and
   `verification` stay `NULL` here because verification is epic BSB-29's job.
-- `failed_timeout` is deliberately absent from this story; epic BSB-27 sets it when the
-  installation deadline is exceeded.
+- `failed_timeout` is never set by this story; epic BSB-27 sets it when the installation deadline
+  is exceeded. This story only asserts that a run already in that state is not overwritten and
+  that a restarted executor does not misclassify a container BSB-27 stopped.
 - The page texts asserted here are the failure-reason text this epic owns; epic BSB-33 extends the
   same page with the full report.
 
@@ -552,3 +721,6 @@ versions (epics BSB-31 and BSB-32).
   re-read later; a later kit pin change cannot rewrite a past run.
 - Epic BSB-29 must verify with the `verify_version` recorded on the run, not with whatever
   `kit.txt` contains at verification time.
+- Only the model is resolved here: `BB_MODEL` is this story's environment value. The `github` and
+  `jira` integrations, `BB_MCP_CONFIG`, `BB_REPO_URL`, `BB_BASE_BRANCH` and the presigned PUT URLs
+  are BSB-26-PENDING-1's environment values.
