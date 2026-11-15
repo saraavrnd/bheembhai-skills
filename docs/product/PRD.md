@@ -4,7 +4,7 @@
 
 ## 1. Problem & Opportunity
 
-Skill authors in this catalog work on the one artifact the platform executes, but they cannot exercise it end to end before it enters the catalog. The available manifest checks validate structure, not behaviour, and running a skill still needs a real project, real Jira and source-control state, and a real model, which authors must not point at production data. Behavioural defects and unsafe skills therefore first surface after a catalog release and platform import, when fixing them is most expensive. Authors need a safe, faithful loop in which a skill can be created or adapted, run against realistic test data, inspected, and changed again before anyone depends on it.
+Skill authors in this catalog work on the one artifact the platform executes, but they cannot exercise it end to end before it enters the catalog. The available manifest checks validate structure, not behaviour, and running a skill still needs a real project, real Jira and source-control state, and a real model, which authors must not point at production data. Behavioural defects therefore go uncaught until a catalog release and platform import, when fixing them is most expensive. Authors need a safe, faithful loop in which a skill can be created or adapted, run against realistic test data, inspected, and changed again before anyone depends on it.
 
 ## 2. Target Users
 
@@ -16,6 +16,10 @@ Skill authors in this catalog work on the one artifact the platform executes, bu
 | Platform administrator | Keep authoring access limited to trusted people and import released skills | External to this product; manages group membership and the catalog import |
 
 ## 3. Goals & Success Metrics
+
+> **Metric provenance.** The ADR states these goals qualitatively and supplies no numeric targets.
+> Every threshold below is a proposed acceptance target for this PRD, not a commitment given by the
+> source; the added ones are enumerated in §8.
 
 - G1 — Authors validate behaviour before a skill is released.
   - Metric: at least 90% of catalog submissions have a passing verified run at the submitted commit.
@@ -32,7 +36,9 @@ Skill authors in this catalog work on the one artifact the platform executes, bu
 
 ## 4. Scope
 
-**In scope (MVP):** sign-in and group-based authoring gate; create, edit and clone builds; skill-file editing and save-to-commit; build branch, head commit and readiness state; test projects and membership; Jira, source-control and model integrations with externally held credentials and MCP server definitions; run setup and skill packaging; run execution and outcome capture; turn, spend and deadline guardrails; re-runs and output chaining; static security scanning with a hard run gate; non-blocking model security scanning; verification and the Ready gate; run reports and audit trail; catalog submission as a pull request; command-line runs and scans; accessibility conformance.
+**Release split (added assumption).** The ADR does not define releases. The MVP/Later split below, and the `MVP`/`Later` tags on every requirement, are this PRD's proposal (see §8).
+
+**In scope (MVP):** sign-in and group-based authoring gate; create, edit and clone builds; skill-file editing and save-to-commit; build branch, head commit and readiness state; test projects and membership; Jira, source-control and model integrations with externally held credentials and MCP server definitions; run setup and skill packaging; run execution and outcome capture; turn and spend caps plus a run deadline (the deadline is an added assumption); re-runs and output chaining; static security scanning with a hard run gate; non-blocking model security scanning; verification and the Ready gate; run reports and audit trail; catalog submission as a pull request; command-line runs and scans; accessibility conformance (added assumption).
 
 **Out of scope (Later / explicitly not now):** Jira fixture seeding; skill history and run comparison; saved suites and nightly scheduling; workflow orchestration with gates and routing; versioning inside the builder; user, group and role administration; project ownership transfer; writing to the platform catalog, platform projects or project skills; changing builtin verifier checks; mocked models or fake Jira and source control by default.
 
@@ -56,9 +62,12 @@ Skill authors in this catalog work on the one artifact the platform executes, bu
 | FA-14 | Skill history & run comparison | Show a skill's runs over time and highlight what changed |
 | FA-15 | Catalog submission | Turn a Ready build into a reviewed catalog pull request |
 | FA-16 | Command line & suites | Run and scan outside the interface, and repeat named suites |
-| FA-17 | Accessibility conformance | Keep every web surface operable with a keyboard and assistive technology |
+| FA-17 | Accessibility conformance | Keep every web surface operable with a keyboard and assistive technology (added assumption; see §8) |
 
 ## 6. Functional Requirements
+
+FR-130 through FR-137 (FA-17, accessibility) are an added assumption: the ADR contains no
+accessibility scope. See §8.
 
 | ID | Feature area | Requirement (one testable capability) | Release |
 |------|--------------|----------------------------------------|---------|
@@ -164,7 +173,7 @@ Skill authors in this catalog work on the one artifact the platform executes, bu
 | FR-100 | FA-13 | The run page shows the diff from the input branch to the run branch. | MVP |
 | FR-101 | FA-13 | The run page shows the Jira changes the run made. | MVP |
 | FR-102 | FA-13 | The run page shows token usage, turns and cost. | MVP |
-| FR-103 | FA-13 | The run page links to the run's trace. | MVP |
+| FR-103 | FA-13 | The run page links to the run's trace when tracing is enabled. | MVP |
 | FR-104 | FA-14 | The skill history lists every run of a skill with its commit SHA, input branch, verdict and checks. | Later |
 | FR-105 | FA-14 | The compare view shows two runs side by side. | Later |
 | FR-106 | FA-14 | The compare view highlights checks that flipped between the two runs. | Later |
@@ -205,6 +214,9 @@ Skill authors in this catalog work on the one artifact the platform executes, bu
 
 ## 7. Non-Functional Requirements
 
+NFR-001's numeric limits, the run deadline (NFR-007, NFR-008), accessibility (NFR-012) and
+retention and purge (NFR-013, NFR-014) are added assumptions, not ADR-given values. See §8.
+
 | ID | Category | Requirement | Release |
 |------|----------|-------------|---------|
 | NFR-001 | Performance | Non-model run preparation completes within 60 seconds for a skill bundle of up to 5 MB. | MVP |
@@ -217,7 +229,7 @@ Skill authors in this catalog work on the one artifact the platform executes, bu
 | NFR-008 | Reliability | A run that exceeds its configured deadline is recorded as failed. | MVP |
 | NFR-009 | Reproducibility | Preparing the same skills commit twice produces an identical skill bundle. | MVP |
 | NFR-010 | Reproducibility | The same inputs and component versions produce the same verification result. | MVP |
-| NFR-011 | Compliance | Every run's trace identifies it as a test-environment run. | MVP |
+| NFR-011 | Compliance | When tracing is enabled, every run's trace identifies it as a test-environment run. | MVP |
 | NFR-012 | Accessibility | The web interface meets WCAG 2.1 AA. | MVP |
 | NFR-013 | Privacy | Run transcripts, logs and results are retained only for a configured period. | MVP |
 | NFR-014 | Privacy | Run transcripts, logs and results can be purged on request. | MVP |
@@ -225,7 +237,34 @@ Skill authors in this catalog work on the one artifact the platform executes, bu
 
 ## 8. Constraints & Assumptions
 
-**Source.** This PRD reconciles the product definition in `docs/adr/SK-001-skill-builder.md` with the BSB epic set (BSB-1 to BSB-17) currently published in the Atlassian project. The BSB epic set was generated from an earlier revision of this PRD, so it is a downstream traceability view rather than a second source of truth. Requirements FR-124 onward are new in this revision and will be mapped on the next epics pass; the earlier FR and NFR identifiers are kept stable so existing traceability remains valid.
+**Source.** No separate product-idea input was supplied for this run. The single source is the
+product definition in `docs/adr/SK-001-skill-builder.md`; it is treated as the product idea. The
+BSB epic set (BSB-1 to BSB-17) currently published in the Atlassian project was generated from an
+earlier revision of this PRD, so it is a downstream traceability view rather than a second source of
+truth; it is not used here to justify scope. Requirements FR-124 onward are new in this revision and
+will be mapped on the next epics pass; the earlier FR and NFR identifiers are kept stable so
+existing traceability remains valid.
+
+**Assumptions added beyond the source.** The following are choices this PRD makes. The ADR does not
+contain them, and nothing downstream should treat them as given until a human confirms them.
+
+- **Release split.** The ADR does not distinguish releases. The MVP/Later split in §4–§7, including
+  treating accessibility as MVP, is this PRD's proposal.
+- **Accessibility.** The ADR describes only server-rendered HTML with the platform's theme and says
+  nothing about accessibility, WCAG, assistive technology or automated accessibility checks. FA-17,
+  FR-130 through FR-137, G6 and NFR-012 are added here.
+- **Retention and purge.** The ADR stores run data in the builder's database and S3 bucket but sets
+  no retention period and no purge operation. NFR-013, NFR-014 and the installation-level retention
+  setting are added here.
+- **Run deadline.** The ADR bounds turns and spend per run and gives scanner containers a 10-minute
+  limit; it states no per-run deadline. NFR-007, NFR-008 and the installation-level deadline setting
+  are added here.
+- **Performance goal and numeric targets.** The ADR gives no run-preparation speed goal. G4 and
+  NFR-001 are added here, and their thresholds are proposals: the 95% / 60 seconds / 5 MB in G4 and
+  the 60 seconds / 5 MB in NFR-001. More generally, the ADR states qualitative outcomes only
+  ("same verdict", "never", "no model tokens") and gives no percentages or durations, so the 90% in
+  G1 and the 100% in G2 and G6 are also proposed acceptance thresholds. The 0 counts in G3 and G5
+  restate the ADR's "never" and "no model tokens" wording as measurable targets.
 
 **External prerequisites.** The platform identity provider, the skill-builders group, the catalog repository and its review flow, the pinned agent and scanner images, the pinned verifier releases, the external secret store, the builder's object-storage bucket, the trace store, the curated input branches in the sandbox repository, the platform's repository inventory used for the overlap warning and the model endpoints are supplied outside this product. The builder consumes them; it does not build or administer them.
 
@@ -237,7 +276,7 @@ Skill authors in this catalog work on the one artifact the platform executes, bu
 
 **No platform writes.** The builder never writes to the platform catalog, platform projects or project skills; its only outward write is a catalog pull request opened with the author's identity.
 
-**Release markings.** Requirements marked Later are deferred from the first release and are not prerequisites for it. All other requirements, including every non-functional requirement, are required for the first release.
+**Release markings.** The release split is an added assumption (see above). Requirements marked Later are deferred from the first release and are not prerequisites for it. All other requirements, including every non-functional requirement, are required for the first release.
 
 **Access model.** The product assumes its users are already trusted by the platform and that group membership is managed externally; it provides no user, group or role administration of its own.
 
@@ -251,9 +290,7 @@ Skill authors in this catalog work on the one artifact the platform executes, bu
 
 **Jira fixture marking.** When Jira fixture seeding is enabled, seeded issues are created in the project's configured Jira project and marked with the run ID. Cleanup and the nightly sweep act only on marked issues, so a human-created issue is never deleted.
 
-**Accessibility.** Accessibility conformance is a cross-cutting feature area (FA-17) measured against WCAG 2.1 AA (NFR-012). Automated checks supplement, and do not replace, the manual assistive-technology audit.
-
-**Installation settings.** The run deadline (NFR-007, NFR-008) and the retention period (NFR-013) are installation-level settings managed by the operator; an author does not set them per run. Their default values are open questions.
+**Installation settings (added assumption).** The run deadline (NFR-007, NFR-008) and the retention period (NFR-013) are treated as installation-level settings managed by the operator; an author does not set them per run. Neither setting appears in the ADR. Their default values are open questions.
 
 ## 9. Open Questions
 
