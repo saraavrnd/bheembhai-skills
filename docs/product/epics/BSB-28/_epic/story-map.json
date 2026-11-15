@@ -1,0 +1,31 @@
+{
+  "epic_key": "BSB-28",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-28-PENDING-1",
+      "summary": "Seed a run's Jira fixture as run-marked issues",
+      "requirement_ids": ["FR-058"]
+    },
+    {
+      "story_key": "BSB-28-PENDING-2",
+      "summary": "Replace fixture aliases with the created issue keys",
+      "requirement_ids": ["FR-059"]
+    },
+    {
+      "story_key": "BSB-28-PENDING-3",
+      "summary": "Record the seeded issues' state after the run",
+      "requirement_ids": ["FR-060"]
+    },
+    {
+      "story_key": "BSB-28-PENDING-4",
+      "summary": "Clean up a run's seeded Jira issues when it ends",
+      "requirement_ids": ["FR-061"]
+    },
+    {
+      "story_key": "BSB-28-PENDING-5",
+      "summary": "Sweep leftover seeded Jira issues nightly",
+      "requirement_ids": ["FR-062"]
+    }
+  ]
+}
