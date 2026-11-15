@@ -1,0 +1,46 @@
+{
+  "epic_key": "BSB-30",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-30-PENDING-1",
+      "summary": "Check a build's manifest validity at a commit SHA",
+      "requirement_ids": ["FR-068"]
+    },
+    {
+      "story_key": "BSB-30-PENDING-2",
+      "summary": "Mark a build Ready only when all four checks permit it",
+      "requirement_ids": ["FR-069"]
+    },
+    {
+      "story_key": "BSB-30-PENDING-3",
+      "summary": "Keep Ready bound to the build's current head SHA",
+      "requirement_ids": ["FR-069"]
+    },
+    {
+      "story_key": "BSB-30-PENDING-4",
+      "summary": "Show all four readiness checks on the build page",
+      "requirement_ids": ["FR-070"]
+    },
+    {
+      "story_key": "BSB-30-PENDING-5",
+      "summary": "Refuse packaging when the verifier lint or self-test fails",
+      "requirement_ids": ["FR-071", "FR-072"]
+    },
+    {
+      "story_key": "BSB-30-PENDING-6",
+      "summary": "Refuse packaging when the required verifier range excludes the selected version",
+      "requirement_ids": ["FR-073"]
+    },
+    {
+      "story_key": "BSB-30-PENDING-7",
+      "summary": "Re-verify an output branch with a changed verify.yaml without an agent or model",
+      "requirement_ids": ["FR-074"]
+    },
+    {
+      "story_key": "BSB-30-PENDING-8",
+      "summary": "Show which verifier checks flipped after a re-verification",
+      "requirement_ids": ["FR-075"]
+    }
+  ]
+}
