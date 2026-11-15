@@ -119,6 +119,9 @@ in the order `workflow`, `step`, `reviewer_feedback`, `upstream_handoff`.
 | `context.reviewer_feedback` | no | JSON string, stored unchanged |
 | `context.upstream_handoff` | no | JSON object, stored unchanged; its internal shape belongs to the platform step kit |
 
+An unknown top-level field — a key not in this table — is ignored: it is neither stored nor
+refused, and only the fields above reach validation and the `runs` row.
+
 The options response for `GET .../runs/options?skills_ref=test/ada/fix-reproduce` is exactly:
 
 ```
@@ -133,11 +136,26 @@ profiles are ordered by `id`; tier keys are ordered ascending by plain byte comp
 **Validation order** on the start API is fixed: epic BSB-18's session gate (401
 `authentication_required`), then BSB-18's group gate (403 `not_a_member`), then project resolution
 (404 `project_not_found`), then project membership (403 `project_membership_required`), then the
-request's required fields and types (`skill`, `skills_ref`, `input_branch`, `model_profile_id`,
-`tier`, then `context`), then the project's source-control integration and branch existence, then
-workflow/step existence, then model profile existence and tier mapping, and only then the `runs`
-row. A refused start creates no `runs` row, no branch and no bundle. The options API applies the
+field stage, then the integration-and-branch stage, then the workflow stage, then the model stage,
+and only then the `runs` row.
+
+- **Field stage**, in order: `skill_required`, `skills_ref_required`, `input_branch_required`,
+  `model_profile_required`, `model_profile_invalid`, `tier_required`, `context_invalid`
+  (including an unknown context key), `step_required` / `workflow_required`,
+  `reviewer_feedback_invalid`, `upstream_handoff_invalid`. An unknown top-level field is ignored
+  and produces no error.
+- **Integration-and-branch stage**, in order: `source_control_not_configured`,
+  `skills_branch_not_found`, `input_branch_not_found`.
+- **Workflow stage**, in order: `workflow_not_found`, `step_not_found`.
+- **Model stage**, in order: `model_profile_not_found`, `model_tier_not_mapped`.
+
+A refused start creates no `runs` row, no branch and no bundle. The options API applies the
 same BSB-18 gates and the same project resolution and membership check before returning choices.
+
+Where this contract says the request fields, the response or the `runs` row is "exactly"
+something, it means exactly as of this epic: epic BSB-27 later extends the route with turn and
+spend cap request fields and `runs` columns (FR-050, FR-052; SK-001 §9 has no cap columns yet) and
+the FR-054/FR-055 start refusals.
 
 **Error responses** (each has `Content-Type: application/json`):
 
@@ -150,6 +168,7 @@ same BSB-18 gates and the same project resolution and membership check before re
 | `input_branch` names no branch of the project's sandbox repository | 422 | `{"error":{"code":"input_branch_not_found","message":"Input branch 'fixtures/missing' does not exist."}}` |
 | The project has no source-control (`github`) integration | 422 | `{"error":{"code":"source_control_not_configured","message":"Project 8 has no source-control integration."}}` |
 | `context` is present and is not a JSON object | 422 | `{"error":{"code":"context_invalid","message":"The context must be a JSON object."}}` |
+| `context` contains a key other than `workflow`, `step`, `reviewer_feedback`, `upstream_handoff` | 422 | `{"error":{"code":"context_invalid","message":"The context contains an unknown key 'foo'."}}` |
 | `context.workflow` is supplied without `context.step` | 422 | `{"error":{"code":"step_required","message":"A step is required when a workflow is supplied."}}` |
 | `context.step` is supplied without `context.workflow` | 422 | `{"error":{"code":"workflow_required","message":"A workflow is required when a step is supplied."}}` |
 | `context.workflow` names no workflow on the selected skills branch | 422 | `{"error":{"code":"workflow_not_found","message":"Workflow 'release' does not exist on skills branch 'test/ada/fix-reproduce'."}}` |
@@ -289,6 +308,12 @@ Project and integration configuration (epics BSB-22 and BSB-23). The CLI (epic B
   work: the scenarios assert `SELECT count(*) FROM runs` = `0`.
 - `skill` is only checked for presence here. Whether that skill folder exists on the chosen skills
   branch is resolved by epic BSB-25 when it packs the branch.
+- Epic BSB-27 extends this route: turn and spend cap request fields and `runs` columns (FR-050,
+  FR-052; SK-001 §9 has no cap columns yet), and the FR-054/FR-055 refusals as stages before the
+  `runs` row. "Exactly" in this contract means exactly as of this epic.
+- Depends on epic BSB-23 giving each `ai_model` profile a stable positive integer `id` that is
+  never reused within a project; if BSB-23 keys profiles differently, `model_profile_id` and its
+  error codes are re-pointed, not only the fixture.
 
 ---
 
@@ -317,6 +342,19 @@ And the response body contains the exact text `test/ada/fix-reproduce-2`
 And the response body contains the exact text `test/grace/fix-reproduce`
 And the response body contains the exact text `fixtures/blocked-handoff`
 And the response body contains the exact text `fixtures/empty-title`
+
+#### Scenario: Submitting the run-start form creates the run through the start API
+Given project `7` exists with `owner_id` = `42`
+And `project_members` contains row `7 | 42 | owner`
+And the `integrations` table contains the three fixture rows for project `7`
+And the catalog branch and sandbox branch fixtures exist as listed in the contract
+And `SELECT count(*) FROM runs` returns `0`
+And Ada has a valid member session with local `users.id` = `42`
+When Ada fills in `sdlc-fix-bug-triage` as the skill, `test/ada/fix-reproduce` as the skills branch, `main` as the input branch, model profile `3` and tier `high` on `GET https://builder.skillbuilder.internal/projects/7/runs/new` and submits the form
+Then the builder receives `POST https://builder.skillbuilder.internal/api/projects/7/runs` with `Content-Type: application/json` and body exactly `{"skill":"sdlc-fix-bug-triage","skills_ref":"test/ada/fix-reproduce","input_branch":"main","model_profile_id":3,"tier":"high"}`
+And the builder responds with HTTP status 201
+And the response body is exactly `{"id":1,"project_id":7,"user_id":42,"skill":"sdlc-fix-bug-triage","skills_ref":"test/ada/fix-reproduce","input_branch":"main","context":{},"model_profile_id":3,"tier":"high","state":"queued","kind":"run","created_at":"2026-11-15T10:00:00Z"}`
+And `SELECT count(*) FROM runs` returns `1`
 
 #### Scenario: Options API lists the skills branches and input branches
 Given project `7` exists with `owner_id` = `42`
@@ -417,7 +455,8 @@ creating the run branch and recording the baseline (epic BSB-25, FR-038 to FR-04
 the chosen skill folder exists on the chosen branch (epic BSB-25). Workflow and step choice
 (BSB-24-PENDING-3), reviewer feedback and upstream handoff (BSB-24-PENDING-4), and model profile and
 tier choice (BSB-24-PENDING-5). Listing branches of any repository other than the catalog and the
-project's sandbox repository.
+project's sandbox repository. Accessibility of the branch controls on the run-start page (epic
+BSB-38, FR-130 to FR-137 and NFR-012).
 
 ### Notes / dependencies
 - Depends on BSB-24-PENDING-1 for the run-start route and the `runs` row, and on epic BSB-23 for the
@@ -431,6 +470,9 @@ project's sandbox repository.
   403 `project_membership_required` body and sees no branch data.
 - The options API's `workflows` value is `[]` when `skills_ref` is absent or names no branch; the
   start route, not the options API, refuses a branch that does not exist.
+- `source_control_not_configured` comes before both branch lookups: a project with no `github`
+  integration is refused before either `skills_branch_not_found` or `input_branch_not_found` could
+  be returned.
 - An empty or whitespace-only branch value is a required-field failure (`skills_ref_required` or
   `input_branch_required`), not a not-found failure. A non-empty value that names no branch is
   `skills_branch_not_found` or `input_branch_not_found`. Both happen before a `runs` row is written.
@@ -459,6 +501,22 @@ When Ada sends `GET https://builder.skillbuilder.internal/api/projects/7/runs/op
 Then the builder responds with HTTP status 200
 And the `Content-Type` response header is `application/json`
 And the JSON response body's `workflows` value is exactly `[{"name":"bug-fix","steps":["triage","reproduce","root-cause","implement"]},{"name":"smoke","steps":["triage"]}]`
+
+#### Scenario: Run-start page shows the workflow and step choices on the chosen branch
+Given project `7` exists with `owner_id` = `42`
+And `project_members` contains row `7 | 42 | owner`
+And the `integrations` table contains the three fixture rows, including the `github` row for project `7`
+And the catalog branch `test/ada/fix-reproduce` exists and contains `config/bug-fix.yaml` and `config/smoke.yaml` as listed in the contract
+And Ada has a valid member session with local `users.id` = `42`
+When Ada sends `GET https://builder.skillbuilder.internal/projects/7/runs/new?skills_ref=test/ada/fix-reproduce` carrying that `sb_session` cookie
+Then the builder responds with HTTP status 200
+And the `Content-Type` response header is `text/html; charset=utf-8`
+And the response body contains the exact text `bug-fix`
+And the response body contains the exact text `smoke`
+And the response body contains the exact text `triage`
+And the response body contains the exact text `reproduce`
+And the response body contains the exact text `root-cause`
+And the response body contains the exact text `implement`
 
 #### Scenario: The chosen workflow and step are recorded in the run context
 Given project `7` exists with `owner_id` = `42`
@@ -523,6 +581,18 @@ And the `Content-Type` response header is `application/json`
 And the response body is exactly `{"error":{"code":"workflow_required","message":"A workflow is required when a step is supplied."}}`
 And `SELECT count(*) FROM runs` returns `0`
 
+#### Scenario: A context containing an unknown key is refused
+Given project `7` exists with `owner_id` = `42`
+And `project_members` contains row `7 | 42 | owner`
+And the `integrations` table contains the three fixture rows for project `7`
+And `SELECT count(*) FROM runs` returns `0`
+And Ada has a valid member session with local `users.id` = `42`
+When Ada sends `POST https://builder.skillbuilder.internal/api/projects/7/runs` with `Content-Type: application/json` and body exactly `{"skill":"sdlc-fix-bug-triage","skills_ref":"test/ada/fix-reproduce","input_branch":"main","model_profile_id":3,"tier":"high","context":{"workflow":"bug-fix","step":"triage","foo":1}}`
+Then the builder responds with HTTP status 422
+And the `Content-Type` response header is `application/json`
+And the response body is exactly `{"error":{"code":"context_invalid","message":"The context contains an unknown key 'foo'."}}`
+And `SELECT count(*) FROM runs` returns `0`
+
 #### Scenario: An omitted context is recorded as an empty object
 Given project `7` exists with `owner_id` = `42`
 And `project_members` contains row `7 | 42 | owner`
@@ -544,7 +614,8 @@ branch and the platform owns their format. Resolving the default workflow when t
 context, and rendering the chosen context into `BB_CONTEXT` (epic BSB-26). Executing a workflow,
 gates or routing (an explicit product non-goal). Branch choice and validation (BSB-24-PENDING-2),
 reviewer feedback and upstream handoff (BSB-24-PENDING-4), and model profile and tier choice
-(BSB-24-PENDING-5).
+(BSB-24-PENDING-5). Accessibility of the workflow and step controls on the run-start page (epic
+BSB-38, FR-130 to FR-137 and NFR-012).
 
 ### Notes / dependencies
 - Depends on BSB-24-PENDING-1 for the run-start route and the `runs` row, on BSB-24-PENDING-2 for the
@@ -555,11 +626,14 @@ reviewer feedback and upstream handoff (BSB-24-PENDING-4), and model profile and
   the rest of the file is the platform's config schema and is not read by this epic.
 - A `context` object may carry only the fields in the contract preamble. `workflow` and `step` must
   be supplied together; a supplied `workflow` without `step` is `step_required`, and a supplied
-  `step` without `workflow` is `workflow_required`.
+  `step` without `workflow` is `workflow_required`. Any other key is `context_invalid` with the
+  message naming that key.
 - Context is optional, as in ADR §5: when it is omitted the run row's `context` is `{}` and the
   default workflow resolution is left to epic BSB-26. This story records only an explicit choice.
-- The 422 responses happen after branch validation and before any `runs` row is written; the
-  scenarios assert `SELECT count(*) FROM runs` = `0`.
+- `step_required`, `workflow_required` and `context_invalid` (including an unknown context key) are
+  field-stage checks; `workflow_not_found` and `step_not_found` happen after branch validation.
+  All of them happen before any `runs` row is written; the scenarios assert
+  `SELECT count(*) FROM runs` = `0`.
 - `runs.context` is the durable record of the choice; the run-start page and the options API read the
   same `config/` files so the offered values and the accepted values cannot drift.
 
@@ -627,6 +701,19 @@ And the response body's `context` value is exactly `{"workflow":"bug-fix","step"
 And `SELECT jsonb_object_keys(context) FROM runs WHERE id = 1` returns exactly two rows, `workflow` and `step`
 And `SELECT count(*) FROM runs` returns `1`
 
+#### Scenario: Run-start page offers the optional feedback and handoff fields
+Given project `7` exists with `owner_id` = `42`
+And `project_members` contains row `7 | 42 | owner`
+And the `integrations` table contains the three fixture rows for project `7`
+And the catalog branch `test/ada/fix-reproduce` exists and declares workflow `bug-fix` as listed in the contract
+And Ada has a valid member session with local `users.id` = `42`
+When Ada sends `GET https://builder.skillbuilder.internal/projects/7/runs/new?skills_ref=test/ada/fix-reproduce` carrying that `sb_session` cookie
+Then the builder responds with HTTP status 200
+And the `Content-Type` response header is `text/html; charset=utf-8`
+And the response body contains the exact text `name="reviewer_feedback"`
+And the response body contains the exact text `name="upstream_handoff"`
+And the `upstream_handoff` field is a text area whose value is parsed as a JSON object when the form is submitted
+
 #### Scenario: Reviewer feedback that is not a string is refused
 Given project `7` exists with `owner_id` = `42`
 And `project_members` contains row `7 | 42 | owner`
@@ -672,7 +759,8 @@ owns them. Rendering these values into `BB_CONTEXT` (epic BSB-26). Gate routing,
 or BLOCK hand-off behaviour (an explicit product non-goal for this epic). Workflow and step choice
 (BSB-24-PENDING-3), branch choice (BSB-24-PENDING-2), and model profile and tier choice
 (BSB-24-PENDING-5). Persisting feedback or a handoff outside the run row, or editing either after
-the run starts.
+the run starts. Accessibility of the feedback and handoff controls on the run-start page (epic
+BSB-38, FR-130 to FR-137 and NFR-012).
 
 ### Notes / dependencies
 - Depends on BSB-24-PENDING-1 for the run-start route and the `runs` row, on BSB-24-PENDING-3 for the
@@ -687,8 +775,12 @@ the run starts.
 - The two fields are independent and may be supplied together; ADR §5 lists them as alternatives for
   testing a send-back or a BLOCK hand-off, and carrying both tests both paths in one run.
 - An omitted `context`, or a context with only `workflow` and `step`, carries neither key. No null
-  placeholders are added, so the run's stored context is exactly what the author supplied.
-- The 422 responses happen before any `runs` row is written; the scenarios assert
+  placeholders are added, so the stored context is exactly the allowed keys the author supplied.
+- The page's `upstream_handoff` control is a text area whose value is parsed as a JSON object before
+  the start API is called; a value that is not a JSON object surfaces the same
+  `upstream_handoff_invalid` 422 as the API scenario above.
+- `reviewer_feedback_invalid` and `upstream_handoff_invalid` are field-stage checks, before branch
+  validation. Both happen before any `runs` row is written; the scenarios assert
   `SELECT count(*) FROM runs` = `0`.
 
 ---
@@ -712,6 +804,20 @@ When Ada sends `GET https://builder.skillbuilder.internal/api/projects/7/runs/op
 Then the builder responds with HTTP status 200
 And the `Content-Type` response header is `application/json`
 And the JSON response body's `model_profiles` value is exactly `[{"id":3,"name":"Anthropic test","tiers":["high","medium"]},{"id":4,"name":"Smoke","tiers":["medium"]}]`
+
+#### Scenario: Run-start page shows the model profiles and their tiers
+Given project `7` exists with `owner_id` = `42`
+And `project_members` contains row `7 | 42 | owner`
+And the `integrations` table contains the three fixture rows, including the `ai_model` row for project `7`
+And the catalog branch `test/ada/fix-reproduce` exists as listed in the contract
+And Ada has a valid member session with local `users.id` = `42`
+When Ada sends `GET https://builder.skillbuilder.internal/projects/7/runs/new?skills_ref=test/ada/fix-reproduce` carrying that `sb_session` cookie
+Then the builder responds with HTTP status 200
+And the `Content-Type` response header is `text/html; charset=utf-8`
+And the response body contains the exact text `Anthropic test`
+And the response body contains the exact text `Smoke`
+And the response body contains the exact text `high`
+And the response body contains the exact text `medium`
 
 #### Scenario: The chosen model profile and tier are recorded on the run
 Given project `7` exists with `owner_id` = `42`
@@ -763,6 +869,19 @@ And the `Content-Type` response header is `application/json`
 And the response body is exactly `{"error":{"code":"tier_required","message":"A model tier is required."}}`
 And `SELECT count(*) FROM runs` returns `0`
 
+#### Scenario: A missing tier is refused before the skills branch is looked up
+Given project `7` exists with `owner_id` = `42`
+And `project_members` contains row `7 | 42 | owner`
+And the `integrations` table contains the three fixture rows for project `7`
+And `SELECT count(*) FROM branches WHERE name = 'test/ada/missing'` returns `0` for the catalog repository
+And `SELECT count(*) FROM runs` returns `0`
+And Ada has a valid member session with local `users.id` = `42`
+When Ada sends `POST https://builder.skillbuilder.internal/api/projects/7/runs` with `Content-Type: application/json` and body exactly `{"skill":"sdlc-fix-bug-triage","skills_ref":"test/ada/missing","input_branch":"main","model_profile_id":3}`
+Then the builder responds with HTTP status 422
+And the `Content-Type` response header is `application/json`
+And the response body is exactly `{"error":{"code":"tier_required","message":"A model tier is required."}}`
+And `SELECT count(*) FROM runs` returns `0`
+
 #### Scenario: A profile without a mapping for the chosen tier is refused
 Given project `7` exists with `owner_id` = `42`
 And `project_members` contains row `7 | 42 | owner`
@@ -798,6 +917,9 @@ BSB-23, FR-031, FR-032 and FR-036). Making model calls, recording the model prof
 execution (FR-049 and FR-152, epic BSB-26), and the project's LLM-scan default model (FR-163, epic
 BSB-32). Turn and spend caps (epic BSB-27). Branch choice (BSB-24-PENDING-2), workflow and step
 choice (BSB-24-PENDING-3), and reviewer feedback and upstream handoff (BSB-24-PENDING-4).
+Preselecting the tier from the skill's declared `model:` value in `SKILL.md`; the page offers each
+profile's tier keys and the author chooses explicitly. Accessibility of the profile and tier
+controls on the run-start page (epic BSB-38, FR-130 to FR-137 and NFR-012).
 
 ### Notes / dependencies
 - Depends on BSB-24-PENDING-1 for the run-start route and the `runs` row, and on epic BSB-23 for the
@@ -812,14 +934,23 @@ choice (BSB-24-PENDING-3), and reviewer feedback and upstream handoff (BSB-24-PE
   explicitly choose the model profile and model tier. There is no installation-level or
   project-level fallback: a project with no `ai_model` integration, or a profile id it does not
   own, is refused before a `runs` row is written. ADR §5's default is the skill's declared `model:`
-  tier, which the run-start page may preselect from `SKILL.md`; the API still records the explicit
-  `tier` value the author submits.
+  tier; preselecting it from `SKILL.md` is out of scope (see Out of scope), and the API records the
+  explicit `tier` value the author submits.
 - The `runs.model_profile_id` and `runs.tier` columns are the durable record of the choice; epic
   BSB-26 records the model profile and tier actually used for the execution (FR-049 and FR-152).
 - The selected profile's model mapping values are not exposed by the options API and are not part
   of this epic's contract; the runner resolves them from the profile when the run is prepared.
-- The 422 responses happen after branch and workflow validation and before any `runs` row is
-  written; the scenarios assert `SELECT count(*) FROM runs` = `0`.
+- `model_profile_required`, `model_profile_invalid` and `tier_required` are field-stage checks;
+  `model_profile_not_found` and `model_tier_not_mapped` happen after branch and workflow
+  validation. All of them happen before any `runs` row is written; the scenarios assert
+  `SELECT count(*) FROM runs` = `0`.
+- Making `model_profile_id` and `tier` required changes the shared run-start body
+  BSB-22-PENDING-4 uses; see the cross-epic note in the contract preamble.
+- Turn and spend caps (epic BSB-27) are separate run-start inputs from the model profile and tier,
+  so the options API may later carry cap defaults.
+- Depends on epic BSB-23 giving each `ai_model` profile a stable positive integer `id` that is
+  never reused within a project; if BSB-23 keys profiles differently, `model_profile_id` and its
+  error codes are re-pointed, not only the fixture.
 
 ---
 
