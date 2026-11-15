@@ -1,0 +1,31 @@
+{
+  "epic_key": "BSB-24",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-24-PENDING-1",
+      "summary": "Start a run in a project I am a member of",
+      "requirement_ids": ["FR-037"]
+    },
+    {
+      "story_key": "BSB-24-PENDING-2",
+      "summary": "Choose the skills branch and input branch",
+      "requirement_ids": ["FR-145", "FR-146"]
+    },
+    {
+      "story_key": "BSB-24-PENDING-3",
+      "summary": "Choose the workflow and step context",
+      "requirement_ids": ["FR-147"]
+    },
+    {
+      "story_key": "BSB-24-PENDING-4",
+      "summary": "Optionally supply reviewer feedback or an upstream handoff",
+      "requirement_ids": ["FR-148"]
+    },
+    {
+      "story_key": "BSB-24-PENDING-5",
+      "summary": "Choose the model profile and model tier",
+      "requirement_ids": ["FR-149", "FR-150"]
+    }
+  ]
+}
