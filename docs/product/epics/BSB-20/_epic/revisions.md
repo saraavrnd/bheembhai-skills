@@ -1,0 +1,97 @@
+# Revisions — BSB-20
+
+## Pass 1 — 2026-11-15 — `epic-review.md` (cross-story gap review)
+
+**Report applied:** `docs/product/epics/BSB-20/_epic/epic-review.md` — verdict CHANGES
+REQUESTED, findings 1–7 and open questions 1–3. Target resolution: the run named
+"SkillBuilder", which is the product title in `docs/product/PRD.md`, not a Jira issue. The
+Atlassian project `BSB` contains only the epics BSB-18 to BSB-38, so the epic was resolved to
+**BSB-20** — the epic this review covers and the one the preceding `sdlc-plan-stories-write`
+run wrote. No Jira issue was created or changed.
+
+**Applied (findings with no open question, plus the answer-independent parts of Finding 2):**
+
+- **Finding 2 (blocking) — kind-neutral save-confinement wording.**
+  - `stories.md` contract table: the `file_outside_skill_folder` message changed from "An
+    **edit build** can only change files under …" to "A **build** can only change files under
+    `skills/sdlc-fix-bug-triage/`."
+  - `BSB-20-PENDING-3`: the 403 response body in *A save cannot create or change a second skill
+    folder* now asserts the kind-neutral message.
+  - `BSB-20-PENDING-3` Notes: added "Cannot be accepted before BSB-21's save story (FR-162) is
+    delivered; BSB-21 owns the `PUT /api/builds/{id}/files/{path}` contract."
+  - `BSB-20-PENDING-1` Notes: added that saves on a clone build are confined to
+    `skills/sdlc-fix-bug-recheck/` by the same save-path rule, that the save endpoint and its
+    contract are BSB-21's, and that the *Clone leaves the source skill unchanged* scenario makes
+    its commit directly with git so it does not depend on BSB-21.
+  - `BSB-20-PENDING-2` Notes: added that the target folder recorded at open is the folder the
+    save-path confinement rule uses.
+
+- **Finding 3 (blocking) — name-rule ownership and FR-017 wording.**
+  - `stories.md` contract table: split into **BSB-19-owned name-rule responses**
+    (`skill_name_exists` 409, `skill_name_invalid` 422) and **BSB-20-owned responses**
+    (`skill_not_found` 404, `file_outside_skill_folder` 403), with a line stating that BSB-20
+    asserts the same response the create path returns for the same name.
+  - The `skill_name_invalid` message changed to the FR-017 pattern: "Skill name must follow
+    sdlc-<area>-<action> using lowercase letters, digits and hyphens."
+  - `BSB-20-PENDING-1`: the *Clone refuses a target name that breaks the catalog name pattern*
+    422 body now carries that message, and its Notes say the name-rule rows are BSB-19's contract.
+  - `BSB-20-PENDING-2`: no AC change; its `skill_not_found` row stays in the BSB-20-owned group.
+
+- **Finding 4 (advisory) — one field name for the build's skill.**
+  - `stories.md`: the shared contract section now states the build's own skill is always the
+    `skill` field for every kind, and that BSB-19's `create` kind follows the same convention.
+  - `BSB-20-PENDING-1`: the clone request body changed from
+    `{"kind":"clone","source":"sdlc-fix-bug-triage","name":"…"}` to `…,"skill":"…"` in the
+    happy-path and both rejection scenarios. `BSB-20-PENDING-2` already used `skill`.
+
+- **Finding 5 (advisory) — clone source missing on `main`.**
+  - `BSB-20-PENDING-1`: added scenario *Clone refuses a source skill that does not exist on
+    main* — a clone of `sdlc-fix-bug-recheck` (absent at the `main` head) to
+    `sdlc-fix-bug-retry` returns 404 with the `skill_not_found` body naming
+    `sdlc-fix-bug-recheck`, creates no `build/sdlc-fix-bug-retry` branch and no `builds` row.
+  - `BSB-20-PENDING-1` Notes: added that the source folder is resolved from the current `main`
+    head immediately before branching, the same as BSB-20-PENDING-2.
+  - `stories.md` contract table: the `skill_not_found` row now covers both an edit build's skill
+    and a clone's source.
+
+- **Finding 6 (advisory) — the edit-open commit is empty.**
+  - `BSB-20-PENDING-2`: the first scenario now asserts
+    `git diff --name-only 4f3c2b1a… origin/build/sdlc-fix-bug-triage` is empty (the edit-open
+    commit changes no files); its Notes say the same.
+  - `BSB-20-PENDING-3`: the Givens of the first two scenarios now cite this guarantee — *the
+    edit build was opened by BSB-20-PENDING-2, whose open commit changes no files* — in addition
+    to the "no save has been made" precondition.
+
+- **Finding 7 (advisory) — dependency notes.**
+  - `BSB-20-PENDING-3` Notes: added "Depends on BSB-20-PENDING-2 for the edit build and its
+    recorded target folder, and on epic BSB-18 for the member session and local `users.id` =
+    `42`."
+  - `BSB-20-PENDING-2` Notes: added "Prerequisite for BSB-20-PENDING-3."
+
+**Still open — not applied, because the question has no answer in the run hand-off:**
+
+- **Finding 1 / Open questions 1(a) and 1(b) (blocking).** Whether FR-016's "open build" means
+  `state` = `open` only or every state with a live branch (`open` and `submitted`); whether the
+  rule applies to clone and edit builds as well as create builds and which epic owns it; and
+  whether a stale `build/<skill>` branch from a `merged` or `abandoned` build is rejected or
+  reset. Applying either branch would invent an error status, code and message and change which
+  story owns the rule, so no collision scenario, no collision contract-table row and no
+  `BSB-20-PENDING-2` Notes rewrite were made. The `BSB-20-PENDING-3` Givens were likewise left
+  without the proposed `state` = `open` wording, since it is tied to the same collision rule.
+- **Finding 2 / Open question 3 (blocking, ownership part).** Who owns the save-path
+  confinement rule and the `PUT /api/builds/{id}/files/{path}` contract — BSB-21 for every build
+  kind, or BSB-20-PENDING-3 sequenced after BSB-21. The answer-independent wording and dependency
+  note were applied; the option-(a) change that would replace PENDING-3's exact PUT/403
+  assertions with references to BSB-21's contract was not, because choosing it without the
+  answer would be guessing.
+
+**Coverage:** unchanged. All 7 requirements mapped to BSB-20 (FR-011 to FR-014, FR-124, FR-125,
+FR-126) are still covered by the same three stories. `story-map.json` is unchanged: no story key
+or requirement mapping changed, and no Finding 2 answer moved FR-125's save-path part to BSB-21.
+
+**Note for the next review (not a finding of this pass):** the only invalid-name fixture is
+`BugTriage`, which fails the lowercase rule. Now that the message states the FR-017
+`sdlc-<area>-<action>` pattern, a fixture such as `sdlc-triage` (lowercase but missing the action
+segment) would exercise the pattern the message claims. The report asked only for the message
+change, so no scenario was added; flagging it so the next reviewer can decide whether to require
+it.

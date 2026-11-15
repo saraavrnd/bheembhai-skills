@@ -69,10 +69,11 @@ skills/sdlc-fix-bug-triage/templates/bug-triage.md.tmpl
 skills/sdlc-fix-bug-triage/verify.yaml
 ```
 
-The successful clone request body is exactly:
+The build's own skill is carried in the `skill` field for every build kind. The successful clone
+request body is exactly:
 
 ```
-{"kind":"clone","source":"sdlc-fix-bug-triage","name":"sdlc-fix-bug-recheck"}
+{"kind":"clone","source":"sdlc-fix-bug-triage","skill":"sdlc-fix-bug-recheck"}
 ```
 
 The successful edit-build request body is exactly:
@@ -81,18 +82,30 @@ The successful edit-build request body is exactly:
 {"kind":"edit","skill":"sdlc-fix-bug-triage"}
 ```
 
+Epic BSB-19's `create` kind extends the same request contract and names the skill being created
+in the same `skill` field.
+
 On a successful clone or edit-build open, `head_sha` is the SHA of the single commit the builder
 creates on the build branch. A test reads it with `git rev-parse origin/build/sdlc-fix-bug-recheck`
 for the clone and `git rev-parse origin/build/sdlc-fix-bug-triage` for the edit build.
 
-The four rejection responses used below are fixed:
+The rejection responses used below are fixed. The two name-rule rows are owned by epic BSB-19:
+BSB-20 asserts the same response the create path returns for the same name. The `skill_not_found`
+and `file_outside_skill_folder` rows are BSB-20's own.
+
+**BSB-19-owned name-rule responses**
 
 | Situation | Status | Exact response body |
 |-----------|--------|---------------------|
 | Clone target name already exists on `main` | 409 | `{"error":{"code":"skill_name_exists","message":"A skill named 'sdlc-fix-bug-triage' already exists on main."}}` |
-| Clone target name breaks the catalog name pattern | 422 | `{"error":{"code":"skill_name_invalid","message":"Skill name must start with 'sdlc-' and use only lowercase letters, digits and hyphens."}}` |
-| Edit skill name does not exist on the current `main` head | 404 | `{"error":{"code":"skill_not_found","message":"No skill named 'sdlc-fix-bug-recheck' exists on main."}}` |
-| Edit-build save targets a path outside the build's skill folder | 403 | `{"error":{"code":"file_outside_skill_folder","message":"An edit build can only change files under skills/sdlc-fix-bug-triage/."}}` |
+| Clone target name breaks the catalog name pattern | 422 | `{"error":{"code":"skill_name_invalid","message":"Skill name must follow sdlc-<area>-<action> using lowercase letters, digits and hyphens."}}` |
+
+**BSB-20-owned responses**
+
+| Situation | Status | Exact response body |
+|-----------|--------|---------------------|
+| The skill name does not exist on the current `main` head — either an edit build's skill or a clone's source | 404 | `{"error":{"code":"skill_not_found","message":"No skill named 'sdlc-fix-bug-recheck' exists on main."}}` |
+| A build's save targets a path outside that build's skill folder | 403 | `{"error":{"code":"file_outside_skill_folder","message":"A build can only change files under skills/sdlc-fix-bug-triage/."}}` |
 
 In each `skill_not_found` body the quoted name is the skill name that was requested.
 
@@ -113,7 +126,7 @@ Given the catalog `saraavrnd/bheembhai-skills` `main` head is `4f3c2b1a9e8d7c6b5
 And the `builds` table has no row with `skill` = `sdlc-fix-bug-recheck`
 And no branch `build/sdlc-fix-bug-recheck` exists on the origin remote
 And the author has a valid member session with local `users.id` = `42`
-When the author sends `POST https://builder.skillbuilder.internal/api/builds` with `Content-Type: application/json` and body exactly `{"kind":"clone","source":"sdlc-fix-bug-triage","name":"sdlc-fix-bug-recheck"}`
+When the author sends `POST https://builder.skillbuilder.internal/api/builds` with `Content-Type: application/json` and body exactly `{"kind":"clone","source":"sdlc-fix-bug-triage","skill":"sdlc-fix-bug-recheck"}`
 Then the builder responds with HTTP status 201
 And the `Content-Type` response header is `application/json`
 And the JSON response's `id` is `17`, `kind` is `clone`, `skill` is `sdlc-fix-bug-recheck`, `cloned_from` is `sdlc-fix-bug-triage`, `branch` is `build/sdlc-fix-bug-recheck` and `state` is `open`
@@ -150,11 +163,23 @@ And `git rev-parse 4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b:skills/sdlc-fix-bug-
 And `git rev-parse origin/build/sdlc-fix-bug-recheck:skills/sdlc-fix-bug-recheck/references/severity-rubric.md` differs from `git rev-parse 4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b:skills/sdlc-fix-bug-triage/references/severity-rubric.md`
 And `git diff --name-only 4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b origin/main` is empty
 
+#### Scenario: Clone refuses a source skill that does not exist on main
+Given the catalog `saraavrnd/bheembhai-skills` `main` head is `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b`
+And `skills/sdlc-fix-bug-recheck/` does not exist at that head
+And no branch `build/sdlc-fix-bug-retry` exists on the origin remote
+And the `builds` table has no row with `skill` = `sdlc-fix-bug-retry`
+And the author has a valid member session with local `users.id` = `42`
+When the author sends `POST https://builder.skillbuilder.internal/api/builds` with `Content-Type: application/json` and body exactly `{"kind":"clone","source":"sdlc-fix-bug-recheck","skill":"sdlc-fix-bug-retry"}`
+Then the builder responds with HTTP status 404
+And the response body is exactly `{"error":{"code":"skill_not_found","message":"No skill named 'sdlc-fix-bug-recheck' exists on main."}}`
+And no branch `build/sdlc-fix-bug-retry` exists on the origin remote
+And `SELECT count(*) FROM builds WHERE skill = 'sdlc-fix-bug-retry'` returns `0`
+
 #### Scenario: Clone refuses a target name that already exists on main
 Given `skills/sdlc-fix-bug-triage/` exists at `main` head `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b`
 And no branch `build/sdlc-fix-bug-triage` exists on the origin remote
 And the `builds` table has no row with `skill` = `sdlc-fix-bug-triage`
-When the author sends `POST https://builder.skillbuilder.internal/api/builds` with `Content-Type: application/json` and body exactly `{"kind":"clone","source":"sdlc-fix-bug-triage","name":"sdlc-fix-bug-triage"}`
+When the author sends `POST https://builder.skillbuilder.internal/api/builds` with `Content-Type: application/json` and body exactly `{"kind":"clone","source":"sdlc-fix-bug-triage","skill":"sdlc-fix-bug-triage"}`
 Then the builder responds with HTTP status 409
 And the response body is exactly `{"error":{"code":"skill_name_exists","message":"A skill named 'sdlc-fix-bug-triage' already exists on main."}}`
 And no branch `build/sdlc-fix-bug-triage` exists on the origin remote
@@ -164,9 +189,9 @@ And `SELECT count(*) FROM builds WHERE skill = 'sdlc-fix-bug-triage'` returns `0
 Given the catalog `main` head is `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b`
 And the `builds` table has no row with `skill` = `BugTriage`
 And no branch `build/BugTriage` exists on the origin remote
-When the author sends `POST https://builder.skillbuilder.internal/api/builds` with `Content-Type: application/json` and body exactly `{"kind":"clone","source":"sdlc-fix-bug-triage","name":"BugTriage"}`
+When the author sends `POST https://builder.skillbuilder.internal/api/builds` with `Content-Type: application/json` and body exactly `{"kind":"clone","source":"sdlc-fix-bug-triage","skill":"BugTriage"}`
 Then the builder responds with HTTP status 422
-And the response body is exactly `{"error":{"code":"skill_name_invalid","message":"Skill name must start with 'sdlc-' and use only lowercase letters, digits and hyphens."}}`
+And the response body is exactly `{"error":{"code":"skill_name_invalid","message":"Skill name must follow sdlc-<area>-<action> using lowercase letters, digits and hyphens."}}`
 And no branch `build/BugTriage` exists on the origin remote
 And `SELECT count(*) FROM builds WHERE skill = 'BugTriage'` returns `0`
 
@@ -197,6 +222,16 @@ opening the catalog pull request (epic BSB-36).
   heading; no other occurrence of the source name is rewritten.
 - The builder never writes the catalog's `main` branch. The clone commit lands only on
   `build/sdlc-fix-bug-recheck`, and the source folder on `main` is read-only to this story.
+- The clone source folder is resolved from the current `main` head immediately before the branch
+  is created, the same as BSB-20-PENDING-2. A stale listing is never used, so a source renamed or
+  deleted on `main` is caught before any branch exists (see the `skill_not_found` scenario).
+- The two name-rule rejection responses in the contract table belong to epic BSB-19's name
+  validator (FR-015, FR-016, FR-017); this story asserts the same responses the create path
+  returns for the same name.
+- Saves on a clone build are confined to `skills/sdlc-fix-bug-recheck/` by the same save-path
+  rule; the save endpoint and its contract are epic BSB-21's (FR-127 and FR-162).
+- The *Clone leaves the source skill unchanged* scenario makes its commit directly with git as the
+  test, not through the builder's save endpoint, so it does not depend on BSB-21.
 
 ---
 
@@ -227,6 +262,7 @@ And `GET https://builder.skillbuilder.internal/builds/17` returns HTTP status 20
 And `git rev-list --count 4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b..origin/build/sdlc-fix-bug-triage` returns `1`
 And `git rev-parse origin/build/sdlc-fix-bug-triage^` equals `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b`
 And `git rev-parse origin/build/sdlc-fix-bug-triage:skills/sdlc-fix-bug-triage` equals `git rev-parse 4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b:skills/sdlc-fix-bug-triage`
+And `git diff --name-only 4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b origin/build/sdlc-fix-bug-triage` is empty (the edit-open commit changes no files)
 And the commit message is exactly `Open edit build for sdlc-fix-bug-triage`
 
 #### Scenario: Edit build is cut from the main head current at request time
@@ -281,6 +317,11 @@ later saves are epic BSB-21's concern; opening the catalog pull request (epic BS
 - The branch parent is the `main` head used for that resolution, and `builds.head_sha` is the single
   edit-open commit created on top of it. The skill folder on the branch has the same tree object id
   as the folder at the resolved `main` head.
+- The edit-open commit is empty: it changes no path relative to the resolved `main` head, so
+  `git diff --name-only` between them is empty until the first save.
+- The target folder recorded at open (`skills/sdlc-fix-bug-triage/`) is the folder the save-path
+  confinement rule uses; the save endpoint and its contract are epic BSB-21's (FR-127 and FR-162).
+- Prerequisite for BSB-20-PENDING-3.
 - A second open build for the same skill name is refused by the FR-016 rule owned by epic BSB-19;
   this story does not add a separate concurrency rule. The fixtures start with no open
   `build/sdlc-fix-bug-triage` branch.
@@ -299,6 +340,7 @@ As a **skill author**, I want **every save in an edit build to change the existi
 
 #### Scenario: Saving an edited file commits into the existing skill folder
 Given an edit build with `id` = `17` exists on branch `build/sdlc-fix-bug-triage` cut from `main` head `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b`
+And the edit build was opened by BSB-20-PENDING-2, whose open commit changes no files
 And no save has been made on that branch, so `git diff --name-only 4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b origin/build/sdlc-fix-bug-triage` is empty
 And the author has a valid member session with local `users.id` = `42`
 And the request body is the exact source `skills/sdlc-fix-bug-triage/SKILL.md` at `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b` with the exact line `EDIT-BUILD-FIXTURE` appended after the source file's final newline followed by a single newline
@@ -312,6 +354,7 @@ And no path under `skills/` on `build/sdlc-fix-bug-triage` differs from `4f3c2b1
 
 #### Scenario: Saving a new file creates it inside the existing skill folder
 Given an edit build with `id` = `17` exists on branch `build/sdlc-fix-bug-triage` cut from `main` head `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b`
+And the edit build was opened by BSB-20-PENDING-2, whose open commit changes no files
 And no save has been made on that branch, so `git diff --name-only 4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b origin/build/sdlc-fix-bug-triage` is empty
 And the author has a valid member session with local `users.id` = `42`
 And no file `skills/sdlc-fix-bug-triage/references/recheck-rubric.md` exists on that branch
@@ -328,7 +371,7 @@ And the branch head is captured as `git rev-parse origin/build/sdlc-fix-bug-tria
 And the author has a valid member session with local `users.id` = `42`
 When the author sends the raw, unnormalised `PUT` path `https://builder.skillbuilder.internal/api/builds/17/files/../sdlc-fix-bug-recheck/SKILL.md` with `Content-Type: text/markdown` and body exactly `# Hijacked skill`
 Then the builder responds with HTTP status 403
-And the response body is exactly `{"error":{"code":"file_outside_skill_folder","message":"An edit build can only change files under skills/sdlc-fix-bug-triage/."}}`
+And the response body is exactly `{"error":{"code":"file_outside_skill_folder","message":"A build can only change files under skills/sdlc-fix-bug-triage/."}}`
 And `git rev-parse origin/build/sdlc-fix-bug-triage` still equals the captured branch head
 And `git ls-tree -r --name-only origin/build/sdlc-fix-bug-triage -- skills/sdlc-fix-bug-recheck` returns no paths
 
@@ -343,6 +386,10 @@ creating or cloning builds (story BSB-20-PENDING-1 and epic BSB-19); renaming, m
 skill folder; opening the catalog pull request (epic BSB-36).
 
 ### Notes / dependencies
+- Cannot be accepted before BSB-21's save story (FR-162) is delivered; BSB-21 owns the
+  `PUT /api/builds/{id}/files/{path}` contract.
+- Depends on BSB-20-PENDING-2 for the edit build and its recorded target folder, and on epic BSB-18
+  for the member session and local `users.id` = `42`.
 - Depends on epic BSB-21 for the save endpoint (FR-127 and FR-162). The `PUT` request and `200`
   response in the scenarios are the minimal path contract this story needs; BSB-21's save service
   writes to the target folder this story fixes, and owns head recording and readiness invalidation.
