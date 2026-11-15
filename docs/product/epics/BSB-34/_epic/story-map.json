@@ -1,0 +1,31 @@
+{
+  "epic_key": "BSB-34",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-34-PENDING-1",
+      "summary": "Record the run's turn count, token usage and cost from the runtime",
+      "requirement_ids": ["NFR-015", "NFR-016", "NFR-017"]
+    },
+    {
+      "story_key": "BSB-34-PENDING-2",
+      "summary": "Show the run's turns, tokens and cost on the run page",
+      "requirement_ids": ["FR-102", "FR-159", "FR-160"]
+    },
+    {
+      "story_key": "BSB-34-PENDING-3",
+      "summary": "Link each traced run to a test-environment trace",
+      "requirement_ids": ["FR-103", "NFR-011"]
+    },
+    {
+      "story_key": "BSB-34-PENDING-4",
+      "summary": "Retain run evidence for the configured period and purge it when it expires",
+      "requirement_ids": ["NFR-013", "NFR-018"]
+    },
+    {
+      "story_key": "BSB-34-PENDING-5",
+      "summary": "Purge a run's evidence on request and audit the purge",
+      "requirement_ids": ["NFR-014"]
+    }
+  ]
+}
