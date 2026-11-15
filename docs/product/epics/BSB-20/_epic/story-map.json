@@ -1,0 +1,21 @@
+{
+  "epic_key": "BSB-20",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-20-PENDING-1",
+      "summary": "Clone a catalog skill into a new build under a new name",
+      "requirement_ids": ["FR-011", "FR-012", "FR-013", "FR-014"]
+    },
+    {
+      "story_key": "BSB-20-PENDING-2",
+      "summary": "Open an existing catalog skill in an edit build cut from main",
+      "requirement_ids": ["FR-124", "FR-126"]
+    },
+    {
+      "story_key": "BSB-20-PENDING-3",
+      "summary": "Keep an edit build's saves in the existing skill folder",
+      "requirement_ids": ["FR-125"]
+    }
+  ]
+}
