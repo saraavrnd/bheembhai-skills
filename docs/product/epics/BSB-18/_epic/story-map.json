@@ -4,7 +4,7 @@
   "stories": [
     {
       "story_key": "BSB-18-PENDING-1",
-      "summary": "Require a signed-in session for every authoring page and API request",
+      "summary": "Require a valid signed-in session for every authoring page and API request",
       "requirement_ids": ["FR-001", "NFR-002"]
     },
     {

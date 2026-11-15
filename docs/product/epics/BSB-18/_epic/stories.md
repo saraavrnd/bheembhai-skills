@@ -45,7 +45,7 @@ the platform, and the builder is configured with the client id and hosted-UI dom
 
 ## STORY: BSB-18-PENDING-1
 
-**Summary:** Require a signed-in session for every authoring page and API request
+**Summary:** Require a valid signed-in session for every authoring page and API request
 **Epic:** BSB-18 · **Release:** MVP · **Estimate:** 3 · **Labels:** FA-1, MVP
 
 ### Story
@@ -70,6 +70,37 @@ And the `Content-Type` response header is `application/json`
 And the response body is exactly `{"error":{"code":"authentication_required","message":"Sign in to use the skill builder."}}`
 And the response body contains none of the strings `Alpha`, `Beta` or `Gamma`
 
+#### Scenario: Token whose signature does not verify is rejected
+Given the builder's Cognito issuer is `https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample` and its app client id is `skill-builder-web`
+And the visitor's `sb_session` cookie holds a Cognito ID token JWT with claims `sub`=`a1b2c3d4-0000-0000-0000-000000000001`, `email`=`ada@example.com`, `name`=`Ada Lovelace`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`, signed RS256 with a key whose public key is not the User Pool's signing key
+And the current time is `2026-11-15T10:00:00Z`
+When the visitor sends `GET https://builder.skillbuilder.internal/builds` carrying that `sb_session` cookie
+Then the builder responds with HTTP status 302
+And the `Location` response header value is exactly `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/authorize?client_id=skill-builder-web&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fbuilder.skillbuilder.internal%2Fauth%2Fcallback`
+And the response carries the header `Set-Cookie: sb_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax`
+And the response body is exactly 0 bytes
+
+#### Scenario: Token issued to another app client of the same pool is rejected
+Given the builder's Cognito issuer is `https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample` and its app client id is `skill-builder-web`
+And `platform-web` is a different app client of the same User Pool
+And the visitor's `sb_session` cookie holds a Cognito ID token JWT with claims `sub`=`a1b2c3d4-0000-0000-0000-000000000001`, `email`=`ada@example.com`, `name`=`Ada Lovelace`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`platform-web` and `exp`=`2026-11-15T11:00:00Z`, signed RS256 with the User Pool's test signing key
+And the current time is `2026-11-15T10:00:00Z`
+When the visitor sends `GET https://builder.skillbuilder.internal/builds` carrying that `sb_session` cookie
+Then the builder responds with HTTP status 302
+And the `Location` response header value is exactly `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/authorize?client_id=skill-builder-web&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fbuilder.skillbuilder.internal%2Fauth%2Fcallback`
+And the response carries the header `Set-Cookie: sb_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax`
+And the response body is exactly 0 bytes
+
+#### Scenario: Token from a different issuer is rejected
+Given the builder's Cognito issuer is `https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample` and its app client id is `skill-builder-web`
+And the visitor's `sb_session` cookie holds a Cognito ID token JWT with claims `sub`=`a1b2c3d4-0000-0000-0000-000000000001`, `email`=`ada@example.com`, `name`=`Ada Lovelace`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_OtherPool`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`, signed RS256 with the User Pool's test signing key
+And the current time is `2026-11-15T10:00:00Z`
+When the visitor sends `GET https://builder.skillbuilder.internal/builds` carrying that `sb_session` cookie
+Then the builder responds with HTTP status 302
+And the `Location` response header value is exactly `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/authorize?client_id=skill-builder-web&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fbuilder.skillbuilder.internal%2Fauth%2Fcallback`
+And the response carries the header `Set-Cookie: sb_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax`
+And the response body is exactly 0 bytes
+
 #### Scenario: Expired session is treated as unauthenticated
 Given the builder's Cognito issuer is `https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample` and its app client id is `skill-builder-web`
 And the visitor's `sb_session` cookie holds a Cognito ID token JWT with claims `sub`=`a1b2c3d4-0000-0000-0000-000000000001`, `email`=`ada@example.com`, `name`=`Ada Lovelace`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T10:00:00Z`, signed RS256 with the User Pool's test signing key
@@ -79,6 +110,17 @@ Then the builder responds with HTTP status 302
 And the `Location` response header value is exactly `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/authorize?client_id=skill-builder-web&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fbuilder.skillbuilder.internal%2Fauth%2Fcallback`
 And the response carries the header `Set-Cookie: sb_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax`
 And the response body is exactly 0 bytes
+
+#### Scenario: Authoring API rejects an expired session
+Given the build store contains three builds with ids `1`, `2` and `3` and names `Alpha`, `Beta` and `Gamma`
+And the visitor's `sb_session` cookie holds a Cognito ID token JWT with claims `sub`=`a1b2c3d4-0000-0000-0000-000000000001`, `email`=`ada@example.com`, `name`=`Ada Lovelace`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T10:00:00Z`, signed RS256 with the User Pool's test signing key
+And the current time is `2026-11-15T10:01:00Z`
+When the visitor sends `GET https://builder.skillbuilder.internal/api/builds` with the header `Accept: application/json` carrying that `sb_session` cookie
+Then the builder responds with HTTP status 401
+And the `Content-Type` response header is `application/json`
+And the response body is exactly `{"error":{"code":"authentication_required","message":"Sign in to use the skill builder."}}`
+And the response carries the header `Set-Cookie: sb_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax`
+And the response body contains none of the strings `Alpha`, `Beta` or `Gamma`
 
 #### Scenario: Every authoring page route enforces the session gate
 Given the builder's authoring page routes are `/builds`, `/builds/1`, `/builds/1/files` and `/projects/1/settings` under `https://builder.skillbuilder.internal`
@@ -94,7 +136,7 @@ And no response contains a `Set-Cookie` header
 
 ### Out of scope
 The sign-in flow itself and what happens after a successful sign-in (story BSB-18-PENDING-2);
-skill-builders group membership checks for a request that does carry a session (story
+skill-builders group membership checks for a request that carries a *valid* session (story
 BSB-18-PENDING-3); project-level authorization such as project membership or ownership (epics
 BSB-22 and BSB-23).
 
@@ -107,6 +149,19 @@ BSB-22 and BSB-23).
   client id `skill-builder-web` and the redirect URI `https://builder.skillbuilder.internal/auth/callback`.
   The exact sign-in `Location` value a test must expect is the one stated in each scenario.
 - NFR-002 is the API half of the gate: reject before any builder data is returned.
+- This story is the single owner of the **valid session** rule. A session is valid only when the
+  `sb_session` ID token JWT verifies against the User Pool's signing key and carries the required
+  claims `sub`, `email`, `name`, `cognito:groups`, `iss`, `aud` and `exp`, with `iss` and `aud`
+  equal to the contract values and `exp` after the current time. Every failure — an unverifiable
+  signature, a foreign `iss`, a foreign `aud`, a missing required claim or an expired `exp` — is
+  treated as unauthenticated: page requests redirect with the clearing cookie, and API requests
+  return 401 `authentication_required` with the clearing cookie.
+- `/auth/callback` is the only route the session gate does not apply to; any further
+  unauthenticated route must be added here explicitly. Story BSB-18-PENDING-2 depends on this
+  exemption so that an unauthenticated browser can reach the callback handler.
+- Local-user resolution — mapping the token's `sub` to a local `users.id` — belongs to story
+  BSB-18-PENDING-4 and runs after this story's session check and BSB-18-PENDING-3's membership
+  check.
 
 ---
 
@@ -177,6 +232,8 @@ which is external to this product.
   never reach local-user creation.
 - FR-003 is met here at the sign-in boundary; FR-004 and NFR-003 apply it to every later request in
   story BSB-18-PENDING-3.
+- `/auth/callback` is exempt from the session gate defined by story BSB-18-PENDING-1; that
+  exemption is what lets an unauthenticated browser reach this story's callback handler.
 
 ---
 
@@ -186,7 +243,7 @@ which is external to this product.
 **Epic:** BSB-18 · **Release:** MVP · **Estimate:** 3 · **Labels:** FA-1, MVP
 
 ### Story
-As a **platform owner**, I want **the builder to re-check skill-builders membership on every authoring request and honour a removal within one hour**, so that **a removed member cannot keep using the builder with an old session**.
+As a **platform administrator**, I want **the builder to re-check skill-builders membership on every authoring request and honour a removal within one hour**, so that **a removed member cannot keep using the builder with an old session**.
 
 ### Acceptance Criteria
 
@@ -247,14 +304,20 @@ external to this product.
 ### Notes / dependencies
 - Depends on story BSB-18-PENDING-1 for the session cookie and story BSB-18-PENDING-2 for the
   admitted member identity, and on the Cognito `cognito:groups` claim.
-- Every request validates the `sb_session` ID token JWT (signature, `iss`, `aud`, `exp`) and the
-  `cognito:groups` claim; there is no request path that skips the claim check after sign-in.
+- The token's validity — signature, `iss`, `aud`, `exp` and the required claims — is enforced by
+  story BSB-18-PENDING-1's session gate. This story adds only the `cognito:groups` check, which
+  runs after that gate on every request; there is no request path that skips the claim check after
+  sign-in.
 - The one-hour bound in FR-141 holds because Cognito issues the ID token with `exp` at most one
   hour after sign-in and the builder accepts no token at or after `exp`; a removed member's existing
   token therefore stops authorizing at `exp`, and their next sign-in is rejected under
   BSB-18-PENDING-2.
 - A membership claim that is absent or does not contain `skill-builders` is treated as not a member,
   never as a pass.
+- Local-user resolution — mapping the token's `sub` to a local `users.id` — belongs to story
+  BSB-18-PENDING-4 and runs after this story's membership check.
+- Membership is known only for the requesting user, from that user's own `cognito:groups` claim;
+  a local `users` row does not record current membership (see story BSB-18-PENDING-4).
 
 ---
 
@@ -306,6 +369,28 @@ When the browser follows the callback to `https://builder.skillbuilder.internal/
 Then the builder responds with HTTP status 403
 And `SELECT count(*) FROM users WHERE cognito_sub = 'd4e5f6a7-0000-0000-0000-000000000004'` returns `0`
 
+#### Scenario: Valid member session with no local user is rejected on a page
+Given the `users` table has no row with `cognito_sub` = `f6a7b8c9-0000-0000-0000-000000000006`
+And the `sb_session` cookie holds a Cognito ID token JWT with claims `sub`=`f6a7b8c9-0000-0000-0000-000000000006`, `email`=`frank@example.com`, `name`=`Frank Lee`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`, signed RS256 with the User Pool's test signing key
+And the current time is `2026-11-15T10:00:00Z`
+When the user sends `GET https://builder.skillbuilder.internal/builds` carrying that `sb_session` cookie
+Then the builder responds with HTTP status 302
+And the `Location` response header value is exactly `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/authorize?client_id=skill-builder-web&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fbuilder.skillbuilder.internal%2Fauth%2Fcallback`
+And the response carries the header `Set-Cookie: sb_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax`
+And the response body is exactly 0 bytes
+And `SELECT count(*) FROM users WHERE cognito_sub = 'f6a7b8c9-0000-0000-0000-000000000006'` returns `0`
+
+#### Scenario: Valid member session with no local user is rejected by the API
+Given the `users` table has no row with `cognito_sub` = `f6a7b8c9-0000-0000-0000-000000000006`
+And the `sb_session` cookie holds a Cognito ID token JWT with claims `sub`=`f6a7b8c9-0000-0000-0000-000000000006`, `email`=`frank@example.com`, `name`=`Frank Lee`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`, signed RS256 with the User Pool's test signing key
+And the current time is `2026-11-15T10:00:00Z`
+When the user sends `GET https://builder.skillbuilder.internal/api/builds` with the header `Accept: application/json` carrying that `sb_session` cookie
+Then the builder responds with HTTP status 401
+And the `Content-Type` response header is `application/json`
+And the response body is exactly `{"error":{"code":"authentication_required","message":"Sign in to use the skill builder."}}`
+And the response carries the header `Set-Cookie: sb_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax`
+And `SELECT count(*) FROM users WHERE cognito_sub = 'f6a7b8c9-0000-0000-0000-000000000006'` returns `0`
+
 #### Scenario: Concurrent first sign-ins create exactly one record
 Given the `users` table has no row with `cognito_sub` = `e5f6a7b8-0000-0000-0000-000000000005`
 When two first-time sign-ins for that subject complete concurrently at `2026-11-15T10:00:00Z` through `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-9a` and `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-9b`, and each exchange returns a Cognito ID token JWT with claims `sub`=`e5f6a7b8-0000-0000-0000-000000000005`, `email`=`erin@example.com`, `name`=`Erin Park`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
@@ -328,6 +413,13 @@ authoring gate.
   for the `sb_session` cookie.
 - The local `users` table is the durable owner reference later epics use for builds, projects and
   runs; `cognito_sub` is UNIQUE, which is what makes the concurrent-sign-in scenario hold.
+- The authentication gate exposes the local `users.id`, resolved by `cognito_sub`, to every
+  admitted request. That resolution runs after story BSB-18-PENDING-1's session check and story
+  BSB-18-PENDING-3's membership check. A valid member token whose `sub` has no `users` row is
+  treated as unauthenticated and creates no row (the two scenarios above).
+- A `users` row proves the subject was admitted at least once; it does not record current
+  `skill-builders` membership. Current membership is known only for the requesting user, from
+  that user's own token (story BSB-18-PENDING-3).
 - On a reuse, the row's `email` and `name` are refreshed from the current ID token; the row `id` and
   `cognito_sub` never change. That is why the changed-email scenario keeps `id` 42 and stores the
   new address.
