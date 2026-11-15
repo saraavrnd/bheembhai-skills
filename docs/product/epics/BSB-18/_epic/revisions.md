@@ -36,3 +36,36 @@ name the session cookie, did not specify the session format, and did not state w
 stories; `story-map.json` is unchanged.
 
 **Still open:** none.
+
+## Pass 2 — 2026-11-15 — verifier checks `gherkin_parses` and story-map artifact change
+
+**Report applied:** automated verifier rejection of the previous `sdlc-plan-stories-write` attempt
+for epic BSB-18. Two checks failed:
+
+1. `gherkin_parses` — scenario *Authoring page refuses an unauthenticated visitor* had no Given
+   step.
+2. artifact `story_map` — `story-map.json` did not change since precheck while reviewer feedback
+   was active.
+
+**Root cause of finding 1:** the criterion lines were written as Markdown bullets (`- Given …`,
+`- When …`). The acceptance-criteria extractor recognises a step only when the keyword is the
+first token on the line, so every bulleted step was invisible: the first scenario (and every
+other scenario in the file) parsed with an empty step list. This was a formatting defect, not a
+missing behaviour.
+
+**What changed:**
+
+- `stories.md` — all 19 scenarios across the four stories rewritten to canonical Gherkin: the
+  `Given`, `And`, `When`, `Then` keywords now start the line instead of being introduced by a
+  `- ` bullet. Scenario headings stay `#### Scenario: <title>`. Every scenario now parses with at
+  least one Given, one When and one Then; the scenario titles, steps, expected values and
+  requirement traceability are otherwise unchanged.
+- `story-map.json` — `BSB-18-PENDING-1` summary refined to *Require a signed-in session for every
+  authoring page and API request*, naming both surfaces its scenarios cover (FR-001 for the page
+  gate, NFR-002 for the API gate). The same wording is mirrored on the story's `**Summary:**` line
+  in `stories.md`. No story key or requirement mapping changed.
+
+**Coverage:** unchanged. All 10 requirements mapped to BSB-18 are still covered by the same four
+stories, and `story-map.json` still maps each requirement to exactly the same story.
+
+**Still open:** none.

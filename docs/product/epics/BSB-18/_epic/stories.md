@@ -45,7 +45,7 @@ the platform, and the builder is configured with the client id and hosted-UI dom
 
 ## STORY: BSB-18-PENDING-1
 
-**Summary:** Require a signed-in session for every authoring request
+**Summary:** Require a signed-in session for every authoring page and API request
 **Epic:** BSB-18 · **Release:** MVP · **Estimate:** 3 · **Labels:** FA-1, MVP
 
 ### Story
@@ -54,39 +54,39 @@ As a **skill author**, I want **the builder to send me to sign in whenever I hav
 ### Acceptance Criteria
 
 #### Scenario: Authoring page refuses an unauthenticated visitor
-- Given the builder is running at `https://builder.skillbuilder.internal` with Cognito app client `skill-builder-web`
-- And the visitor has no `sb_session` cookie
-- When the visitor sends `GET https://builder.skillbuilder.internal/builds`
-- Then the builder responds with HTTP status 302
-- And the `Location` response header value is exactly `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/authorize?client_id=skill-builder-web&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fbuilder.skillbuilder.internal%2Fauth%2Fcallback`
-- And the response body is exactly 0 bytes
-- And the response contains no `Set-Cookie` header
+Given the builder is running at `https://builder.skillbuilder.internal` with Cognito app client `skill-builder-web`
+And the visitor has no `sb_session` cookie
+When the visitor sends `GET https://builder.skillbuilder.internal/builds`
+Then the builder responds with HTTP status 302
+And the `Location` response header value is exactly `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/authorize?client_id=skill-builder-web&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fbuilder.skillbuilder.internal%2Fauth%2Fcallback`
+And the response body is exactly 0 bytes
+And the response contains no `Set-Cookie` header
 
 #### Scenario: Authoring API refuses an unauthenticated request
-- Given the build store contains three builds with ids `1`, `2` and `3` and names `Alpha`, `Beta` and `Gamma`
-- When a visitor with no `sb_session` cookie sends `GET https://builder.skillbuilder.internal/api/builds` with the header `Accept: application/json`
-- Then the builder responds with HTTP status 401
-- And the `Content-Type` response header is `application/json`
-- And the response body is exactly `{"error":{"code":"authentication_required","message":"Sign in to use the skill builder."}}`
-- And the response body contains none of the strings `Alpha`, `Beta` or `Gamma`
+Given the build store contains three builds with ids `1`, `2` and `3` and names `Alpha`, `Beta` and `Gamma`
+When a visitor with no `sb_session` cookie sends `GET https://builder.skillbuilder.internal/api/builds` with the header `Accept: application/json`
+Then the builder responds with HTTP status 401
+And the `Content-Type` response header is `application/json`
+And the response body is exactly `{"error":{"code":"authentication_required","message":"Sign in to use the skill builder."}}`
+And the response body contains none of the strings `Alpha`, `Beta` or `Gamma`
 
 #### Scenario: Expired session is treated as unauthenticated
-- Given the builder's Cognito issuer is `https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample` and its app client id is `skill-builder-web`
-- And the visitor's `sb_session` cookie holds a Cognito ID token JWT with claims `sub`=`a1b2c3d4-0000-0000-0000-000000000001`, `email`=`ada@example.com`, `name`=`Ada Lovelace`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T10:00:00Z`, signed RS256 with the User Pool's test signing key
-- And the current time is `2026-11-15T10:01:00Z`
-- When the visitor sends `GET https://builder.skillbuilder.internal/builds` carrying that `sb_session` cookie
-- Then the builder responds with HTTP status 302
-- And the `Location` response header value is exactly `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/authorize?client_id=skill-builder-web&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fbuilder.skillbuilder.internal%2Fauth%2Fcallback`
-- And the response carries the header `Set-Cookie: sb_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax`
-- And the response body is exactly 0 bytes
+Given the builder's Cognito issuer is `https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample` and its app client id is `skill-builder-web`
+And the visitor's `sb_session` cookie holds a Cognito ID token JWT with claims `sub`=`a1b2c3d4-0000-0000-0000-000000000001`, `email`=`ada@example.com`, `name`=`Ada Lovelace`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T10:00:00Z`, signed RS256 with the User Pool's test signing key
+And the current time is `2026-11-15T10:01:00Z`
+When the visitor sends `GET https://builder.skillbuilder.internal/builds` carrying that `sb_session` cookie
+Then the builder responds with HTTP status 302
+And the `Location` response header value is exactly `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/authorize?client_id=skill-builder-web&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fbuilder.skillbuilder.internal%2Fauth%2Fcallback`
+And the response carries the header `Set-Cookie: sb_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax`
+And the response body is exactly 0 bytes
 
 #### Scenario: Every authoring page route enforces the session gate
-- Given the builder's authoring page routes are `/builds`, `/builds/1`, `/builds/1/files` and `/projects/1/settings` under `https://builder.skillbuilder.internal`
-- When a visitor with no `sb_session` cookie sends `GET` to each of those four routes
-- Then each response has HTTP status 302
-- And each response's `Location` header value is exactly `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/authorize?client_id=skill-builder-web&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fbuilder.skillbuilder.internal%2Fauth%2Fcallback`
-- And each response body is exactly 0 bytes
-- And no response contains a `Set-Cookie` header
+Given the builder's authoring page routes are `/builds`, `/builds/1`, `/builds/1/files` and `/projects/1/settings` under `https://builder.skillbuilder.internal`
+When a visitor with no `sb_session` cookie sends `GET` to each of those four routes
+Then each response has HTTP status 302
+And each response's `Location` header value is exactly `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/authorize?client_id=skill-builder-web&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fbuilder.skillbuilder.internal%2Fauth%2Fcallback`
+And each response body is exactly 0 bytes
+And no response contains a `Set-Cookie` header
 
 ### Covered requirements (traceability)
 - FR-001
@@ -121,41 +121,41 @@ As a **skill author**, I want **to sign in with my existing platform identity-pr
 ### Acceptance Criteria
 
 #### Scenario: Current group member signs in with platform credentials
-- Given the hosted UI at `https://skill-builder.auth.eu-west-1.amazoncognito.com` authenticates a user and redirects the browser to `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-1`
-- And the builder exchanges `test-auth-code-1` at `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/token` with client id `skill-builder-web`
-- And the exchange returns a Cognito ID token JWT with claims `sub`=`a1b2c3d4-0000-0000-0000-000000000001`, `email`=`ada@example.com`, `name`=`Ada Lovelace`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
-- When the browser follows that callback URL
-- Then the builder responds with HTTP status 302 and the `Location` header `https://builder.skillbuilder.internal/builds`
-- And the response sets `Set-Cookie: sb_session=` followed by that ID token JWT, with the attributes `Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=3600`
-- And a subsequent `GET https://builder.skillbuilder.internal/builds` carrying that `sb_session` cookie returns HTTP status 200
-- And the response body contains the exact text `Signed in as Ada Lovelace (ada@example.com)`
+Given the hosted UI at `https://skill-builder.auth.eu-west-1.amazoncognito.com` authenticates a user and redirects the browser to `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-1`
+And the builder exchanges `test-auth-code-1` at `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/token` with client id `skill-builder-web`
+And the exchange returns a Cognito ID token JWT with claims `sub`=`a1b2c3d4-0000-0000-0000-000000000001`, `email`=`ada@example.com`, `name`=`Ada Lovelace`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
+When the browser follows that callback URL
+Then the builder responds with HTTP status 302 and the `Location` header `https://builder.skillbuilder.internal/builds`
+And the response sets `Set-Cookie: sb_session=` followed by that ID token JWT, with the attributes `Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=3600`
+And a subsequent `GET https://builder.skillbuilder.internal/builds` carrying that `sb_session` cookie returns HTTP status 200
+And the response body contains the exact text `Signed in as Ada Lovelace (ada@example.com)`
 
 #### Scenario: Non-member sign-in is rejected
-- Given the hosted UI authenticates a user and redirects the browser to `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-2`
-- And the exchange returns a Cognito ID token JWT with claims `sub`=`b2c3d4e5-0000-0000-0000-000000000002`, `email`=`bob@example.com`, `name`=`Bob Stone`, `cognito:groups`=`["platform-users"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
-- When the browser follows that callback URL
-- Then the builder responds with HTTP status 403
-- And the response body contains the exact text `You are not a member of the skill-builders group`
-- And the response contains no `Set-Cookie: sb_session=` header
-- And `SELECT count(*) FROM users WHERE cognito_sub = 'b2c3d4e5-0000-0000-0000-000000000002'` returns `0`
+Given the hosted UI authenticates a user and redirects the browser to `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-2`
+And the exchange returns a Cognito ID token JWT with claims `sub`=`b2c3d4e5-0000-0000-0000-000000000002`, `email`=`bob@example.com`, `name`=`Bob Stone`, `cognito:groups`=`["platform-users"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
+When the browser follows that callback URL
+Then the builder responds with HTTP status 403
+And the response body contains the exact text `You are not a member of the skill-builders group`
+And the response contains no `Set-Cookie: sb_session=` header
+And `SELECT count(*) FROM users WHERE cognito_sub = 'b2c3d4e5-0000-0000-0000-000000000002'` returns `0`
 
 #### Scenario: Identity without a membership claim is rejected
-- Given the hosted UI authenticates a user and redirects the browser to `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-3`
-- And the exchange returns a Cognito ID token JWT with claims `sub`=`c3d4e5f6-0000-0000-0000-000000000003`, `email`=`carol@example.com`, `name`=`Carol Diaz`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`, with no `cognito:groups` claim
-- When the browser follows that callback URL
-- Then the builder responds with HTTP status 403
-- And the response body contains the exact text `You are not a member of the skill-builders group`
-- And the response contains no `Set-Cookie: sb_session=` header
-- And `SELECT count(*) FROM users WHERE cognito_sub = 'c3d4e5f6-0000-0000-0000-000000000003'` returns `0`
+Given the hosted UI authenticates a user and redirects the browser to `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-3`
+And the exchange returns a Cognito ID token JWT with claims `sub`=`c3d4e5f6-0000-0000-0000-000000000003`, `email`=`carol@example.com`, `name`=`Carol Diaz`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`, with no `cognito:groups` claim
+When the browser follows that callback URL
+Then the builder responds with HTTP status 403
+And the response body contains the exact text `You are not a member of the skill-builders group`
+And the response contains no `Set-Cookie: sb_session=` header
+And `SELECT count(*) FROM users WHERE cognito_sub = 'c3d4e5f6-0000-0000-0000-000000000003'` returns `0`
 
 #### Scenario: Failed hosted-UI sign-in creates no session
-- Given a person who is a current member of the `skill-builders` group
-- And the hosted UI rejects their incorrect password and redirects the browser to `https://builder.skillbuilder.internal/auth/callback?error=access_denied&error_description=Invalid+password`
-- When the browser follows that callback URL
-- Then the builder responds with HTTP status 401
-- And the response body contains the exact text `Sign-in failed. Check your credentials and try again.`
-- And the response contains no `Set-Cookie: sb_session=` header
-- And a subsequent `GET https://builder.skillbuilder.internal/builds` with no `sb_session` cookie responds with HTTP status 302 and the `Location` header `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/authorize?client_id=skill-builder-web&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fbuilder.skillbuilder.internal%2Fauth%2Fcallback`
+Given a person who is a current member of the `skill-builders` group
+And the hosted UI rejects their incorrect password and redirects the browser to `https://builder.skillbuilder.internal/auth/callback?error=access_denied&error_description=Invalid+password`
+When the browser follows that callback URL
+Then the builder responds with HTTP status 401
+And the response body contains the exact text `Sign-in failed. Check your credentials and try again.`
+And the response contains no `Set-Cookie: sb_session=` header
+And a subsequent `GET https://builder.skillbuilder.internal/builds` with no `sb_session` cookie responds with HTTP status 302 and the `Location` header `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/authorize?client_id=skill-builder-web&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fbuilder.skillbuilder.internal%2Fauth%2Fcallback`
 
 ### Covered requirements (traceability)
 - FR-002
@@ -191,47 +191,47 @@ As a **platform owner**, I want **the builder to re-check skill-builders members
 ### Acceptance Criteria
 
 #### Scenario: Signed-in member passes the per-request membership check
-- Given the builder's Cognito issuer is `https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`
-- And the `sb_session` cookie holds a Cognito ID token JWT with `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
-- And the current time is `2026-11-15T10:00:00Z`
-- And the build store contains builds named `Alpha`, `Beta` and `Gamma`
-- When the user sends `GET https://builder.skillbuilder.internal/builds` carrying that `sb_session` cookie
-- Then the builder returns HTTP status 200
-- And the response body contains the strings `Alpha`, `Beta` and `Gamma` in that order
+Given the builder's Cognito issuer is `https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`
+And the `sb_session` cookie holds a Cognito ID token JWT with `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
+And the current time is `2026-11-15T10:00:00Z`
+And the build store contains builds named `Alpha`, `Beta` and `Gamma`
+When the user sends `GET https://builder.skillbuilder.internal/builds` carrying that `sb_session` cookie
+Then the builder returns HTTP status 200
+And the response body contains the strings `Alpha`, `Beta` and `Gamma` in that order
 
 #### Scenario: Signed-in non-member is rejected on every authoring route
-- Given the `sb_session` cookie holds a Cognito ID token JWT with `cognito:groups`=`["platform-users"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
-- And the current time is `2026-11-15T10:00:00Z`
-- When the user sends `GET` to each of `https://builder.skillbuilder.internal/builds`, `https://builder.skillbuilder.internal/api/builds`, `https://builder.skillbuilder.internal/builds/1/files` and `https://builder.skillbuilder.internal/projects/1/settings` carrying that `sb_session` cookie
-- Then each request is rejected with HTTP status 403
-- And each page response body contains the exact text `You are not a member of the skill-builders group`
-- And the `GET https://builder.skillbuilder.internal/api/builds` response body is exactly `{"error":{"code":"not_a_member","message":"You are not a member of the skill-builders group"}}`
-- And no response contains build, skill, branch or project data
+Given the `sb_session` cookie holds a Cognito ID token JWT with `cognito:groups`=`["platform-users"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
+And the current time is `2026-11-15T10:00:00Z`
+When the user sends `GET` to each of `https://builder.skillbuilder.internal/builds`, `https://builder.skillbuilder.internal/api/builds`, `https://builder.skillbuilder.internal/builds/1/files` and `https://builder.skillbuilder.internal/projects/1/settings` carrying that `sb_session` cookie
+Then each request is rejected with HTTP status 403
+And each page response body contains the exact text `You are not a member of the skill-builders group`
+And the `GET https://builder.skillbuilder.internal/api/builds` response body is exactly `{"error":{"code":"not_a_member","message":"You are not a member of the skill-builders group"}}`
+And no response contains build, skill, branch or project data
 
 #### Scenario: Removed member keeps access only while their token is valid
-- Given the user signed in at `2026-11-15T10:00:00Z` and their `sb_session` cookie holds a Cognito ID token JWT with `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
-- And the user is removed from the `skill-builders` group at `2026-11-15T10:00:00Z`
-- And the build store contains builds named `Alpha`, `Beta` and `Gamma`
-- When the user sends `GET https://builder.skillbuilder.internal/builds` at `2026-11-15T10:59:59Z` carrying that `sb_session` cookie
-- Then the builder returns HTTP status 200
-- And the response body contains the strings `Alpha`, `Beta` and `Gamma` in that order
+Given the user signed in at `2026-11-15T10:00:00Z` and their `sb_session` cookie holds a Cognito ID token JWT with `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
+And the user is removed from the `skill-builders` group at `2026-11-15T10:00:00Z`
+And the build store contains builds named `Alpha`, `Beta` and `Gamma`
+When the user sends `GET https://builder.skillbuilder.internal/builds` at `2026-11-15T10:59:59Z` carrying that `sb_session` cookie
+Then the builder returns HTTP status 200
+And the response body contains the strings `Alpha`, `Beta` and `Gamma` in that order
 
 #### Scenario: Removed member is denied at the session token expiry
-- Given the user signed in at `2026-11-15T10:00:00Z` and their `sb_session` cookie holds a Cognito ID token JWT with `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
-- And the user is removed from the `skill-builders` group at `2026-11-15T10:00:00Z`
-- When the user sends `GET https://builder.skillbuilder.internal/builds` at `2026-11-15T11:00:00Z` carrying that `sb_session` cookie
-- Then the builder responds with HTTP status 302
-- And the `Location` response header value is exactly `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/authorize?client_id=skill-builder-web&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fbuilder.skillbuilder.internal%2Fauth%2Fcallback`
-- And the response carries the header `Set-Cookie: sb_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax`
-- And the response body is exactly 0 bytes
+Given the user signed in at `2026-11-15T10:00:00Z` and their `sb_session` cookie holds a Cognito ID token JWT with `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
+And the user is removed from the `skill-builders` group at `2026-11-15T10:00:00Z`
+When the user sends `GET https://builder.skillbuilder.internal/builds` at `2026-11-15T11:00:00Z` carrying that `sb_session` cookie
+Then the builder responds with HTTP status 302
+And the `Location` response header value is exactly `https://skill-builder.auth.eu-west-1.amazoncognito.com/oauth2/authorize?client_id=skill-builder-web&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fbuilder.skillbuilder.internal%2Fauth%2Fcallback`
+And the response carries the header `Set-Cookie: sb_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax`
+And the response body is exactly 0 bytes
 
 #### Scenario: Removed member cannot re-authenticate into the builder
-- Given the user was removed from the `skill-builders` group at `2026-11-15T10:00:00Z`
-- And the hosted UI authenticates that user at `2026-11-15T11:01:00Z` and the exchange returns a fresh Cognito ID token JWT with `cognito:groups`=`["platform-users"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T12:01:00Z`
-- When the browser follows the callback to `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-4`
-- Then the builder responds with HTTP status 403
-- And the response body contains the exact text `You are not a member of the skill-builders group`
-- And the response contains no `Set-Cookie: sb_session=` header
+Given the user was removed from the `skill-builders` group at `2026-11-15T10:00:00Z`
+And the hosted UI authenticates that user at `2026-11-15T11:01:00Z` and the exchange returns a fresh Cognito ID token JWT with `cognito:groups`=`["platform-users"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T12:01:00Z`
+When the browser follows the callback to `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-4`
+Then the builder responds with HTTP status 403
+And the response body contains the exact text `You are not a member of the skill-builders group`
+And the response contains no `Set-Cookie: sb_session=` header
 
 ### Covered requirements (traceability)
 - FR-004
@@ -269,50 +269,50 @@ As a **skill author**, I want **the builder to keep exactly one local user recor
 ### Acceptance Criteria
 
 #### Scenario: First successful sign-in creates one local user record
-- Given the `users` table has no row with `cognito_sub` = `a1b2c3d4-0000-0000-0000-000000000001`
-- And the hosted UI redirects the browser to `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-5`
-- And the exchange returns a Cognito ID token JWT with claims `sub`=`a1b2c3d4-0000-0000-0000-000000000001`, `email`=`ada@example.com`, `name`=`Ada Lovelace`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
-- When the browser follows that callback URL
-- Then `SELECT count(*) FROM users WHERE cognito_sub = 'a1b2c3d4-0000-0000-0000-000000000001'` returns `1`
-- And that row's `email` column is exactly `ada@example.com`
-- And that row's `name` column is exactly `Ada Lovelace`
-- And a subsequent `GET https://builder.skillbuilder.internal/builds` carrying the issued `sb_session` cookie returns a response body containing the exact text `Signed in as Ada Lovelace (ada@example.com)`
+Given the `users` table has no row with `cognito_sub` = `a1b2c3d4-0000-0000-0000-000000000001`
+And the hosted UI redirects the browser to `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-5`
+And the exchange returns a Cognito ID token JWT with claims `sub`=`a1b2c3d4-0000-0000-0000-000000000001`, `email`=`ada@example.com`, `name`=`Ada Lovelace`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
+When the browser follows that callback URL
+Then `SELECT count(*) FROM users WHERE cognito_sub = 'a1b2c3d4-0000-0000-0000-000000000001'` returns `1`
+And that row's `email` column is exactly `ada@example.com`
+And that row's `name` column is exactly `Ada Lovelace`
+And a subsequent `GET https://builder.skillbuilder.internal/builds` carrying the issued `sb_session` cookie returns a response body containing the exact text `Signed in as Ada Lovelace (ada@example.com)`
 
 #### Scenario: Later sign-in reuses the existing local user record
-- Given exactly one `users` row exists with `id` = `42` and `cognito_sub` = `a1b2c3d4-0000-0000-0000-000000000001`
-- When that subject completes a later successful sign-in through `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-6` and the exchange returns a new Cognito ID token JWT with claims `sub`=`a1b2c3d4-0000-0000-0000-000000000001`, `email`=`ada@example.com`, `name`=`Ada Lovelace`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
-- Then `SELECT count(*) FROM users WHERE cognito_sub = 'a1b2c3d4-0000-0000-0000-000000000001'` returns `1`
-- And the row's `id` is still `42`
-- And the `GET https://builder.skillbuilder.internal/builds` response for the new session contains the exact text `Signed in as Ada Lovelace (ada@example.com)`
+Given exactly one `users` row exists with `id` = `42` and `cognito_sub` = `a1b2c3d4-0000-0000-0000-000000000001`
+When that subject completes a later successful sign-in through `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-6` and the exchange returns a new Cognito ID token JWT with claims `sub`=`a1b2c3d4-0000-0000-0000-000000000001`, `email`=`ada@example.com`, `name`=`Ada Lovelace`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
+Then `SELECT count(*) FROM users WHERE cognito_sub = 'a1b2c3d4-0000-0000-0000-000000000001'` returns `1`
+And the row's `id` is still `42`
+And the `GET https://builder.skillbuilder.internal/builds` response for the new session contains the exact text `Signed in as Ada Lovelace (ada@example.com)`
 
 #### Scenario: Changed email does not create a second record
-- Given exactly one `users` row exists with `id` = `42`, `cognito_sub` = `a1b2c3d4-0000-0000-0000-000000000001` and `email` = `ada@example.com`
-- When that subject signs in through `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-8` and the exchange returns a new Cognito ID token JWT with claims `sub`=`a1b2c3d4-0000-0000-0000-000000000001`, `email`=`ada.lovelace@example.com`, `name`=`Ada Lovelace`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
-- Then `SELECT count(*) FROM users WHERE cognito_sub = 'a1b2c3d4-0000-0000-0000-000000000001'` returns `1`
-- And the row's `id` is still `42`
-- And the row's `email` is exactly `ada.lovelace@example.com`
+Given exactly one `users` row exists with `id` = `42`, `cognito_sub` = `a1b2c3d4-0000-0000-0000-000000000001` and `email` = `ada@example.com`
+When that subject signs in through `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-8` and the exchange returns a new Cognito ID token JWT with claims `sub`=`a1b2c3d4-0000-0000-0000-000000000001`, `email`=`ada.lovelace@example.com`, `name`=`Ada Lovelace`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
+Then `SELECT count(*) FROM users WHERE cognito_sub = 'a1b2c3d4-0000-0000-0000-000000000001'` returns `1`
+And the row's `id` is still `42`
+And the row's `email` is exactly `ada.lovelace@example.com`
 
 #### Scenario: Failed sign-in creates no local user record
-- Given the `users` table has no row with `cognito_sub` = `a1b2c3d4-0000-0000-0000-000000000099`
-- And the hosted UI returns `https://builder.skillbuilder.internal/auth/callback?error=access_denied&error_description=Invalid+password` with no authorization code
-- When the browser follows that callback URL
-- Then the builder responds with HTTP status 401
-- And `SELECT count(*) FROM users WHERE cognito_sub = 'a1b2c3d4-0000-0000-0000-000000000099'` returns `0`
+Given the `users` table has no row with `cognito_sub` = `a1b2c3d4-0000-0000-0000-000000000099`
+And the hosted UI returns `https://builder.skillbuilder.internal/auth/callback?error=access_denied&error_description=Invalid+password` with no authorization code
+When the browser follows that callback URL
+Then the builder responds with HTTP status 401
+And `SELECT count(*) FROM users WHERE cognito_sub = 'a1b2c3d4-0000-0000-0000-000000000099'` returns `0`
 
 #### Scenario: Rejected non-member sign-in creates no local user record
-- Given the `users` table has no row with `cognito_sub` = `d4e5f6a7-0000-0000-0000-000000000004`
-- And the exchange returns a Cognito ID token JWT with claims `sub`=`d4e5f6a7-0000-0000-0000-000000000004`, `email`=`dave@example.com`, `name`=`Dave Kim`, `cognito:groups`=`["platform-users"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
-- When the browser follows the callback to `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-7`
-- Then the builder responds with HTTP status 403
-- And `SELECT count(*) FROM users WHERE cognito_sub = 'd4e5f6a7-0000-0000-0000-000000000004'` returns `0`
+Given the `users` table has no row with `cognito_sub` = `d4e5f6a7-0000-0000-0000-000000000004`
+And the exchange returns a Cognito ID token JWT with claims `sub`=`d4e5f6a7-0000-0000-0000-000000000004`, `email`=`dave@example.com`, `name`=`Dave Kim`, `cognito:groups`=`["platform-users"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
+When the browser follows the callback to `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-7`
+Then the builder responds with HTTP status 403
+And `SELECT count(*) FROM users WHERE cognito_sub = 'd4e5f6a7-0000-0000-0000-000000000004'` returns `0`
 
 #### Scenario: Concurrent first sign-ins create exactly one record
-- Given the `users` table has no row with `cognito_sub` = `e5f6a7b8-0000-0000-0000-000000000005`
-- When two first-time sign-ins for that subject complete concurrently at `2026-11-15T10:00:00Z` through `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-9a` and `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-9b`, and each exchange returns a Cognito ID token JWT with claims `sub`=`e5f6a7b8-0000-0000-0000-000000000005`, `email`=`erin@example.com`, `name`=`Erin Park`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
-- Then both callbacks respond with HTTP status 302 and the `Location` header `https://builder.skillbuilder.internal/builds`
-- And both responses set an `sb_session` cookie
-- And `SELECT count(*) FROM users WHERE cognito_sub = 'e5f6a7b8-0000-0000-0000-000000000005'` returns `1`
-- And a `GET https://builder.skillbuilder.internal/builds` carrying either issued `sb_session` cookie returns a response body containing the exact text `Signed in as Erin Park (erin@example.com)`
+Given the `users` table has no row with `cognito_sub` = `e5f6a7b8-0000-0000-0000-000000000005`
+When two first-time sign-ins for that subject complete concurrently at `2026-11-15T10:00:00Z` through `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-9a` and `https://builder.skillbuilder.internal/auth/callback?code=test-auth-code-9b`, and each exchange returns a Cognito ID token JWT with claims `sub`=`e5f6a7b8-0000-0000-0000-000000000005`, `email`=`erin@example.com`, `name`=`Erin Park`, `cognito:groups`=`["skill-builders"]`, `iss`=`https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_SBExample`, `aud`=`skill-builder-web` and `exp`=`2026-11-15T11:00:00Z`
+Then both callbacks respond with HTTP status 302 and the `Location` header `https://builder.skillbuilder.internal/builds`
+And both responses set an `sb_session` cookie
+And `SELECT count(*) FROM users WHERE cognito_sub = 'e5f6a7b8-0000-0000-0000-000000000005'` returns `1`
+And a `GET https://builder.skillbuilder.internal/builds` carrying either issued `sb_session` cookie returns a response body containing the exact text `Signed in as Erin Park (erin@example.com)`
 
 ### Covered requirements (traceability)
 - FR-005
