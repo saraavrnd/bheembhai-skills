@@ -1,107 +1,107 @@
 ```yaml bheembhai:foreach
 epics:
-  - id: FA-1-PENDING
-    epic_key: FA-1-PENDING
+  - id: BSB-18
+    epic_key: BSB-18
     summary: "Access, identity & the authoring gate"
     feature_area: FA-1
     release: MVP
-  - id: FA-2A-PENDING
-    epic_key: FA-2A-PENDING
+  - id: BSB-19
+    epic_key: BSB-19
     summary: "Skill build creation & scaffolding"
     feature_area: FA-2
     release: MVP
-  - id: FA-2B-PENDING
-    epic_key: FA-2B-PENDING
+  - id: BSB-20
+    epic_key: BSB-20
     summary: "Skill cloning & edit builds"
     feature_area: FA-2
     release: MVP
-  - id: FA-3-PENDING
-    epic_key: FA-3-PENDING
+  - id: BSB-21
+    epic_key: BSB-21
     summary: "Skill editing, build state & readiness tracking"
     feature_area: FA-3
     release: MVP
-  - id: FA-4-PENDING
-    epic_key: FA-4-PENDING
+  - id: BSB-22
+    epic_key: BSB-22
     summary: "Test projects & membership"
     feature_area: FA-4
     release: MVP
-  - id: FA-5-PENDING
-    epic_key: FA-5-PENDING
+  - id: BSB-23
+    epic_key: BSB-23
     summary: "Integrations, credentials & MCP definitions"
     feature_area: FA-5
     release: MVP
-  - id: FA-6A-PENDING
-    epic_key: FA-6A-PENDING
+  - id: BSB-24
+    epic_key: BSB-24
     summary: "Run start & input selection"
     feature_area: FA-6
     release: MVP
-  - id: FA-6B-PENDING
-    epic_key: FA-6B-PENDING
+  - id: BSB-25
+    epic_key: BSB-25
     summary: "Skill packaging & run branch preparation"
     feature_area: FA-6
     release: MVP
-  - id: FA-7-PENDING
-    epic_key: FA-7-PENDING
+  - id: BSB-26
+    epic_key: BSB-26
     summary: "Run execution & outcome capture"
     feature_area: FA-7
     release: MVP
-  - id: FA-8-PENDING
-    epic_key: FA-8-PENDING
+  - id: BSB-27
+    epic_key: BSB-27
     summary: "Run guardrails, deadlines & re-runs"
     feature_area: FA-8
     release: MVP
-  - id: FA-9-PENDING
-    epic_key: FA-9-PENDING
+  - id: BSB-28
+    epic_key: BSB-28
     summary: "Jira fixture seeding"
     feature_area: FA-9
     release: Later
-  - id: FA-10A-PENDING
-    epic_key: FA-10A-PENDING
+  - id: BSB-29
+    epic_key: BSB-29
     summary: "Run verification & verdicts"
     feature_area: FA-10
     release: MVP
-  - id: FA-10B-PENDING
-    epic_key: FA-10B-PENDING
+  - id: BSB-30
+    epic_key: BSB-30
     summary: "Readiness checks & re-verification"
     feature_area: FA-10
     release: MVP
-  - id: FA-11-PENDING
-    epic_key: FA-11-PENDING
+  - id: BSB-31
+    epic_key: BSB-31
     summary: "Static security scanning"
     feature_area: FA-11
     release: MVP
-  - id: FA-12-PENDING
-    epic_key: FA-12-PENDING
+  - id: BSB-32
+    epic_key: BSB-32
     summary: "LLM security scanning"
     feature_area: FA-12
     release: MVP
-  - id: FA-13A-PENDING
-    epic_key: FA-13A-PENDING
+  - id: BSB-33
+    epic_key: BSB-33
     summary: "Run report & change evidence"
     feature_area: FA-13
     release: MVP
-  - id: FA-13B-PENDING
-    epic_key: FA-13B-PENDING
+  - id: BSB-34
+    epic_key: BSB-34
     summary: "Run usage, trace & data retention"
     feature_area: FA-13
     release: MVP
-  - id: FA-14-PENDING
-    epic_key: FA-14-PENDING
+  - id: BSB-35
+    epic_key: BSB-35
     summary: "Skill history & run comparison"
     feature_area: FA-14
     release: Later
-  - id: FA-15-PENDING
-    epic_key: FA-15-PENDING
+  - id: BSB-36
+    epic_key: BSB-36
     summary: "Catalog submission"
     feature_area: FA-15
     release: MVP
-  - id: FA-16-PENDING
-    epic_key: FA-16-PENDING
+  - id: BSB-37
+    epic_key: BSB-37
     summary: "Command line & saved suites"
     feature_area: FA-16
     release: mixed
-  - id: FA-17-PENDING
-    epic_key: FA-17-PENDING
+  - id: BSB-38
+    epic_key: BSB-38
     summary: "Accessibility conformance"
     feature_area: FA-17
     release: MVP
@@ -120,7 +120,7 @@ constrain, except accessibility, which has its own epic (FA-17).
 
 ---
 
-## EPIC: Access, identity & the authoring gate  (FA-1-PENDING)
+## EPIC: Access, identity & the authoring gate  (BSB-18)
 
 **Feature area:** FA-1 · **Release:** MVP · **Labels:** FA-1, MVP
 
@@ -187,7 +187,7 @@ sign-in reuses it, and removing a user from the group revokes authoring access w
 
 ---
 
-## EPIC: Skill build creation & scaffolding  (FA-2A-PENDING)
+## EPIC: Skill build creation & scaffolding  (BSB-19)
 
 **Feature area:** FA-2 · **Release:** MVP · **Labels:** FA-2, MVP
 
@@ -255,7 +255,7 @@ message.
 
 ---
 
-## EPIC: Skill cloning & edit builds  (FA-2B-PENDING)
+## EPIC: Skill cloning & edit builds  (BSB-20)
 
 **Feature area:** FA-2 · **Release:** MVP · **Labels:** FA-2, MVP
 
@@ -317,7 +317,7 @@ name is rejected.
 
 ---
 
-## EPIC: Skill editing, build state & readiness tracking  (FA-3-PENDING)
+## EPIC: Skill editing, build state & readiness tracking  (BSB-21)
 
 **Feature area:** FA-3 · **Release:** MVP · **Labels:** FA-3, MVP
 
@@ -380,7 +380,7 @@ any new commit clears the earlier ready SHA.
 
 ---
 
-## EPIC: Test projects & membership  (FA-4-PENDING)
+## EPIC: Test projects & membership  (BSB-22)
 
 **Feature area:** FA-4 · **Release:** MVP · **Labels:** FA-4, MVP
 
@@ -436,7 +436,7 @@ change the project's integrations.
 
 ---
 
-## EPIC: Integrations, credentials & MCP definitions  (FA-5-PENDING)
+## EPIC: Integrations, credentials & MCP definitions  (BSB-23)
 
 **Feature area:** FA-5 · **Release:** MVP · **Labels:** FA-5, MVP
 
@@ -510,7 +510,7 @@ warning, and the Jira and source-control MCP definitions are stored with the int
 
 ---
 
-## EPIC: Run start & input selection  (FA-6A-PENDING)
+## EPIC: Run start & input selection  (BSB-24)
 
 **Feature area:** FA-6 · **Release:** MVP · **Labels:** FA-6, MVP
 
@@ -567,7 +567,7 @@ handoff. A non-member or an invalid selection is refused before any run is creat
 
 ---
 
-## EPIC: Skill packaging & run branch preparation  (FA-6B-PENDING)
+## EPIC: Skill packaging & run branch preparation  (BSB-25)
 
 **Feature area:** FA-6 · **Release:** MVP · **Labels:** FA-6, MVP
 
@@ -632,7 +632,7 @@ meets the 60-second target for bundles up to 5 MB.
 
 ---
 
-## EPIC: Run execution & outcome capture  (FA-7-PENDING)
+## EPIC: Run execution & outcome capture  (BSB-26)
 
 **Feature area:** FA-7 · **Release:** MVP · **Labels:** FA-7, MVP
 
@@ -694,7 +694,7 @@ component versions, verifier version, model profile and model tier.
 
 ---
 
-## EPIC: Run guardrails, deadlines & re-runs  (FA-8-PENDING)
+## EPIC: Run guardrails, deadlines & re-runs  (BSB-27)
 
 **Feature area:** FA-8 · **Release:** MVP · **Labels:** FA-8, MVP
 
@@ -768,7 +768,7 @@ commit and can chain a prior output branch as the next input.
 
 ---
 
-## EPIC: Jira fixture seeding  (FA-9-PENDING)
+## EPIC: Jira fixture seeding  (BSB-28)
 
 **Feature area:** FA-9 · **Release:** Later · **Labels:** FA-9, Later
 
@@ -824,7 +824,7 @@ the relevant run ID, and no unmarked issue is ever deleted.
 
 ---
 
-## EPIC: Run verification & verdicts  (FA-10A-PENDING)
+## EPIC: Run verification & verdicts  (BSB-29)
 
 **Feature area:** FA-10 · **Release:** MVP · **Labels:** FA-10, MVP
 
@@ -889,7 +889,7 @@ inputs and component versions produces the same result.
 
 ---
 
-## EPIC: Readiness checks & re-verification  (FA-10B-PENDING)
+## EPIC: Readiness checks & re-verification  (BSB-30)
 
 **Feature area:** FA-10 · **Release:** MVP · **Labels:** FA-10, MVP
 
@@ -957,7 +957,7 @@ out-of-range verifier version. An author can re-verify an existing output branch
 
 ---
 
-## EPIC: Static security scanning  (FA-11-PENDING)
+## EPIC: Static security scanning  (BSB-31)
 
 **Feature area:** FA-11 · **Release:** MVP · **Labels:** FA-11, MVP
 
@@ -1034,7 +1034,7 @@ platform's, and project members can request a static-only scan without a run.
 
 ---
 
-## EPIC: LLM security scanning  (FA-12-PENDING)
+## EPIC: LLM security scanning  (BSB-32)
 
 **Feature area:** FA-12 · **Release:** MVP · **Labels:** FA-12, MVP
 
@@ -1106,7 +1106,7 @@ project's configured LLM-scan model profile.
 
 ---
 
-## EPIC: Run report & change evidence  (FA-13A-PENDING)
+## EPIC: Run report & change evidence  (BSB-33)
 
 **Feature area:** FA-13 · **Release:** MVP · **Labels:** FA-13, MVP
 
@@ -1173,7 +1173,7 @@ even if the project's Jira state later changes.
 
 ---
 
-## EPIC: Run usage, trace & data retention  (FA-13B-PENDING)
+## EPIC: Run usage, trace & data retention  (BSB-34)
 
 **Feature area:** FA-13 · **Release:** MVP · **Labels:** FA-13, MVP
 
@@ -1241,7 +1241,7 @@ request.
 
 ---
 
-## EPIC: Skill history & run comparison  (FA-14-PENDING)
+## EPIC: Skill history & run comparison  (BSB-35)
 
 **Feature area:** FA-14 · **Release:** Later · **Labels:** FA-14, Later
 
@@ -1288,7 +1288,7 @@ and checks. They can compare two runs side by side and see exactly which checks 
 
 ---
 
-## EPIC: Catalog submission  (FA-15-PENDING)
+## EPIC: Catalog submission  (BSB-36)
 
 **Feature area:** FA-15 · **Release:** MVP · **Labels:** FA-15, MVP
 
@@ -1357,7 +1357,7 @@ the catalog or platform.
 
 ---
 
-## EPIC: Command line & saved suites  (FA-16-PENDING)
+## EPIC: Command line & saved suites  (BSB-37)
 
 **Feature area:** FA-16 · **Release:** mixed · **Labels:** FA-16, mixed
 
@@ -1423,7 +1423,7 @@ save and run a named suite, schedule it nightly, and see each scheduled run's re
 
 ---
 
-## EPIC: Accessibility conformance  (FA-17-PENDING)
+## EPIC: Accessibility conformance  (BSB-38)
 
 **Feature area:** FA-17 · **Release:** MVP · **Labels:** FA-17, MVP
 
