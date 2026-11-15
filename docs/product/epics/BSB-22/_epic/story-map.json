@@ -1,0 +1,31 @@
+{
+  "epic_key": "BSB-22",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-22-PENDING-1",
+      "summary": "Create a test project and be recorded as its owner",
+      "requirement_ids": ["FR-023", "FR-024"]
+    },
+    {
+      "story_key": "BSB-22-PENDING-2",
+      "summary": "Owner adds a skill-builder user as a project member",
+      "requirement_ids": ["FR-025"]
+    },
+    {
+      "story_key": "BSB-22-PENDING-3",
+      "summary": "Owner removes a project member",
+      "requirement_ids": ["FR-026"]
+    },
+    {
+      "story_key": "BSB-22-PENDING-4",
+      "summary": "Project membership authorizes starting a run",
+      "requirement_ids": ["FR-027"]
+    },
+    {
+      "story_key": "BSB-22-PENDING-5",
+      "summary": "Only the project owner can change integrations",
+      "requirement_ids": ["FR-028"]
+    }
+  ]
+}
