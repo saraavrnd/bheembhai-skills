@@ -38,7 +38,7 @@ Skill authors in this catalog work on the one artifact the platform executes, bu
 
 **Release split (added assumption).** The ADR does not define releases. The MVP/Later split below, and the `MVP`/`Later` tags on every requirement, are this PRD's proposal (see §8).
 
-**In scope (MVP):** sign-in and group-based authoring gate; create, edit and clone builds; skill-file editing and save-to-commit; build branch, head commit and readiness state; test projects and membership; Jira, source-control and model integrations with externally held credentials and MCP server definitions; run setup and skill packaging; run execution and outcome capture; turn and spend caps plus a run deadline (the deadline is an added assumption); re-runs and output chaining; static security scanning with a hard run gate; non-blocking model security scanning; verification and the Ready gate; run reports and audit trail; catalog submission as a pull request; command-line runs and scans; accessibility conformance (added assumption).
+**In scope (MVP):** sign-in and group-based authoring gate; create, edit and clone builds; skill-file editing and save-to-commit; build branch, head commit and readiness state; test projects and membership; Jira, source-control and model integrations with externally held credentials and MCP server definitions; run setup and skill packaging; run execution and outcome capture; turn and spend caps plus an installation-configured run deadline and retention period; re-runs and output chaining; static security scanning with a hard run gate; non-blocking model security scanning; verification through the shared verification layer and the Ready gate; run reports and audit trail; catalog submission as a pull request; command-line runs and scans; accessibility conformance (added assumption).
 
 **Out of scope (Later / explicitly not now):** Jira fixture seeding; skill history and run comparison; saved suites and nightly scheduling; workflow orchestration with gates and routing; versioning inside the builder; user, group and role administration; project ownership transfer; writing to the platform catalog, platform projects or project skills; changing builtin verifier checks; mocked models or fake Jira and source control by default.
 
@@ -55,7 +55,7 @@ Skill authors in this catalog work on the one artifact the platform executes, bu
 | FA-7 | Run execution & outcome capture | Execute one skill in the platform's runtime and classify its result |
 | FA-8 | Run guardrails & re-runs | Bound cost and time, refuse unsafe starts, and repeat runs |
 | FA-9 | Jira fixture seeding | Seed and clean up realistic tracker data per run |
-| FA-10 | Verification & readiness | Grade the run independently and aggregate the four Ready checks |
+| FA-10 | Verification & readiness | Grade the run with the shared verification layer and aggregate the four Ready checks |
 | FA-11 | Static security scanning | Block a run when the static scan does not pass |
 | FA-12 | LLM security scanning | Advise the author with a model-based scan that never blocks a run |
 | FA-13 | Run results & audit trail | Show everything a reviewer needs about one run |
@@ -133,7 +133,7 @@ accessibility scope. See §8.
 | FR-060 | FA-9 | The builder records the Jira state after the run for fixture assertions. | Later |
 | FR-061 | FA-9 | The builder cleans up the issues it seeded when the run ends, deleting only issues marked with that run's ID. | Later |
 | FR-062 | FA-9 | A nightly sweep removes seeded issues carrying a run marker. | Later |
-| FR-063 | FA-10 | The builder runs the selected verifier on the run branch after the agent exits. | MVP |
+| FR-063 | FA-10 | The builder runs the shared verification layer on the run branch after the agent exits. | MVP |
 | FR-064 | FA-10 | The verifier receives the run's baseline SHA. | MVP |
 | FR-065 | FA-10 | The builder records the verdict the agent claimed. | MVP |
 | FR-066 | FA-10 | The builder records the final verdict after verification. | MVP |
@@ -233,12 +233,16 @@ accessibility scope. See §8.
 | FR-160 | FA-13 | The run page shows the run's cost. | MVP |
 | FR-161 | FA-15 | The builder records the pull-request state on the build. | MVP |
 | FR-162 | FA-3 | The author saves an edited file to the build branch. | MVP |
-| FR-163 | FA-12 | A full security scan start offers the author a choice of model profile from the scan's test project. | MVP |
+| FR-163 | FA-12 | A full security scan uses the LLM-scan model profile configured for the scan's test project. | MVP |
+| FR-164 | FA-10 | The final verdict recorded for a run is the verdict produced by the shared verification layer. | MVP |
 
 ## 7. Non-Functional Requirements
 
-NFR-001's numeric limits, the run deadline (NFR-007, NFR-008), the reflow criterion (NFR-012) and
-retention and purge (NFR-013, NFR-014) are added assumptions, not ADR-given values. See §8.
+NFR-001's numeric limits, the run deadline (NFR-007, NFR-008) and retention and purge (NFR-013,
+NFR-014) are added assumptions, not ADR-given values. The reflow criterion (NFR-012) is likewise
+added. The 3-month retention default (NFR-018), the environment-configured run deadline (NFR-019)
+and the shared verification layer (FR-063, FR-164) were confirmed in review on 2026-11-15 rather
+than given by the ADR. See §8.
 
 | ID | Category | Requirement | Release |
 |------|----------|-------------|---------|
@@ -259,6 +263,8 @@ retention and purge (NFR-013, NFR-014) are added assumptions, not ADR-given valu
 | NFR-015 | Cost | Each run records its cost. | MVP |
 | NFR-016 | Usage | Each run records its token usage. | MVP |
 | NFR-017 | Usage | Each run records its turn count. | MVP |
+| NFR-018 | Privacy | The default retention period for run transcripts, logs and results is 3 months. | MVP |
+| NFR-019 | Reliability | The run deadline can be changed per installation without a code change. | MVP |
 
 ## 8. Constraints & Assumptions
 
@@ -270,11 +276,21 @@ published in that project was generated from an earlier revision of this PRD, so
 traceability view rather than a second source of truth; it is not used here to justify scope.
 Requirements FR-124 onward were added in a preceding revision and will be mapped on the next epics
 pass. In this revision, capabilities split out of an existing requirement are appended as new
-identifiers starting at FR-141; no existing FR or NFR identifier is renumbered, so existing
-traceability remains valid.
+identifiers continuing at FR-164 and NFR-018; no existing FR or NFR identifier is renumbered, so
+existing traceability remains valid. FR-063 and FR-163 keep their identifiers but their text was
+revised to record the review answers below.
 
-**Assumptions added beyond the source.** The following are choices this PRD makes. The ADR does not
-contain them, and nothing downstream should treat them as given until a human confirms them.
+**Review resolutions (2026-11-15).** The five open questions in the previous draft were answered in
+review and are now recorded here and in the requirements: a 3-month default retention period
+(NFR-018); a run deadline supplied through installation configuration (NFR-019); a shared
+verification layer sourced from the Bheembhai solution and used by both the builder and the agent
+image (FR-063, FR-164); an LLM-scan default model configured per test project (FR-163); and one
+dedicated host running the container service (see the Hosting item below).
+
+**Choices beyond the source.** The following are choices this PRD makes; the ADR does not contain
+them. Where a bullet records a review confirmation (2026-11-15), that part is a decision downstream
+may rely on. Everything else remains an assumption that no downstream step should treat as given
+until a human confirms it.
 
 - **Release split.** The ADR does not distinguish releases. The MVP/Later split in §4–§7, including
   treating accessibility as MVP, is this PRD's proposal.
@@ -286,10 +302,23 @@ contain them, and nothing downstream should treat them as given until a human co
   in NFR-012 is also an added value.
 - **Retention and purge.** The ADR stores run data in the builder's database and S3 bucket but sets
   no retention period and no purge operation. NFR-013, NFR-014 and the installation-level retention
-  setting are added here.
+  setting are added here. Review confirmed a default retention period of 3 months (NFR-018).
 - **Run deadline.** The ADR bounds turns and spend per run and gives scanner containers a 10-minute
   limit; it states no per-run deadline. NFR-007, NFR-008 and the installation-level deadline setting
-  are added here.
+  are added here. Review confirmed the deadline is supplied as one of the installation's
+  configurable parameters through environment variables (NFR-019), so the deployment sets the value
+  and this PRD does not fix a single numeric default.
+- **Shared verification layer.** The ADR leaves open whether verification stays in the builder or
+  moves into the agent image. Review confirmed the verification layer is a common package used by
+  both the builder and the agent image; its source is the Bheembhai solution, so for this project
+  it is a third-party dependency rather than code this product owns. The final verdict therefore
+  comes from that shared layer (FR-063, FR-164), and the builder invokes it outside the agent
+  container so the agent cannot edit what grades it.
+- **LLM-scan model.** Review confirmed the default model for the LLM security scan is configured
+  per test project, not overridden per run (FR-163). Only the project owner changes it.
+- **Hosting.** Review confirmed the builder runs on one dedicated host running the container
+  service, not a developer machine and not a managed container service. The run deadline and the
+  scan network-isolation guarantees are sized for that single host.
 - **Performance goal and numeric targets.** The ADR gives no run-preparation speed goal. G4 and
   NFR-001 are added here, and their thresholds are proposals: the 95% / 60 seconds / 5 MB in G4 and
   the 60 seconds / 5 MB in NFR-001. More generally, the ADR states qualitative outcomes only
@@ -297,7 +326,7 @@ contain them, and nothing downstream should treat them as given until a human co
   G1 and the 100% in G2 and G6 are also proposed acceptance thresholds. The 0 counts in G3 and G5
   restate the ADR's "never" and "no model tokens" wording as measurable targets.
 
-**External prerequisites.** The platform identity provider, the skill-builders group, the catalog repository and its review flow, the pinned agent and scanner images, the pinned verifier releases, the external secret store, the builder's object-storage bucket, the trace store, the curated input branches in the sandbox repository, the platform's repository inventory used for the overlap warning and the model endpoints are supplied outside this product. The builder consumes them; it does not build or administer them.
+**External prerequisites.** The platform identity provider, the skill-builders group, the catalog repository and its review flow, the pinned agent and scanner images, the pinned verifier releases, the shared verification layer from the Bheembhai solution (a third-party dependency for this project), the external secret store, the builder's object-storage bucket, the trace store, the curated input branches in the sandbox repository, the platform's repository inventory used for the overlap warning and the model endpoints are supplied outside this product. The builder consumes them; it does not build or administer them.
 
 **Secrets.** Credential values live in the external secret store. The builder stores only an opaque reference and never writes a value to its database, logs, results or interface.
 
@@ -321,15 +350,19 @@ contain them, and nothing downstream should treat them as given until a human co
 
 **Jira fixture marking.** When Jira fixture seeding is enabled, seeded issues are created in the project's configured Jira project and marked with the run ID. Cleanup and the nightly sweep act only on marked issues, so a human-created issue is never deleted.
 
-**Installation settings (added assumption).** The run deadline (NFR-007, NFR-008) and the retention period (NFR-013) are treated as installation-level settings managed by the operator; an author does not set them per run. Neither setting appears in the ADR. Their default values are open questions.
+**Installation settings (review-confirmed).** The run deadline (NFR-007, NFR-008, NFR-019) and the retention period (NFR-013) are installation-level settings managed by the operator; an author does not set them per run. Neither setting appears in the ADR. The default retention period is 3 months (NFR-018). The run deadline is one of the installation's configurable parameters, supplied through environment variables (NFR-019), so the deployment sets the value and the PRD fixes no single numeric default.
+
+**LLM-scan model setting.** The LLM security scan's default model lives on the test project, not on the installation and not on the run; the project owner configures it (FR-163).
 
 ## 9. Open Questions
 
-- What retention period should NFR-013 default to, and where is it configured?
-- What default run deadline should NFR-007 apply, and where is that installation setting configured?
-- Does verification stay in the builder for good, or move into the agent image later? (Affects FA-10's source of the final verdict.)
-- Should the LLM scan's default model be set per project only, or also overridable per run?
-- Hosting model for the builder host: a developer machine with a container runtime, one dedicated host, or a managed container service? (Affects deadline and network-isolation guarantees.)
+None outstanding. The five questions raised in the previous revision were answered in review on 2026-11-15, and their resolutions are recorded in §8 and reflected in FR-063, FR-163, FR-164, NFR-018 and NFR-019.
+
+- *Resolved — retention period:* default to 3 months; configured as an installation setting (NFR-013, NFR-018).
+- *Resolved — run deadline:* supplied as an installation configuration parameter through environment variables (NFR-007, NFR-019); no fixed numeric default.
+- *Resolved — verification:* the verification layer is a common package used by the builder and the agent image, sourced from the Bheembhai solution and a third-party dependency for this project (FR-063, FR-164).
+- *Resolved — LLM scan model:* configured per test project only, not overridable per run (FR-163).
+- *Resolved — hosting:* one dedicated host running the container service (see §8, Hosting).
 
 ---
 *Generated by the `sdlc-plan-prd-write` skill. Next step: run `sdlc-plan-epics-create` to turn feature areas into Jira epics.*
