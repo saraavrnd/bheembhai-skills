@@ -80,10 +80,15 @@ In every `member_not_skill_builder`, `member_already_exists`, `member_not_found`
 
 Authorization order on every project-scoped route is fixed: epic BSB-18's session gate first
 (HTTP 401 with its `authentication_required` body for a request with no valid session), then
+epic BSB-18's group gate (403 `not_a_member` for a signed-in user outside `skill-builders`), then
 project resolution (404 `project_not_found`), then the caller's membership (403
 `project_membership_required`), then the owner role where the route requires it (403
-`project_owner_required`). A route therefore never returns 403 to a caller whose project does not
-exist.
+`project_owner_required`), and only then request-body validation (422). A route therefore never
+returns 403 to a caller whose project does not exist, and an unauthorized caller never learns a
+body-validation error.
+
+The owner check reads the caller's `project_members` row whose `role` is `owner`;
+`projects.owner_id` is the denormalized creator record and must equal that row's `user_id`.
 
 **Membership evidence.** The builder cannot list another person's current `skill-builders` group
 membership: it learns membership only from the requesting user's own token (BSB-18-PENDING-3). A
@@ -191,6 +196,10 @@ administrator owns the `skill-builders` group).
 - The `projects` and `project_members` records follow `docs/adr/SK-001-skill-builder.md` §9. The
   creator is recorded twice: `projects.owner_id` and a `project_members` row with `role` = `owner`.
   FR-024 asserts both, and the owner row is what makes the owner count as a member for FR-027.
+- At most one `owner` row exists per project. Enforce it as a partial unique index on
+  `project_members (project_id) WHERE role = 'owner'`, or as an equivalent invariant that
+  `sdlc-deliver-story-design` enforces in the same transaction that writes the project; the owner
+  check reads this row, and `projects.owner_id` must equal it (contract preamble).
 - Any signed-in skill-builder may create a project (FR-023); no installation-level role is required.
   The FA-1 gate refuses a caller who is not a current skill-builder before this route runs.
 - The 1-to-80-character name rule, the trim rule and the absence of a uniqueness rule are this
@@ -236,6 +245,17 @@ When Grace sends `POST https://builder.skillbuilder.internal/api/projects/7/memb
 Then the builder responds with HTTP status 403
 And the response body is exactly `{"error":{"code":"project_owner_required","message":"Only the project owner can change project membership."}}`
 And `SELECT count(*) FROM project_members WHERE project_id = 7 AND user_id = 44` returns `0`
+And `SELECT count(*) FROM project_members WHERE project_id = 7` returns `2`
+
+#### Scenario: A non-owner member's invalid body is refused by the owner check, not body validation
+Given project `7` exists with `owner_id` = `42`
+And Grace has `project_members` row `7 | 43 | member` and is not the owner
+And Ada has `project_members` row `7 | 42 | owner`
+And Grace has a valid member session with local `users.id` = `43`
+When Grace sends `POST https://builder.skillbuilder.internal/api/projects/7/members` with `Content-Type: application/json` and body exactly `{}`
+Then the builder responds with HTTP status 403
+And the `Content-Type` response header is `application/json`
+And the response body is exactly `{"error":{"code":"project_owner_required","message":"Only the project owner can change project membership."}}`
 And `SELECT count(*) FROM project_members WHERE project_id = 7` returns `2`
 
 #### Scenario: A non-member cannot add a member
@@ -302,8 +322,8 @@ owner or transferring ownership; changing a member's role; deleting a member (BS
   returns the same 409 with the owner's id, not a second row.
 - The `project_members` primary key on `(project_id, user_id)` is what makes the duplicate check
   race-free.
-- BSB-22-PENDING-3 removes the rows this story creates, and BSB-22-PENDING-4 reads them to
-  authorize a run start.
+- BSB-22-PENDING-3 removes the rows this story creates, BSB-22-PENDING-4 reads them to
+  authorize a run start, and BSB-22-PENDING-5 distinguishes them from the owner.
 
 ---
 
@@ -392,8 +412,9 @@ runs; a transfer flow; changing a member's role.
   projects, and existing builds and runs are untouched (asserted in the first scenario for user
   `43`, who remains owner of project `8`).
 - Removal takes effect on the target's next request because BSB-22-PENDING-4 reads
-  `project_members` on every run start. A removed member's existing session is not revoked here;
-  the BSB-18 gate still authenticates them, and only the project check refuses them.
+  `project_members` on every run or scan start, on every path listed in BSB-22-PENDING-4. A removed
+  member's existing session is not revoked here; the BSB-18 gate still authenticates them, and
+  only the project check refuses them.
 - Membership and ownership failures are distinct: a non-member caller gets 403
   `project_membership_required`, while a member who is not the owner gets 403
   `project_owner_required`; a non-member target gets 404 `member_not_found`.
@@ -484,8 +505,10 @@ itself (BSB-22-PENDING-2 and BSB-22-PENDING-3).
   `skills_ref` and `input_branch` fields and create the `runs` row the scenarios assert. If
   BSB-24's decomposition chooses a different route or field names, only the fixture is re-pointed
   in a revise pass; the 403/404 bodies and the membership decision fixed here do not change.
-- Epics BSB-31 and BSB-32 reuse this same `project_members` membership test for scan starts
-  (FR-092, FR-093); this story fixes the test and its error bodies once.
+- Every path that starts a run or a scan for a project applies this same `project_members` check,
+  including re-runs and output chaining (BSB-27, FR-056 and FR-057), scans (BSB-31 and BSB-32,
+  FR-092 and FR-093) and the CLI (BSB-37, FR-116 to FR-118). The check therefore belongs in the
+  run/scan start service, not only in the HTTP route.
 - The owner's `project_members` row with `role` = `owner` counts as membership; there is no
   separate owner bypass, so removing the owner would also remove their run access, which is why
   BSB-22-PENDING-3 refuses that removal.
@@ -561,8 +584,9 @@ creating, deleting or reading integrations; the LLM-scan model setting (FR-163);
 repository-overlap warning.
 
 ### Notes / dependencies
-- Depends on BSB-22-PENDING-1 for the project and its owner row and on epic BSB-18 for the member
-  session and local `users` rows.
+- Depends on BSB-22-PENDING-1 for the project and its owner row, on BSB-22-PENDING-2 for the
+  `member` role rows its non-owner scenario exercises, and on epic BSB-18 for the member session
+  and local `users` rows.
 - **Cannot be accepted before epic BSB-23's integration-settings story (FR-029 to FR-036) is
   delivered.** BSB-23 owns the `PUT /api/projects/{project_id}/integrations/{kind}` request and
   response contract and the `integrations` row. This story owns only the owner check: an
