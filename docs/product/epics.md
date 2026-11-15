@@ -1505,7 +1505,7 @@ automated accessibility checks run in continuous verification with no critical f
   `bheembhai-skill-builder` (BSB) is the target project and that it contained no issue titled
   `SkillBuilder`; this decomposition is therefore derived from the PRD, not from a Jira work item.
 - Next steps: run `sdlc-tracker-sync` to publish these epics to the target Jira project and replace
-  the draft `-PENDING` keys with real issue keys, then run `sdlc-plan-stories-write` for each
+  the draft placeholder keys with real issue keys, then run `sdlc-plan-stories-write` for each
   published epic.
 - This step is authoring only: it writes `epics.md` and `epic-map.json`. Publishing these epics to
   Jira belongs to `sdlc-tracker-sync`, not to this skill.
