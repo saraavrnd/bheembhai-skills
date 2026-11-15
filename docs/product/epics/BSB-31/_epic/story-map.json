@@ -1,0 +1,41 @@
+{
+  "epic_key": "BSB-31",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-31-PENDING-1",
+      "summary": "Scan the exact bundle before every run in a sealed scanner container",
+      "requirement_ids": ["FR-076", "NFR-005"]
+    },
+    {
+      "story_key": "BSB-31-PENDING-2",
+      "summary": "Reuse a completed static scan result for unchanged content and scanner version",
+      "requirement_ids": ["FR-077"]
+    },
+    {
+      "story_key": "BSB-31-PENDING-3",
+      "summary": "Compose a failed static verdict from DO_NOT_INSTALL, critical findings, incomplete coverage and accepted findings",
+      "requirement_ids": ["FR-078", "FR-079", "FR-080", "FR-081"]
+    },
+    {
+      "story_key": "BSB-31-PENDING-4",
+      "summary": "Time a static scan out after ten minutes and record it as failed",
+      "requirement_ids": ["FR-087", "FR-088"]
+    },
+    {
+      "story_key": "BSB-31-PENDING-5",
+      "summary": "Match the platform's static verdict for the same content and scanner version",
+      "requirement_ids": ["FR-091"]
+    },
+    {
+      "story_key": "BSB-31-PENDING-6",
+      "summary": "Show the static scan score, recommendation and findings",
+      "requirement_ids": ["FR-089", "FR-154", "FR-155"]
+    },
+    {
+      "story_key": "BSB-31-PENDING-7",
+      "summary": "Start a static-only scan from the skill page without a run",
+      "requirement_ids": ["FR-092"]
+    }
+  ]
+}
