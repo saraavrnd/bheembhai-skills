@@ -1,0 +1,36 @@
+{
+  "epic_key": "BSB-32",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-32-PENDING-1",
+      "summary": "Queue the LLM scan only after the static scan passes for the content",
+      "requirement_ids": ["FR-082"]
+    },
+    {
+      "story_key": "BSB-32-PENDING-2",
+      "summary": "Run the LLM scan with only the model key and model-endpoint network access",
+      "requirement_ids": ["FR-083", "FR-084"]
+    },
+    {
+      "story_key": "BSB-32-PENDING-3",
+      "summary": "Never block, refuse or fail a run on the LLM scan",
+      "requirement_ids": ["FR-085"]
+    },
+    {
+      "story_key": "BSB-32-PENDING-4",
+      "summary": "Record an LLM scan that cannot run as unavailable",
+      "requirement_ids": ["FR-139"]
+    },
+    {
+      "story_key": "BSB-32-PENDING-5",
+      "summary": "Show the LLM scan model and each finding's severity, rule, file and line",
+      "requirement_ids": ["FR-086", "FR-090", "FR-156"]
+    },
+    {
+      "story_key": "BSB-32-PENDING-6",
+      "summary": "Start a full security scan from the skill page using the project's LLM-scan profile",
+      "requirement_ids": ["FR-093", "FR-139", "FR-163"]
+    }
+  ]
+}
