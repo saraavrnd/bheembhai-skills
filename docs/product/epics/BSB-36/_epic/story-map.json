@@ -1,0 +1,26 @@
+{
+  "epic_key": "BSB-36",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-36-PENDING-1",
+      "summary": "Show Submit to catalog only for a build Ready at its current head, re-check readiness at submission and refuse a stale Ready or a caller with no owned project",
+      "requirement_ids": ["FR-107"]
+    },
+    {
+      "story_key": "BSB-36-PENDING-2",
+      "summary": "Open one catalog pull request from the build branch to the catalog main in the project owner's own source-control identity, with the four readiness checks and the run and static and LLM scan report links in the description, and no direct write to the catalog or platform data",
+      "requirement_ids": ["FR-108", "FR-109", "FR-110", "FR-111", "FR-115"]
+    },
+    {
+      "story_key": "BSB-36-PENDING-3",
+      "summary": "Record the pull-request URL and state on the build and move it through open, submitted, merged or abandoned as the catalog pull request is opened, merged or closed, keeping the recorded state on a provider outage",
+      "requirement_ids": ["FR-112", "FR-113", "FR-161"]
+    },
+    {
+      "story_key": "BSB-36-PENDING-4",
+      "summary": "Clear a submitted build's readiness when a save creates a new commit, keep its pull-request fields, and refresh the same open pull request on the next Ready submission instead of opening a second one",
+      "requirement_ids": ["FR-114"]
+    }
+  ]
+}
