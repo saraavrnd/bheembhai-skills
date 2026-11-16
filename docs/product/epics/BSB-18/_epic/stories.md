@@ -89,6 +89,14 @@ on a build that BSB-18 does not create. Test fixtures: "ada@example.com" with
 "Correct-Horse-Battery-1" (member) and "bob@example.com" with "Correct-Horse-Battery-2"
 (non-member).
 
+`GET /sign-in` (including its `?error=…` render) and `GET /auth/callback` are public routes: they
+are not gated by the per-request authorization middleware BSB-18-PENDING-3 owns, and every other
+page and API route is. `/sign-in` renders exactly three error values, and BSB-18-PENDING-3's
+redirects use them: `sign_in_incomplete` renders "Sign-in was not completed. Try again.";
+`session_required` renders "Sign in to use the builder."; `session_expired` renders "Your session
+expired. Sign in again." No other error value is rendered, and an unrecognised `error` value
+renders the page with no message.
+
 Because this story refuses a non-member at sign-in, a signed-in non-member can only exist after
 BSB-18-PENDING-3's group-removal and token-refresh path; no scenario in this story creates one.
 
@@ -105,12 +113,12 @@ As a **skill author**, I want **the builder to keep one stable account for me in
 ### Acceptance Criteria
 
 Scenario: First sign-in creates my builder account and shows it on my account page
-Given a Cognito user whose "sub" is "c0ffee00-1234-4abc-9def-000000000001" and whose verified ID token carries the email "ada@example.com", an empty builder "users" table, and a "users" id sequence whose next value is 42
+Given a Cognito user who is a current member of the "skill-builders" group, whose "sub" is "c0ffee00-1234-4abc-9def-000000000001", whose verified ID token carries the email "ada@example.com" and carries "skill-builders" in the "cognito:groups" claim, an empty builder "users" table, and a "users" id sequence whose next value is 42
 When that user completes a successful sign-in through "/auth/callback"
 Then exactly one "users" row exists with "cognito_sub" "c0ffee00-1234-4abc-9def-000000000001" and "id" 42, and GET "/account" returns HTTP 200 rendering "ada@example.com" and "Builder account 42"
 
 Scenario: Signing in again shows the same account
-Given the "users" table holds one row with "id" 42 and "cognito_sub" "c0ffee00-1234-4abc-9def-000000000001", and GET "/account" in an earlier browser rendered "Builder account 42"
+Given the "users" table holds one row with "id" 42 and "cognito_sub" "c0ffee00-1234-4abc-9def-000000000001", GET "/account" in an earlier browser rendered "Builder account 42", and that Cognito user is a current member of the "skill-builders" group whose verified ID token carries "skill-builders" in the "cognito:groups" claim
 When that subject completes another successful sign-in in a second browser and requests "/account"
 Then the second browser's GET "/account" returns HTTP 200 rendering "Builder account 42", and the "users" table still contains exactly one row for that "cognito_sub"
 
@@ -120,7 +128,7 @@ When the builder handles the callback
 Then the builder responds with HTTP 302 and a Location header of "/sign-in?error=sign_in_incomplete", sets no "sb_session" cookie, creates no "users" row, and a follow-up GET "/sign-in?error=sign_in_incomplete" renders the message "Sign-in was not completed. Try again."
 
 Scenario: Serving a signed-in session opens no platform database connection
-Given the builder deployed with only its own database DSN and the "skill-builder" container image
+Given the builder deployed with only its own database DSN and the "skill-builder" container image, and a Cognito user who is a current member of the "skill-builders" group whose verified ID token carries "skill-builders" in the "cognito:groups" claim
 When the builder serves one successful sign-in through "/auth/callback", one GET "/builds" and one GET "/account"
 Then a network capture on the builder host records zero connections to the platform database host or port
 
@@ -223,10 +231,18 @@ Depends on BSB-18-PENDING-1 for the signed-in session contract and for the minim
 and GET "/api/builds" this story protects.
 
 This story owns the single shared per-request authorization middleware that enforces authentication
-and current skill-builders membership before any page or API handler runs; the two stories are not
-two gates, and BSB-18-PENDING-1's sign-in is the only other auth path. Both denial contracts stated
-in the scenarios are this middleware's contract. BSB-37's command-line entry point must authenticate
-against this same gate rather than re-implement it; command-line authentication is out of scope here.
+and current skill-builders membership on protected authoring pages and APIs before any handler runs.
+`GET /sign-in` (including its `?error=…` render) and `GET /auth/callback` are public entry points
+owned by BSB-18-PENDING-1 and are exempt from this middleware; every other page and API route is
+gated. The two stories are not two gates, and BSB-18-PENDING-1's sign-in is the only other auth
+path. Both denial contracts stated in the scenarios are this middleware's contract.
+
+The two page-denial redirects use the `/sign-in` error-query contract defined in BSB-18-PENDING-1
+rather than defining their messages locally: `session_required` renders "Sign in to use the
+builder." and `session_expired` renders "Your session expired. Sign in again."; the redirect
+targets, codes and messages in the scenarios above are that contract. BSB-37's command-line entry
+point must authenticate against this same gate rather than re-implement it; command-line
+authentication is out of scope here.
 
 The check reads the verified token's "cognito:groups" claim on every request and must not memoise a
 positive membership result past the token's lifetime; the one-hour boundary is the acceptance limit,

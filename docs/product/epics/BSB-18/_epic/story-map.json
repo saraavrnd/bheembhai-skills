@@ -4,7 +4,7 @@
   "stories": [
     {
       "story_key": "BSB-18-PENDING-1",
-      "summary": "Sign in with the platform's Cognito credentials through the builder's /sign-in and /auth/callback flow and land on a builds page that shows the signed-in author and an empty build list, refusing non-members, incorrect passwords and unverifiable callbacks without a session or users row",
+      "summary": "Sign in with the platform's Cognito credentials through the builder's public /sign-in and /auth/callback routes, land on a builds page that shows the signed-in author and an empty build list, and own the /sign-in page's three-value error contract (sign_in_incomplete, session_required, session_expired) that BSB-18-PENDING-3's denials use, refusing non-members, incorrect passwords and unverifiable callbacks without a session or users row",
       "requirement_ids": ["FR-002", "FR-138"]
     },
     {
@@ -14,7 +14,7 @@
     },
     {
       "story_key": "BSB-18-PENDING-3",
-      "summary": "Refuse anonymous and expired-session page and API requests before any builder data is returned, and deny a member removed from the skill-builders group within one hour, sending pages to the sign-in entry point with a message and returning JSON 401 and 403 for APIs",
+      "summary": "Own the single per-request authorization middleware for protected authoring pages and APIs, with /sign-in and /auth/callback exempt as public routes, refusing anonymous and expired-session requests before any builder data is returned, sending pages to the sign-in entry point with BSB-18-PENDING-1's error codes and messages, and denying a member removed from the skill-builders group within one hour with JSON 401 and 403 for APIs",
       "requirement_ids": ["FR-001", "FR-003", "FR-004", "FR-141", "NFR-002", "NFR-003"]
     }
   ]
