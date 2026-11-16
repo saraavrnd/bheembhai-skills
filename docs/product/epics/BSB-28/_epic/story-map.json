@@ -1,0 +1,31 @@
+{
+  "epic_key": "BSB-28",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-28-PENDING-1",
+      "summary": "Seed a run's Jira fixture into the project's configured test Jira project before execution, mark every created issue for the run, validate the fixture before creating anything, and roll back on a mid-seed failure",
+      "requirement_ids": ["FR-058"]
+    },
+    {
+      "story_key": "BSB-28-PENDING-2",
+      "summary": "Resolve fixture aliases to the created issue keys, refuse undefined or forward aliases, and hand the per-run alias map to the skill",
+      "requirement_ids": ["FR-059"]
+    },
+    {
+      "story_key": "BSB-28-PENDING-3",
+      "summary": "Record the configured Jira project's post-run state in run_jira.state_after for fixture assertions and show it on the run report, tolerating an unavailable tracker",
+      "requirement_ids": ["FR-060"]
+    },
+    {
+      "story_key": "BSB-28-PENDING-4",
+      "summary": "Delete only the issues carrying the run's marker when the run reaches a terminal state, show the cleanup, and leave human and other-run issues untouched",
+      "requirement_ids": ["FR-061"]
+    },
+    {
+      "story_key": "BSB-28-PENDING-5",
+      "summary": "Run a nightly sweep that removes leftover marked fixture issues, skips active runs, removes orphans, never selects unmarked issues, and reports the result per project",
+      "requirement_ids": ["FR-062"]
+    }
+  ]
+}
