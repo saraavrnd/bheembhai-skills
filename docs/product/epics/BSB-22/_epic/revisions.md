@@ -238,3 +238,79 @@ requirement ID changed.
 with BSB-24/BSB-23 is gone. The remaining blockers are the four product questions above; once the
 gate answers them, a single pass can add or assign the web surfaces and settle the membership
 evidence and LLM-scan-model scope.
+
+## Pass 4 — 2026-11-16 — `epic-review.md` (re-dispatched review, no gate answers)
+
+**Report applied:** the same `docs/product/epics/BSB-22/_epic/epic-review.md` — verdict CHANGES
+REQUESTED, findings 1–8 and open questions 1–5. This run was re-dispatched with no answers at the
+gate: `settled_decisions` reports `answered: 0`, `eligible: 0`, `gate_follows` is false,
+`reviewer_feedback` is empty and `upstream_handoff` is null. No open question was answered, so no
+finding whose question is open was applied.
+
+**Target resolution:** the run item is `SkillBuilder`, which is the product title in
+`docs/product/PRD.md`, not a Jira issue; a read-only Jira search across every accessible project
+returned no issue for it. The run context's `ITEM` is epic **BSB-22** (*Test projects &
+membership*, FA-4, MVP), and `epic-map.json` maps it to FR-023 to FR-028. The Atlassian MCP tools
+were not exposed in this session, so BSB-22 was fetched **read-only** through
+`GET /rest/api/3/issue/BSB-22`, which returned type Epic, status To Do, labels `FA-4` and `MVP`,
+with a description, functional scope and covered-requirements list identical to the BSB-22 section
+of `docs/product/epics.md`. Nothing was written to Jira.
+
+**Applied in this pass (answer-independent only):**
+
+- **Header provenance corrected.** Pass 3 recorded that a read-only Jira REST call for `BSB-22`
+  returned "Issue does not exist or you do not have permission to see it". This run's read-only
+  `GET /rest/api/3/issue/BSB-22` succeeded, so the `stories.md` header now records the epic fields
+  actually fetched and states that the MCP tools were not exposed while the REST call was used.
+  This changes no story content.
+- **`BSB-22-PENDING-4` summary refined** to *Membership guard admits project members and refuses
+  non-members at every run start*, naming both surfaces its scenarios already cover (the admitted
+  member and the three refusals). The same wording is mirrored in `story-map.json`. No story key,
+  scenario or requirement mapping changed.
+- **Gap pointers for the unanswered questions** (recording a gap, not deciding it):
+  - `stories.md` preamble (Membership evidence): says epic-review Finding 3 / Open question 4 is
+    the decision that settles the "has a local `users` row" boundary and is not answered in this
+    run.
+  - `BSB-22-PENDING-2` Notes: the "Boundary for review" bullet now cites Finding 3 / Open
+    question 4 and states that this story does not decide it.
+  - `BSB-22-PENDING-4` Notes: BSB-24's run form needs the caller's projects, and the list read
+    endpoint that would supply them is part of the Finding 2 / Open question 2 gap; this story
+    does not define it.
+  - `BSB-22-PENDING-5` Out of scope: the LLM-scan model setting entry now says its schema and
+    route, and its owner-check placement, are Finding 4 / Open question 5. Its Notes carry the
+    same pointer and the Finding 2 / Open question 2 gap for BSB-23's settings page.
+- Findings 1, 5, 6, 7 and 8 were re-checked in the current `stories.md` and remain applied as
+  recorded in Passes 1–3; nothing was reverted. The Finding 2 answer-independent gap (web
+  surfaces and `GET` read endpoints absent) also remains recorded in the preamble and in
+  PENDING-1, PENDING-2 and PENDING-3's Out of scope.
+
+**Still open — not applied, because the question has no answer in the run hand-off:**
+
+- **Finding 2 / Open question 2 (blocking).** Whether the projects/membership web pages (list,
+  create, settings/members view with add and remove) and their `GET` read endpoints are new
+  BSB-22 stories or owned by a named other epic. No story was added and no other epic was named;
+  the gap is recorded instead.
+- **Finding 2 / Open question 3 (blocking).** Whether any project owner may see every local user's
+  name and email to pick a member, or the picker must take an exact email address. No privacy
+  rule was invented; the member-management surface remains part of the recorded gap.
+- **Finding 3 / Open question 4 (blocking).** Whether "has a local `users` row" is the accepted
+  add-time meaning of "a current skill-builder", with former group members neutralized by
+  BSB-18's per-request gate, or add-time rejection must cover former members (which needs a
+  Cognito directory read the architecture does not provide).
+- **Finding 4 / Open question 5 (blocking).** Whether the project's LLM-scan default model is an
+  integration setting covered by FR-028 / PENDING-5's owner check or a separate setting owned by
+  BSB-23 or BSB-32.
+
+**Coverage:** unchanged. All 6 requirements mapped to BSB-22 (FR-023 to FR-028) are still covered
+by the same five stories, and no story claims a requirement outside the epic. `story-map.json`
+changes only the `BSB-22-PENDING-4` summary that mirrors the refined story summary; no story key
+or requirement mapping changed.
+
+**Note for the next review:** the four remaining blockers are product decisions, not story
+defects. The skill's Step R forbids applying an open-question's conditional proposal without the
+answer, so a single pass after the gate answers Questions 2–5 can add or assign the web surfaces,
+settle the membership-evidence boundary and place the LLM-scan-model owner check. Until then, this
+pass cannot close the report.
+
+**Next:** a person must answer Open questions 2–5 in the run hand-off; then run
+`sdlc-plan-stories-write` again to apply them and re-run `sdlc-plan-epic-review`.

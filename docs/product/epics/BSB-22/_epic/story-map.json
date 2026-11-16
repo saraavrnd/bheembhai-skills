@@ -19,7 +19,7 @@
     },
     {
       "story_key": "BSB-22-PENDING-4",
-      "summary": "Membership guard admits project members at every run start",
+      "summary": "Membership guard admits project members and refuses non-members at every run start",
       "requirement_ids": ["FR-027"]
     },
     {

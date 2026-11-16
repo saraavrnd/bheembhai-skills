@@ -12,9 +12,11 @@ covered by at least one story and no story claims a requirement outside this epi
 The run labelled the target `SkillBuilder`, which is the product title in `docs/product/PRD.md`,
 not a Jira issue. The run context's item is epic **BSB-22** (summary *Test projects & membership*,
 feature area FA-4, release MVP), and `epic-map.json` maps it to six requirements. The Atlassian MCP
-server was not connected in this session; the equivalent read-only Jira REST calls returned no
-accessible issue for `SkillBuilder` or `BSB-22`, so the epic's summary, description and functional
-scope were taken from the BSB-22 section of `docs/product/epics.md`. Nothing was written to Jira.
+tools were not exposed in this session, so the epic was fetched **read-only** through the
+equivalent Jira REST call `GET /rest/api/3/issue/BSB-22`: type Epic, status To Do, labels `FA-4`
+and `MVP`, with a description, functional scope and covered-requirements list identical to the
+BSB-22 section of `docs/product/epics.md`. A read-only Jira search for `SkillBuilder` across every
+accessible project returned no issue. Nothing was written to Jira.
 
 ## Coverage summary
 
@@ -102,7 +104,8 @@ skill-builder at least once. The add request accepts a `user_id` that must resol
 `users` row; a person the FA-1 gate never admitted has no row and is refused. A person who has left
 the group can still have a row, but their own requests are refused by BSB-18's per-request
 membership check, so their project membership row grants no access at use time. This boundary is
-restated in BSB-22-PENDING-2's Notes for the next review.
+restated in BSB-22-PENDING-2's Notes; epic-review Finding 3 / Open question 4 is the decision that
+settles it and is not answered in this run.
 
 Two cross-epic boundaries are also flagged, not hidden. BSB-22-PENDING-4 delivers the reusable
 `require_project_member` guard and BSB-22-PENDING-5 delivers `require_project_owner`; the run-start
@@ -336,7 +339,9 @@ Finding 2 / Open questions 2 and 3 must assign them.
   the group can still have a row, so this route cannot reject them at add time; their own requests
   are refused by BSB-18's per-request gate, and the membership row grants nothing. Rejecting a
   *former* member at add time would need a Cognito directory read that the architecture does not
-  provide. The never-admitted case is rejected here (`member_not_skill_builder`).
+  provide. The never-admitted case is rejected here (`member_not_skill_builder`). Whether this is
+  the accepted add-time meaning of "a current skill-builder" is epic-review Finding 3 / Open
+  question 4; this story does not decide it.
 - Duplicate add is a 409 conflict, not an idempotent success, so the caller learns the row already
   exists. The owner's own `project_members` row is a membership row too, so adding the owner
   returns the same 409 with the owner's id, not a second row.
@@ -445,7 +450,7 @@ must assign them.
 
 ## STORY: BSB-22-PENDING-4
 
-**Summary:** Membership guard admits project members at every run start
+**Summary:** Membership guard admits project members and refuses non-members at every run start
 **Epic:** BSB-22 · **Release:** MVP · **Estimate:** 3 · **Labels:** FA-4, MVP
 
 ### Story
@@ -519,6 +524,9 @@ BSB-32); project membership management itself (BSB-22-PENDING-2 and BSB-22-PENDI
   fixture is re-pointed in a revise pass; the 403/404 bodies and the membership decision fixed here
   do not change. The success response and the `runs` row an admitted request produces are asserted
   by BSB-24's run-start story, not here.
+- BSB-24's run form needs the caller's projects. The projects list read endpoint that would supply
+  them is part of the web-surface gap recorded in the preamble (epic-review Finding 2 / Open
+  question 2); this story does not define it.
 - Every path that starts a run or a scan for a project applies this same `project_members` check,
   including re-runs and output chaining (BSB-27, FR-056 and FR-057), scans (BSB-31 and BSB-32,
   FR-092 and FR-093) and the CLI (BSB-37, FR-116 to FR-118). The check therefore belongs in the
@@ -595,7 +603,8 @@ And `SELECT count(*) FROM integrations WHERE project_id = 8` returns `0`
 The integration settings schema, validation, success status and response body, and the
 `integrations` row write (epic BSB-23, FR-029 to FR-036); credential values, their verification and
 the external secret store; MCP server definitions; creating, deleting or reading integrations; the
-LLM-scan model setting (FR-163); the GitHub repository-overlap warning.
+LLM-scan model setting's schema and route (FR-163), whose owning epic and owner-check placement
+are epic-review Finding 4 / Open question 5; the GitHub repository-overlap warning.
 
 ### Notes / dependencies
 - Depends on BSB-22-PENDING-1 for the project and its owner row, on BSB-22-PENDING-2 for the
@@ -620,5 +629,10 @@ LLM-scan model setting (FR-163); the GitHub repository-overlap warning.
 - Credentials are never part of this contract. The request carries only non-secret settings, and
   `secret_ref` is unchanged by a settings update; the value lives in the external secret store
   (epic BSB-23).
+- BSB-23's settings page needs the caller's projects. The projects list read endpoint that would
+  supply them is part of the web-surface gap recorded in the preamble (epic-review Finding 2 /
+  Open question 2); this story does not define it.
+- Whether FR-028's owner check also covers the project's LLM-scan default model is epic-review
+  Finding 4 / Open question 5; this story does not decide it.
 - BSB-23's own decomposition must apply this same check to its integration routes; the 403 bodies
   fixed here are the contract it inherits.
