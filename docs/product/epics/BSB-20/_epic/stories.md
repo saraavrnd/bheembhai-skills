@@ -65,13 +65,14 @@ Then the builder responds with HTTP 422 and the message "Skill sdlc-plan-worksho
 - FR-014
 
 ### Out of scope
-Creating a fresh build and its scaffold (BSB-19-PENDING-1 and BSB-19-PENDING-2); the base create
-route and create mode of the shared `GET /builds/new` + `POST /builds` handler (BSB-19-PENDING-1),
-to which this story adds the clone mode on that same handler and not a second handler; opening an
-edit build (BSB-20-PENDING-2); editing the cloned skill's files after creation (BSB-21); running,
-scanning, readiness and catalog submission (later epics); deleting or reusing `build/<skill-name>` after a build is merged or
-abandoned (BSB-36); renaming or deleting the source skill or the clone; preserving the source
-repository's git history (the clone copies content, not history); skill versioning.
+Creating a fresh build and its scaffold (BSB-19-PENDING-1 and BSB-19-PENDING-2); BSB-19-PENDING-1
+owns the base create route and create mode of the single `GET /builds/new` + `POST /builds`
+handler, and this story adds the clone mode to that same handler and creates no second handler at
+that route; opening an edit build (BSB-20-PENDING-2); editing the cloned skill's files after
+creation (BSB-21); running, scanning, readiness and catalog submission (later epics); deleting or
+reusing `build/<skill-name>` after a build is merged or abandoned (BSB-36); renaming or deleting
+the source skill or the clone; preserving the source repository's git history (the clone copies
+content, not history); skill versioning.
 
 ### Notes / dependencies
 Depends on BSB-19-PENDING-1 for the build record, the branch name rule, base_sha and the single
@@ -91,8 +92,10 @@ pinned `bheembhai-verify lint` exit 0 on the clone. The clone has no runtime lin
 source beyond the cloned_from column.
 
 The clone form extends BSB-19-PENDING-1's single `GET /builds/new` + `POST /builds` handler and
-adds no second handler at that route. The build mode is carried as the `mode` query parameter on
-`GET /builds/new` and a hidden `mode` form field on the `POST /builds` body; allowed values are
+adds no second handler at that route: BSB-19-PENDING-1 owns the base create route and its `create`
+mode, and this story owns the `clone`-mode dispatch on that same handler. The build mode is
+carried as the `mode` query parameter on `GET /builds/new` and a hidden `mode` form field on the
+`POST /builds` body; allowed values are
 `create` (the default when the parameter is absent), `clone` and `edit`, matching `builds.kind`.
 In `clone` mode the request fields are the source skill name and the new skill name.
 
@@ -147,9 +150,9 @@ Then the builder responds with HTTP 422 and the message "A skill name is require
 
 ### Out of scope
 Editing file content after the build exists (BSB-21, FR-127); creating a fresh or cloned build
-(BSB-19 and BSB-20-PENDING-1); the base create route and create mode of the shared
-`GET /builds/new` + `POST /builds` handler (BSB-19-PENDING-1), to which this story adds the edit
-mode on that same handler and not a second handler; submitting the branch or merging it into the
+(BSB-19 and BSB-20-PENDING-1); BSB-19-PENDING-1 owns the base create route and create mode of the
+single `GET /builds/new` + `POST /builds` handler, and this story adds the edit mode to that same
+handler and creates no second handler at that route; submitting the branch or merging it into the
 catalog; deleting or reusing `build/<skill-name>` after a build is merged or abandoned (BSB-36);
 renaming, deleting or recovering a skill or build; readiness tracking, runs and scans (BSB-21
 onward).
@@ -157,8 +160,10 @@ onward).
 ### Notes / dependencies
 Depends on BSB-19-PENDING-1 for the build record, the branch name rule, base_sha and the single
 shared `GET /builds/new` + `POST /builds` handler, and on BSB-19-PENDING-3 for the shared
-skill-name validator and open-build collision check. BSB-19-PENDING-1 and BSB-19-PENDING-3 own
-those shared pieces for both the clone flow and this edit flow; this story adds only the edit mode.
+skill-name validator and open-build collision check. BSB-19-PENDING-1 owns the base create route
+and its `create` mode, and BSB-19-PENDING-3 owns the skill-name pattern validator and open-build
+collision check for both the clone flow and this edit flow; this story owns the `edit`-mode
+dispatch on the same handler and the inverted existence rule.
 In edit mode the existence check is inverted: the name must exist on main (FR-126), so the create
 and clone rule that a name already on main is rejected does not apply; the open-build collision
 check does apply, so a skill already used by another open build is rejected. Because of that
