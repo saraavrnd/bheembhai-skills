@@ -59,7 +59,8 @@ recorded on the build, so "builds" carries a "base_sha" column alongside the ADR
 moves with the scaffold commit in BSB-19-PENDING-2 and with later saves in BSB-21. The create form
 is served at GET "/builds/new" and POST "/builds" returns the confirmation body; these routes are
 owned by this epic, and the full build page with head and readiness is BSB-21's. The branch name is
-"build/<skill-name>"; project membership (BSB-22) plays no part in creating a build.
+the literal prefix "build/" followed by the skill name, so skill "sdlc-plan-new-skill" gets branch
+"build/sdlc-plan-new-skill"; project membership (BSB-22) plays no part in creating a build.
 
 ---
 
@@ -191,8 +192,8 @@ Depends on BSB-19-PENDING-1 for the create flow and the "builds" table, and on t
 repository's "main" branch for the on-main check. "Another open build" means a "builds" row whose
 "state" is "open" (ADR SK-001 section 9); this epic creates only the "open" state, other states are
 owned by BSB-21 and BSB-36. Both checks run before any branch is created, so a rejected request
-leaves no "builds" row and no branch in the catalog repository. The name pattern is the
-`sdlc-<area>-<action>` form from ADR SK-001 section 1a: a literal "sdlc-" prefix, then an area
-segment and an action segment, all lowercase letters, digits and hyphens, with at least three
-hyphen-separated segments. The validator and collision check are reused unchanged by the clone flow
-in BSB-20 (FR-015 covers create or clone).
+leaves no "builds" row and no branch in the catalog repository. The name pattern follows
+ADR SK-001 section 1a: a literal "sdlc-" prefix, then an area segment and an action segment, all
+lowercase letters, digits and hyphens, with at least three hyphen-separated segments. The validator
+and collision check are reused unchanged by the clone flow in BSB-20 (FR-015 covers create or
+clone).
