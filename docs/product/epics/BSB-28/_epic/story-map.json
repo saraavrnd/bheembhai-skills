@@ -4,7 +4,7 @@
   "stories": [
     {
       "story_key": "BSB-28-PENDING-1",
-      "summary": "Seed a run's Jira fixture as run-marked issues",
+      "summary": "Seed a run's Jira fixture as run-marked issues, or fail the seed before a container starts",
       "requirement_ids": ["FR-058"]
     },
     {
@@ -24,7 +24,7 @@
     },
     {
       "story_key": "BSB-28-PENDING-5",
-      "summary": "Sweep leftover seeded Jira issues nightly",
+      "summary": "Sweep leftover seeded Jira issues nightly from project-key integrations",
       "requirement_ids": ["FR-062"]
     }
   ]

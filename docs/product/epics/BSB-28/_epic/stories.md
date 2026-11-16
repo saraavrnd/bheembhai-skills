@@ -89,8 +89,8 @@ The fixture file `fixtures/bug-fix-empty-title/jira.json` is exactly:
 means seeding is disabled. The run marker and every later operation key off the run ID, not the
 fixture name. This placement is an explicit decision of this decomposition, not a requirement; it
 is recorded under **Open decisions** below. A Jira integration configured with a template project
-and no `project_key` has no configured project to seed into; fixture seeding is defined only for
-`project_key` integrations and that combination is out of scope.
+and no `project_key` has no configured project to seed into: when it also has `config.fixture` set,
+the seed fails with `failed_seed` before any Jira request, and BSB-28-PENDING-1 pins that response.
 
 **Fixture file format.** The file is a JSON object with one required key, `issues`, whose value is
 an array. Each entry has a required `alias` (unique in the file), `issue_type` and `summary`, and an
@@ -153,8 +153,9 @@ completion time. A second invocation after that sends no delete and leaves `clea
 
 **Nightly sweep.** An installation-level scheduled job runs every day at `02:00` UTC; this epic
 owns that trigger, and BSB-37's suite scheduler may later reuse it. It iterates every project that
-has a `jira` integration and searches that integration's configured `project_key` for issues with
-at least one label, paging `maxResults=100` until it has read every result. It selects issues
+has a `jira` integration **with a `project_key`** — an integration configured with a template
+project is skipped — and searches that integration's configured `project_key` for issues with at
+least one label, paging `maxResults=100` until it has read every result. It selects issues
 carrying a label that matches exactly the regular expression `^skilltest-[0-9]+$`. For each such
 issue it derives the run ID from the label; if a `runs` row with that ID exists and its `state` is
 `queued` or `running`, the issue is skipped so an active run never loses its fixture. It also
@@ -201,21 +202,26 @@ sibling-owned terminal values) belongs to epics BSB-24 to BSB-27.
    the PRD says "when Jira fixture seeding is enabled". If review decides the fixture is instead a
    run-start input, only the source of the fixture name changes; the marker, file format, seeding,
    capture, cleanup and sweep do not.
-2. *Template-project integrations.* FR-029 allows a Jira integration with a template project
-   instead of a project key. This epic seeds only into a `project_key` integration and leaves the
-   template-project case out of scope.
-3. *Re-runs.* FR-056 (epic BSB-27) re-runs a run with the same inputs. Because the fixture is
+2. *Re-runs.* FR-056 (epic BSB-27) re-runs a run with the same inputs. Because the fixture is
    project-level here, a re-run uses the project's current fixture; if exact reproduction is
    required, the fixture name must be recorded per run, which this epic does not add to
    `run_jira` or `runs`.
+3. *Changing the Jira integration after seeding.* No requirement says what happens when a project's
+   `site_url` or `project_key` changes while one of its seeded runs is not yet cleaned. BSB-23 may
+   refuse the change until cleanup finishes, or each seeded run may record the site and project it
+   seeded into; the latter needs columns SK-001 §9 does not list. This epic assumes the integration
+   is unchanged between seeding and cleanup and leaves that decision open.
 
 **Cross-epic notes.**
 
 - **BSB-23 (integrations).** Epic BSB-23 owns the `integrations` table and the Jira integration
   settings. This epic adds one optional key to that integration's `config`, `fixture`.
   BSB-23 has no stories yet, so its decomposition must include `config.fixture`, its absent/`null`
-  meaning, and the rule that seeding applies only to integrations with a `project_key`. The
-  `site_url`, `project_key` and `secret_ref` meanings are unchanged.
+  meaning, and the rule that seeding applies only to integrations with a `project_key` — a
+  template-project integration with `config.fixture` set fails the seed with `failed_seed`
+  (BSB-28-PENDING-1). Whether BSB-23 refuses a `site_url`/`project_key` change while a seeded run
+  is uncleaned is Open decision 3. The `site_url`, `project_key` and `secret_ref` meanings are
+  unchanged.
 - **BSB-24, BSB-25 and BSB-26 (run lifecycle).** The run-start route (BSB-24), the prepared run
   (BSB-25) and the claim and terminal-write rules (BSB-26) are consumed, not changed. Seeding adds
   one step to BSB-26's claim path between provenance persistence and container creation, and adds
@@ -243,7 +249,7 @@ sibling-owned terminal values) belongs to epics BSB-24 to BSB-27.
 
 ## STORY: BSB-28-PENDING-1
 
-**Summary:** Seed a run's Jira fixture as run-marked issues
+**Summary:** Seed a run's Jira fixture as run-marked issues, or fail the seed before a container starts
 **Epic:** BSB-28 · **Release:** Later · **Estimate:** 5 · **Labels:** FA-9, Later
 
 ### Story
@@ -279,6 +285,17 @@ Then the Jira stub records zero requests
 And `SELECT count(*) FROM run_jira` returns `0`
 And the Jira stub's project `OLD` still contains exactly one issue `OLD-100`
 And the runtime has started exactly one container labelled `bb.run_id` = `1`
+
+#### Scenario: A template-project integration with a fixture fails the seed
+Given project `7` exists with the `jira` integration row `5` whose `config` is exactly `{"site_url":"https://old.atlassian.net","fixture":"bug-fix-empty-title"}` and has no `project_key`
+And run `1` exists prepared with `state` = `queued`
+And the builder executor is running with a 1-second claim interval
+When the executor claims run `1`
+Then the Jira stub records zero requests
+And within 2 seconds `SELECT state, claimed_verdict FROM runs WHERE id = 1` returns exactly `failed_seed | NULL`
+And `SELECT count(*) FROM run_jira WHERE run_id = 1` returns `0`
+And the first line of `s3://skill-builder-runs/runs/1/agent.log` is exactly `[skill-builder] jira fixture seed failed: integration 5 has no project_key; fixture 'bug-fix-empty-title' cannot be seeded`
+And the runtime has started no container labelled `bb.run_id` = `1`
 
 #### Scenario: A missing fixture file fails the run before any issue is created
 Given the `jira` integration row `5` has `config.fixture` = `missing-fixture`
@@ -350,9 +367,10 @@ And the body has no element with id `run-progress`
 ### Out of scope
 Replacing alias tokens inside the fixture content (BSB-28-PENDING-2). Capturing the post-run Jira
 state (BSB-28-PENDING-3). End-of-run cleanup (BSB-28-PENDING-4) and the nightly sweep
-(BSB-28-PENDING-5). Jira integrations configured with a template project instead of a project key.
-A fixture authoring or editing interface, and any mutation of an issue the run did not seed (the
-epic's non-goals). Provisioning the Jira project, its issue types or its credentials (epic BSB-23).
+(BSB-28-PENDING-5). A Jira integration whose `site_url` or `project_key` changes after the run is
+seeded, and cleanup on a changed integration (Open decision 3). A fixture authoring or editing
+interface, and any mutation of an issue the run did not seed (the epic's non-goals). Provisioning
+the Jira project, its issue types or its credentials (epic BSB-23).
 
 ### Notes / dependencies
 - Depends on epic BSB-23 for the `jira` integration, its `site_url`, `project_key` and
@@ -365,8 +383,9 @@ epic's non-goals). Provisioning the Jira project, its issue types or its credent
   has created every issue; BSB-28-PENDING-2 then resolves the tokens in place.
 - The run marker is the single label `skilltest-1`; it is the only identification the cleanup and
   the sweep may rely on. A human-authored issue never carries it.
-- The fixture name comes from `config.fixture` (Open decision 1); a template-project integration is
-  out of scope (Open decision 2).
+- The fixture name comes from `config.fixture` (Open decision 1). A template-project integration
+  with a fixture set fails the seed before any Jira request; an integration whose `site_url` or
+  `project_key` changes between seeding and cleanup is Open decision 3.
 - Seeding is a new pre-launch step in BSB-26's claim path, and `failed_seed` a new terminal state
   whose run-page outcome text this epic adds to BSB-26's table (cross-epic note above).
 - The `run_jira` row is part of the run's results under NFR-013 and NFR-014 and is removed with
@@ -650,7 +669,8 @@ And `SELECT state FROM runs WHERE id = 1` still returns `completed`
 Capturing the post-run state before cleanup (BSB-28-PENDING-3). The nightly sweep that removes what
 cleanup leaves behind (BSB-28-PENDING-5). Deleting any issue that is not recorded in
 `run_jira.aliases` — the epic's non-goal of never mutating an issue the run did not seed. Cleanup
-for a run that never seeded a fixture, and any UI for cleanup.
+after the integration's `site_url` or `project_key` changes (Open decision 3). Cleanup for a run
+that never seeded a fixture, and any UI for cleanup.
 
 ### Notes / dependencies
 - Depends on BSB-28-PENDING-1 for the seeded issues and the `run_jira` row (PENDING-1 writes
@@ -668,7 +688,7 @@ for a run that never seeded a fixture, and any UI for cleanup.
 
 ## STORY: BSB-28-PENDING-5
 
-**Summary:** Sweep leftover seeded Jira issues nightly
+**Summary:** Sweep leftover seeded Jira issues nightly from project-key integrations
 **Epic:** BSB-28 · **Release:** Later · **Estimate:** 3 · **Labels:** FA-9, Later
 
 ### Story
@@ -694,6 +714,13 @@ When the nightly sweep runs
 Then the Jira stub records zero `DELETE` requests
 And both `OLD-101` and `OLD-102` still exist with `labels` = `["skilltest-1"]`
 And `SELECT cleaned_at FROM run_jira WHERE run_id = 1` is `NULL`
+
+#### Scenario: The sweep skips a template-project integration
+Given project `7` has the `jira` integration row `5` with no `project_key` and `config.fixture` = `bug-fix-empty-title`
+And the Jira stub's project `OLD` contains `OLD-101` with `labels` = `["skilltest-1"]`
+When the nightly sweep runs
+Then the Jira stub records zero search and zero `DELETE` requests
+And issue `OLD-101` still exists with `labels` = `["skilltest-1"]`
 
 #### Scenario: The sweep removes an orphan marker and leaves unmarked issues
 Given project `7` has the `jira` integration row `5` with `project_key` = `OLD`
@@ -752,7 +779,8 @@ And `SELECT cleaned_at FROM run_jira WHERE run_id = 1` still equals the timestam
 ### Out of scope
 End-of-run cleanup (BSB-28-PENDING-4) and seeding (BSB-28-PENDING-1). Sweeping a project whose
 `jira` integration has been removed, and sweeping a Jira site outside a project's configured
-integration. Deleting an issue with no `skilltest-` marker for any reason, and any UI or alert for
+integration. Sweeping an integration whose `site_url` or `project_key` changes after seeding (Open
+decision 3). Deleting an issue with no `skilltest-` marker for any reason, and any UI or alert for
 the sweep.
 
 ### Notes / dependencies
@@ -760,6 +788,8 @@ the sweep.
   on BSB-23 for the project's `jira` integration; and on BSB-28-PENDING-3 for the finalizer's
   `run_jira` row lock. This story delivers its own installation-level daily trigger at `02:00` UTC;
   BSB-37's suite scheduler may later reuse it.
+- The sweep considers only `jira` integrations that have a `project_key`; an integration
+  configured with a template project is skipped because it has no configured project to search.
 - `cleaned_at` has the same meaning as in BSB-28-PENDING-4: a run is cleaned only when no issue
   carrying its marker remains, including when there was nothing left to delete.
 - The sweep and the finalizer serialise on the run's `run_jira` row lock, so a terminal run whose

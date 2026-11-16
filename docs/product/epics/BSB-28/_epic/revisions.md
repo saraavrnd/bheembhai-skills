@@ -153,3 +153,74 @@ PENDING-2, FR-060 → PENDING-3, FR-061 → PENDING-4, FR-062 → PENDING-5.
 
 **Still open:** Findings 1/Open question 1, 3/Open question 2 and 7/Open question 3 remain
 unapplied for the reasons recorded under Pass 1 — the run hand-off still carries no gate answers.
+
+## Pass 3 — 2026-11-16 — re-dispatch of the same `epic-review.md`, no gate answers
+
+**Why this pass ran.** The step was re-dispatched after Pass 2. The hand-off still supplies no
+answers: `/home/node/context.json` has `settled_decisions.counts.answered` = `0`,
+`reviewer_feedback` = `""`, `upstream_handoff` = `null` and `gate_follows` = `false`. The report
+applied is therefore the same `docs/product/epics/BSB-28/_epic/epic-review.md` (verdict CHANGES
+REQUESTED, findings 1–11, open questions 1–3).
+
+**Target resolution.** The run item is `SkillBuilder`, the product title in
+`docs/product/PRD.md`, not a Jira issue. The workflow context at `/home/node/context.json` binds
+`ITEM.id` = `BSB-28` (`summary` *Jira fixture seeding*, `feature_area` FA-9, `release` Later), so
+the target is **BSB-28**. The epic was fetched read-only through the Atlassian REST API
+(`GET https://saraavrnd.atlassian.net/rest/api/3/issue/BSB-28`): summary *Jira fixture seeding*,
+type *Epic*, status *To Do*, labels `FA-9` and `Later`, priority *Medium*, and a description whose
+functional scope and covered-requirements list match the BSB-28 section of
+`docs/product/epics.md`. No Atlassian MCP tool was offered to this session, so the equivalent
+read-only REST call was used. Nothing was written to Jira.
+
+**Applied in this pass — the answer-independent part of Finding 7 (advisory).** The report's
+Open question 3 still has no answer, so the changed-integration branch was not written; the
+template-project branch needs no product answer and was applied:
+
+- Shared contract, **Fixture selection and enablement**: a template-project integration (no
+  `project_key`) with `config.fixture` set now fails the seed with `failed_seed` before any Jira
+  request, instead of being left out of scope.
+- Shared contract, **Nightly sweep**: the sweep considers only `jira` integrations with a
+  `project_key`; an integration configured with a template project is skipped.
+- `BSB-28-PENDING-1`: added scenario *A template-project integration with a fixture fails the
+  seed*, pinning `failed_seed`, `claimed_verdict` `NULL`, no `run_jira` row, no container, and the
+  exact log line `[skill-builder] jira fixture seed failed: integration 5 has no project_key;
+  fixture 'bug-fix-empty-title' cannot be seeded`. Out of scope now excludes the changed-integration
+  case (Open decision 3) instead of the template-project case, and Notes record both.
+- `BSB-28-PENDING-5`: added scenario *The sweep skips a template-project integration* (zero search
+  and zero `DELETE` requests); Out of scope adds sweeping an integration whose `site_url` or
+  `project_key` changes after seeding (Open decision 3); Notes record the `project_key` guard.
+- Shared contract, **Open decisions**: the template-project decision is closed and removed because
+  the behaviour is now defined; *Re-runs* becomes 2 and a new Open decision 3 records the
+  changed-integration question from the report's Open question 3.
+- Cross-epic **BSB-23** note and `BSB-28-PENDING-4` Out of scope now reference Open decision 3.
+- Story summaries for `BSB-28-PENDING-1` and `BSB-28-PENDING-5` were widened to name the new
+  failure and skip behaviour, mirrored in `stories.md` and `story-map.json`.
+
+**Re-checked, unchanged:** Findings 2, 4, 5, 6, 8, 9, 10 and 11 are still applied as recorded in
+Pass 1; no story statement, scenario or requirement mapping was reverted.
+
+**Still open — not applied, because the question has no answer in the run hand-off:**
+
+- **Finding 1 / Open question 1 (blocking).** Whether the fixture is chosen per run or per project,
+  and which story delivers the way to set it. The contract and all five Givens still pin
+  `config.fixture` as an explicit, unreviewed decision; a per-run answer needs a new column in the
+  SK-001 §9 design before it can be written here.
+- **Finding 3 / Open question 2 (blocking).** Whether BSB-33's FR-140 Jira-change record is built
+  from `run_jira.state_after` or captured independently, whether cleanup must wait for that
+  capture, and whether evaluating fixture assertions against `state_after` is deliberately left to
+  no epic. `BSB-28-PENDING-3`'s Out of scope still attributes the assertions to BSB-33 and the
+  finalizer notes place it only relative to BSB-29's verification.
+- **Finding 7 / Open question 3 (advisory), changed-integration branch.** Whether BSB-23 must
+  refuse a `site_url` or `project_key` change while a seeded run is uncleaned, or each seeded run
+  must record the site and project it seeded into. The `BSB-28-PENDING-4` 404-prefix rule and the
+  concrete changed-integration behaviour were not written.
+
+**Coverage:** unchanged. All five requirements mapped to BSB-28 (FR-058 to FR-062) are still
+covered by the same five stories; no story key or requirement mapping changed, and no story was
+added, removed or split.
+
+**Note for the next review (not a finding of this pass):** the two new scenarios leave
+`BSB-28-PENDING-1` at eight acceptance scenarios and `BSB-28-PENDING-5` at nine, above the skill's
+~7-scenario size signal noted in Pass 1. A split along the seeding/failure seam and the
+sweep/scheduling seam is worth considering once the open questions are answered; the report names
+no such split, so none was made here.
