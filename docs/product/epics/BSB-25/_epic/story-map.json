@@ -1,0 +1,21 @@
+{
+  "epic_key": "BSB-25",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-25-PENDING-1",
+      "summary": "Run the exact skills commit I chose even after the branch moves",
+      "requirement_ids": ["FR-038"]
+    },
+    {
+      "story_key": "BSB-25-PENDING-2",
+      "summary": "Package the pinned skill commit once and reuse the same bundle",
+      "requirement_ids": ["FR-039", "FR-040", "NFR-009"]
+    },
+    {
+      "story_key": "BSB-25-PENDING-3",
+      "summary": "Run against my test branch without ever changing it",
+      "requirement_ids": ["FR-041", "FR-042", "FR-043", "NFR-001"]
+    }
+  ]
+}
