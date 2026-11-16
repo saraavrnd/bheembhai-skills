@@ -9,17 +9,17 @@
     },
     {
       "story_key": "BSB-28-PENDING-2",
-      "summary": "Replace fixture aliases with the created issue keys",
+      "summary": "Resolve fixture alias tokens to the created keys and reject an invalid fixture",
       "requirement_ids": ["FR-059"]
     },
     {
       "story_key": "BSB-28-PENDING-3",
-      "summary": "Record the seeded issues' state after the run",
+      "summary": "Capture the seeded issues' post-run Jira state when any terminal write ends the run",
       "requirement_ids": ["FR-060"]
     },
     {
       "story_key": "BSB-28-PENDING-4",
-      "summary": "Clean up a run's seeded Jira issues when it ends",
+      "summary": "Clean up a run's seeded Jira issues after the post-run state is captured",
       "requirement_ids": ["FR-061"]
     },
     {

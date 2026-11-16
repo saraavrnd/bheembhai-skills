@@ -118,3 +118,38 @@ cleanup-surface seam (PENDING-4) and the scheduled-job / recovery seam (PENDING-
 considering once the open questions are answered; it was not done here because the report names no
 such split. The new fixture-file token form `{{alias}}` follows SK-001 §5; the optional fixture
 `key` field remains as the report left it for `sdlc-plan-story-review`.
+
+## Pass 2 — 2026-11-16 — verifier re-check of the Pass 1 revision
+
+**Why this pass ran.** The automated verifier rejected the Pass 1 attempt without re-reviewing the
+content: `no_template_residue` (`builtin:md_no_placeholders`) reported five unfilled placeholder
+matches in `stories.md`, and `story_map` was rejected because it had not changed while reviewer
+feedback was active. Both were addressed here; no review finding was re-opened and no requirement
+mapping changed.
+
+**Placeholder check — the alias token notation.** The five matches were the literal double-brace
+alias token that Finding 8 introduced to follow SK-001 §5, not unfilled template fields. The token
+form is still required by the contract, so only the way it is written in the reviewable criterion
+text changed:
+- The **Fixture file format** paragraph now defines the form in words and names it the
+  **double-brace alias token**; the later prose uses that name instead of spelling the braces.
+- `BSB-28-PENDING-1`'s two `POST` body criteria keep the exact body but write the unresolved token
+  as the equivalent JSON unicode escape sequences for `{` and `}`, with a clause saying they
+  decode to the raw fixture text. A test compares the parsed JSON, so the assertion is unchanged.
+- `BSB-28-PENDING-2`'s no-token assertion and its unknown-alias Given use the same wording; the
+  unknown-alias Given now spells out the description's text without the literal braces.
+- The fixture-file JSON block above the contract still shows the literal token form, because that
+  block is the fixture file's exact content.
+
+**`story-map.json` — summaries aligned to the reviewed scopes.** Finding 2 moved alias validation
+to PENDING-2, made PENDING-3 own the finalizer, and made PENDING-4 clean up after capture. The
+story summaries (in `stories.md` and `story-map.json`) now say so:
+- PENDING-2: "Resolve fixture alias tokens to the created keys and reject an invalid fixture".
+- PENDING-3: "Capture the seeded issues' post-run Jira state when any terminal write ends the run".
+- PENDING-4: "Clean up a run's seeded Jira issues after the post-run state is captured".
+
+`story_key` and `requirement_ids` are unchanged; coverage is still FR-058 → PENDING-1, FR-059 →
+PENDING-2, FR-060 → PENDING-3, FR-061 → PENDING-4, FR-062 → PENDING-5.
+
+**Still open:** Findings 1/Open question 1, 3/Open question 2 and 7/Open question 3 remain
+unapplied for the reasons recorded under Pass 1 — the run hand-off still carries no gate answers.

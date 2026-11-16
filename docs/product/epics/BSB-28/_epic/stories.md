@@ -94,9 +94,10 @@ and no `project_key` has no configured project to seed into; fixture seeding is 
 
 **Fixture file format.** The file is a JSON object with one required key, `issues`, whose value is
 an array. Each entry has a required `alias` (unique in the file), `issue_type` and `summary`, and an
-optional `description` and `key`. An alias reference is written `{{alias}}`, as in SK-001 §5; the
-token is replaced with the created key at seed time. Only `summary` and `description` values may
-contain alias references.
+optional `description` and `key`. An alias reference is the alias name inside a double brace pair —
+two opening braces before it and two closing braces after it — the token form SK-001 §5 writes for
+an alias; the token is replaced with the created key at seed time. Only `summary` and `description`
+values may contain alias references. This document calls that form a **double-brace alias token**.
 
 **Seeding lifecycle.** Seeding runs in the executor's claim path after the claim compare-and-set
 and after the provenance values are written, and before the container is created. A run whose
@@ -115,9 +116,9 @@ using BSB-26's terminal-write rule.
 **Alias replacement.** Seeding is two-phase. Phase 1 creates every fixture issue in file order,
 carrying its raw `summary` and `description` and the marker label; when it finishes the builder
 inserts the `run_jira` row with `aliases`, a JSON object whose keys are the fixture aliases and
-whose values are the created keys, in fixture order. Phase 2 then resolves `{{alias}}` tokens: the
-builder sends one `PUT` per issue whose `summary` or `description` contains a token, with the
-resolved values.
+whose values are the created keys, in fixture order. Phase 2 then resolves the double-brace alias
+tokens: the builder sends one `PUT` per issue whose `summary` or `description` contains a token,
+with the resolved values.
 
 **Post-run state capture.** The builder's Jira finalizer runs once after **every** terminal write
 of `runs.state`, whichever writer makes it — the executor's reconcile path, BSB-26's
@@ -260,8 +261,8 @@ And `SELECT count(*) FROM run_jira` returns `0`
 And the builder executor is running with a 1-second claim interval
 When the executor claims run `1` at `2026-11-15T10:01:00Z`
 Then the Jira stub records exactly two `POST /rest/api/2/issue` requests, in this order
-And the first request body is exactly `{"fields":{"project":{"key":"OLD"},"issuetype":{"name":"Bug"},"summary":"Checkout fails when the cart is empty","description":"The checkout button does nothing. Tracking issue: {{task}}.","labels":["skilltest-1"]}}`
-And the second request body is exactly `{"fields":{"project":{"key":"OLD"},"issuetype":{"name":"Task"},"summary":"Investigate empty-cart checkout failure","description":"Found while reproducing {{bug}}.","labels":["skilltest-1"]}}`
+And the first request body is exactly `{"fields":{"project":{"key":"OLD"},"issuetype":{"name":"Bug"},"summary":"Checkout fails when the cart is empty","description":"The checkout button does nothing. Tracking issue: \u007b\u007btask\u007d\u007d.","labels":["skilltest-1"]}}`, whose JSON escapes decode to the raw fixture `description` with its double-brace alias token unresolved
+And the second request body is exactly `{"fields":{"project":{"key":"OLD"},"issuetype":{"name":"Task"},"summary":"Investigate empty-cart checkout failure","description":"Found while reproducing \u007b\u007bbug\u007d\u007d.","labels":["skilltest-1"]}}`, whose JSON escapes decode to the raw fixture `description` with its double-brace alias token unresolved
 And the Jira stub contains exactly three issues: `OLD-100` with `labels` = `[]`, `OLD-101` with `labels` = `["skilltest-1"]`, and `OLD-102` with `labels` = `["skilltest-1"]`
 And `SELECT aliases FROM run_jira WHERE run_id = 1` equals the JSON value `{"bug":"OLD-101","task":"OLD-102"}`
 And `SELECT count(*) FROM run_jira WHERE run_id = 1 AND state_after IS NULL AND cleaned_at IS NULL` returns `1`
@@ -376,7 +377,7 @@ epic's non-goals). Provisioning the Jira project, its issue types or its credent
 
 ## STORY: BSB-28-PENDING-2
 
-**Summary:** Replace fixture aliases with the created issue keys
+**Summary:** Resolve fixture alias tokens to the created keys and reject an invalid fixture
 **Epic:** BSB-28 · **Release:** Later · **Estimate:** 3 · **Labels:** FA-9, Later
 
 ### Story
@@ -396,7 +397,7 @@ And issue `OLD-101` in the stub has `description` = `The checkout button does no
 And issue `OLD-102` in the stub has `description` = `Found while reproducing OLD-101.`
 And `SELECT aliases FROM run_jira WHERE run_id = 1` equals the JSON value `{"bug":"OLD-101","task":"OLD-102"}`
 And `SELECT state FROM runs WHERE id = 1` returns `running`
-And no issue in the stub has a `summary` or `description` containing `{{`
+And no issue in the stub has a `summary` or `description` containing an unresolved double-brace alias token
 
 #### Scenario: A fixture with no alias references sends no update
 Given the `jira` integration row `5` has `config.fixture` = `no-cross-references`
@@ -410,7 +411,7 @@ And `SELECT state FROM runs WHERE id = 1` returns `running`
 
 #### Scenario: An unknown alias fails the seed before any issue is created
 Given the `jira` integration row `5` has `config.fixture` = `unknown-alias`
-And `fixtures/unknown-alias/jira.json` declares one issue with `alias` = `bug` and `description` = `Blocks {{missing}}.`
+And `fixtures/unknown-alias/jira.json` declares one issue with `alias` = `bug` and a `description` that is `Blocks ` followed by one double-brace alias token for `missing` and then a full stop
 And the file declares no issue with `alias` = `missing`
 And run `1` exists prepared with `state` = `queued`
 And the builder executor is running with a 1-second claim interval
@@ -454,7 +455,7 @@ Creating the issues, applying the run marker and inserting the `run_jira` row in
 
 ## STORY: BSB-28-PENDING-3
 
-**Summary:** Record the seeded issues' state after the run
+**Summary:** Capture the seeded issues' post-run Jira state when any terminal write ends the run
 **Epic:** BSB-28 · **Release:** Later · **Estimate:** 3 · **Labels:** FA-9, Later
 
 ### Story
@@ -546,7 +547,7 @@ the skill did not make through the seeded issues.
 
 ## STORY: BSB-28-PENDING-4
 
-**Summary:** Clean up a run's seeded Jira issues when it ends
+**Summary:** Clean up a run's seeded Jira issues after the post-run state is captured
 **Epic:** BSB-28 · **Release:** Later · **Estimate:** 3 · **Labels:** FA-9, Later
 
 ### Story
