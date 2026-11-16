@@ -61,6 +61,11 @@ FR-043); this epic consumes it. The run columns and the `skill_bundles` columns 
 | Run 1 (the prepared run) | exactly one row: `id` = `1`, `project_id` = `7`, `user_id` = `42`, `skill` = `sdlc-fix-bug-triage`, `skills_ref` = `test/ada/fix-reproduce`, `skills_commit_sha` = `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b`, `input_branch` = `main`, `run_branch` = `skilltest/1`, `context` = `{"workflow":"bug-fix","step":"triage"}`, `model_profile_id` = `3`, `tier` = `high`, `state` = `queued`, `kind` = `run`, `created_at` = `2026-11-15T10:00:00Z`; `agent_image_digest`, `stepkit_version`, `verify_version`, `claimed_verdict`, `final_verdict`, `verification`, `cost_usd` and `parent_run_id` are `NULL` |
 | Run 2 (only the kit-v8 scenario) | prepared exactly like run `1` except `id` = `2` and `run_branch` = `skilltest/2`; the rest of the row is identical apart from `created_at` = `2026-11-15T10:00:01Z` |
 | Run 3 (only the reviewer-feedback scenario) | prepared exactly like run `1` except `id` = `3`, `run_branch` = `skilltest/3` and `context` = `{"workflow":"bug-fix","step":"triage","reviewer_feedback":"Please handle an empty issue title without failing.","upstream_handoff":{"step":"reproduce","result_status":"completed","summary":"Reproduction confirmed on the input branch."}}`; `created_at` = `2026-11-15T10:00:02Z` |
+| Run 4 (only the default-context scenario) | prepared exactly like run `1` except `id` = `4`, `run_branch` = `skilltest/4` and `context` = `{}`; `created_at` = `2026-11-15T10:00:03Z` |
+| Alternate skills commit (only the unresolvable-default scenario) | `skills_ref` = `test/ada/fix-reproduce-2`, `skills_commit_sha` = `9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d`, packaged as exactly two `skill_bundles` rows: `skill` = `sdlc-fix-unused`, `bundle_sha256` = `1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f809`, `s3_key` = `bundles/9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d/sdlc-fix-unused.tar.gz`; and `skill` = `sdlc-fix-shared`, `bundle_sha256` = `2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a`, `s3_key` = `bundles/9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d/sdlc-fix-shared.tar.gz` |
+| Run 5 (only the unresolvable-default scenario) | prepared exactly like run `1` except `id` = `5`, `skill` = `sdlc-fix-unused`, `skills_ref` = `test/ada/fix-reproduce-2`, `skills_commit_sha` = `9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d`, `run_branch` = `skilltest/5` and `context` = `{}`; its `skill_bundles` row is the `sdlc-fix-unused` row above; `created_at` = `2026-11-15T10:00:04Z` |
+| Run 6 (only the unresolvable-default scenario) | prepared exactly like run `5` except `id` = `6`, `skill` = `sdlc-fix-shared` and `run_branch` = `skilltest/6`; its `skill_bundles` row is the `sdlc-fix-shared` row above; `created_at` = `2026-11-15T10:00:05Z` |
+| Workflow config (default resolution) | on run `1`'s commit, exactly one workflow step declares `sdlc-fix-bug-triage` as its `skill`: workflow `bug-fix`, step `triage`. On the alternate commit, no workflow step declares `sdlc-fix-unused`, and exactly two declare `sdlc-fix-shared`: workflow `review` step `triage` and workflow `audit` step `triage` |
 | `skill_bundles` row | `skills_commit_sha` = `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b`, `skill` = `sdlc-fix-bug-triage`, `bundle_sha256` = `b7e3c1a9f5d2e8b4a6c0f1d3e5b7a9c2d4f6e8b0a1c3e5d7f9b2a4c6e8d0f13a`, `s3_key` = `bundles/4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b/sdlc-fix-bug-triage.tar.gz` |
 | Object-store bucket | `skill-builder-runs`; the run prefix is `runs/1/` |
 | Bundle URL | a presigned GET URL on `skill-builder-runs` whose path is exactly `/bundles/4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b/sdlc-fix-bug-triage.tar.gz`; the query string is generated per launch and is not asserted |
@@ -80,27 +85,32 @@ FR-043); this epic consumes it. The run columns and the `skill_bundles` columns 
 characters), not the repository prefix. The ECR repository and tag are never stored on the run; a
 tag such as `:latest` is never accepted in place of a digest.
 
-**Run state values.** The values below are the states these stories set or read. The starting
-value `queued` is created by epic BSB-24; the terminal values are created here, except
-`failed_timeout`, which epic BSB-27 owns. Two further terminal values belong to sibling epics and
-are not set by these stories: the value epic BSB-27 records when a run stops at its turn or spend
-cap (FR-051, FR-053), and the value epic BSB-25 records when preparation fails. Their exact names
-are still open (Open question 3 of this epic's review), so no scenario below asserts them.
+**Run state values.** The values below are the shared run-state vocabulary these stories set or
+read. The starting value `queued` is created by epic BSB-24. The terminal values are created here,
+except three owned by sibling epics and never set by these stories: `failed_timeout` and
+`failed_cap` (epic BSB-27) and `failed_preparation` (epic BSB-25). This epic pins those three
+names so that a run terminated elsewhere is never misclassified here; BSB-25 and BSB-27 must use
+exactly these values when they decompose, and the terminal-write rule keeps this epic from
+overwriting them.
 
 | `runs.state` | Meaning | Set by |
 |--------------|---------|--------|
 | `queued` | the run exists and is prepared (or still being prepared) but has not been claimed | epic BSB-24 creates it; epic BSB-25 leaves a prepared run in this state |
 | `running` | an executor has claimed the run and the runtime is executing | BSB-26-PENDING-1 |
 | `completed` | the runtime exited and the platform engine returned a classifiable result status | BSB-26-PENDING-3 |
-| `failed_infra` | the runtime could not be started | BSB-26-PENDING-1 |
+| `failed_infra` | the runtime could not be started, including a start precondition such as an unresolvable default context | BSB-26-PENDING-1 |
 | `failed_execution` | the runtime exited non-zero and produced no valid result | BSB-26-PENDING-3 |
 | `failed_incomplete` | the runtime exited but the uploaded result was missing, malformed, or not an allowed status | BSB-26-PENDING-3 |
 | `failed_timeout` | the run exceeded its deadline | epic BSB-27; never set by these stories |
+| `failed_cap` | the run stopped at its turn or spend cap (FR-051, FR-053) | epic BSB-27; never set by these stories |
+| `failed_preparation` | preparation failed before the run could be claimed, for example a missing input branch | epic BSB-25; never set by these stories |
 
 **Terminal-write rule.** Every transition out of `running` is a single compare-and-set update on
 `state = 'running'`; the first terminal write wins and a later writer that finds the row no longer
 `running` leaves it unchanged. Epic BSB-27 writes its terminal state before it stops the
-container.
+container. Only an executor that claimed the run (state `running`) classifies an outcome; a run
+already in `failed_preparation`, `failed_cap`, `failed_timeout` or any other terminal value is
+never claimed and never reclassified.
 
 **Executor claim contract.** The builder runs one or more executor processes. On each claim pass
 (interval exactly 1 second) an executor claims the oldest run matching
@@ -109,6 +119,18 @@ compare-and-set update that changes `state` to `running` and returns the row. Ex
 wins a given run. A run whose `skills_commit_sha` or `run_branch` is `NULL` is never claimed. A run
 already in `running` or in any terminal state is never claimed again. On claim, before the
 container is created, the executor persists the provenance values in BSB-26-PENDING-4.
+
+**Default context resolution.** When `runs.context` has no `workflow`/`step`, the executor resolves
+them at claim, before creating the container, from the pinned skills commit
+(`runs.skills_commit_sha`): the single (workflow, step) pair whose config in that commit declares
+`runs.skill`. On success it writes that pair into `runs.context`, preserving any
+`reviewer_feedback` and `upstream_handoff` already there, and uses the resolved step for
+`BB_CONTEXT` and for result classification. If no pair, or more than one pair, declares the skill,
+the run is recorded `failed_infra` without starting a container, and the first line of
+`s3://skill-builder-runs/runs/<id>/agent.log` is exactly
+`[skill-builder] default context resolution failed: no workflow uses skill <skill>` or exactly
+`[skill-builder] default context resolution failed: more than one workflow uses skill <skill>`.
+A context that already names both `workflow` and `step` is never resolved or rewritten.
 
 **Result rules (the platform engine's join).** After a container that started exits, the executor
 classifies the outcome from the exit status and `s3://skill-builder-runs/runs/1/bb_step_result.json`
@@ -121,6 +143,7 @@ exactly as follows. A `result_status` is valid only when the uploaded file is a 
 | exits with status `0` | missing, not valid JSON, no string `result_status`, or a status not in `allowed_result_statuses` | `failed_incomplete` | `NULL` |
 | exits with a non-zero status | missing, not valid JSON, no string `result_status`, or a status not in `allowed_result_statuses` | `failed_execution` | `NULL` |
 | runtime fails to start | not read | `failed_infra` | `NULL` |
+| the default context cannot be resolved (no workflow, or more than one, declares the skill) | not read | `failed_infra` | `NULL` |
 
 A valid uploaded result takes precedence over the exit status: a skill that reports `BLOCK` or
 `changes_requested` and exits non-zero is a completed execution whose claimed verdict is that
@@ -213,10 +236,12 @@ terminal, so a start-failure line or a truncation marker stays readable until ep
 the page; ending a run never deletes or hides its log.
 
 Before the captured log is stored or served, every occurrence of a known credential value is
-replaced with exactly `[REDACTED]` (NFR-004, using epic BSB-23's redaction mechanism). Which
-process writes `agent.log` — the builder's capture of the container's standard output and standard
-error, or an upload by the image — is still open (Open question 2 of this epic's review); this
-contract fixes the stored object and the lines the API and page serve, not the writer.
+replaced with exactly `[REDACTED]` (NFR-004, using epic BSB-23's redaction mechanism). The builder
+captures the container's standard output and standard error and is the **only** writer of
+`runs/<id>/agent.log`; the agent image receives no presigned PUT URL for that key, so it cannot
+overwrite the builder's start-failure line or truncation marker. The image's two PUT URLs are
+`BB_PROGRESS_PUT_URL` and `BB_RESULT_PUT_URL` only, and the builder enforces the
+`10485760`-byte cap and prepends the marker.
 
 **Error responses** (each has `Content-Type: application/json`). The checks run in this fixed
 order: BSB-18's session and group gates, then BSB-22's `project_not_found` on the path project,
@@ -237,21 +262,25 @@ In `run_not_found` the number is the `run_id` from the path.
   selection and its fixture already declares workflow `bug-fix` with steps `triage`, `reproduce`,
   `root-cause` and `implement`. This epic consumes one more field of that fixture, step `triage`'s
   `allowed_result_statuses`. BSB-24's scenarios assert only the workflow and step names, so no
-  BSB-24 scenario changes. When the author omits `context`, BSB-24 stores `{}` and defers default
-  workflow and step resolution to this epic. Who resolves the default — run start or BSB-26 at
-  claim — and what a run whose skill is used by no workflow, or by more than one, does is still
-  open (BSB-24 Open question 4, repeated as Open question 1 of this epic's review). No scenario
-  below asserts a `BB_CONTEXT` or an `allowed_result_statuses` value for an omitted context until
-  that answer is recorded.
+  BSB-24 scenario changes. When the author omits `context`, BSB-24 stores `{}` and leaves default
+  resolution to this epic. **This epic resolves it at claim** from the pinned skills commit
+  (SK-001 §5.3: "a workflow in the skills branch's `config/` that uses this skill") and writes the
+  resolved `workflow` and `step` into `runs.context`, so a claimed run always has both. No
+  workflow, or more than one, declaring the skill is `failed_infra` as defined above. This answers
+  BSB-24 Open question 4; BSB-24-PENDING-3 and BSB-24-PENDING-4's "left to epic BSB-26" notes
+  remain accurate.
 - **BSB-25 hand-off.** Epic BSB-25 (FR-038 to FR-043) has no stories yet. This epic assumes its
   outputs: `skills_commit_sha`, `run_branch`, the `skill_bundles` row and the run branch
-  `skilltest/1`, per §5 of the ADR. A prepared run stays `queued` until an executor claims it. If
-  BSB-25 later introduces a distinct prepared state or a different trigger, only the claim
+  `skilltest/1`, per §5 of the ADR. A prepared run stays `queued` until an executor claims it, and
+  a run whose preparation fails is recorded `failed_preparation` by BSB-25 and never claimed here.
+  If BSB-25 later introduces a distinct prepared state or a different trigger, only the claim
   predicate and the stories' "prepared and queued" preconditions are re-pointed; the result rules,
   environment values and provenance columns do not change.
 - **BSB-27.** Epic BSB-27 owns turn and spend caps, the installation deadline, `failed_timeout`,
-  scan refusals and re-runs. This epic never enforces a cap or a deadline; a run it leaves
-  `running` may be terminated as `failed_timeout` by BSB-27.
+  `failed_cap`, scan refusals and re-runs. This epic never enforces a cap or a deadline; a run it
+  leaves `running` may be terminated as `failed_timeout` or, when it stops at its turn or spend
+  cap, as `failed_cap` (FR-051, FR-053). BSB-27 writes that terminal state before it stops the
+  container.
 - **BSB-29.** Epic BSB-29 owns verification. `final_verdict` and `verification` stay `NULL` here.
   BSB-29 must use the `verify_version` this epic records on the run, not a value read from
   `kit.txt` at verification time.
@@ -262,11 +291,11 @@ In `run_not_found` the number is the `run_id` from the path.
 
 ## STORY: BSB-26-PENDING-1
 
-**Summary:** Execute a prepared run in the pinned platform runtime
+**Summary:** Execute a prepared run in the pinned platform runtime, resolving its default context
 **Epic:** BSB-26 · **Release:** MVP · **Estimate:** 8 · **Labels:** FA-7, MVP
 
 ### Story
-As a **skill author**, I want **my prepared run to execute in the platform's own runtime and pinned agent image**, so that **a builder run behaves like a platform run instead of a builder-specific simulation, and a runtime that cannot start is recorded as an infrastructure failure rather than disappearing**.
+As a **skill author**, I want **my prepared run to execute in the platform's own runtime and pinned agent image**, so that **a builder run behaves like a platform run instead of a builder-specific simulation, a run started without a workflow context still executes the step the pinned commit assigns to its skill, and a runtime that cannot start is recorded as an infrastructure failure rather than disappearing**.
 
 ### Acceptance Criteria
 
@@ -308,6 +337,29 @@ And the runtime has started exactly one container labelled `bb.run_id` = `3`
 And that container's `BB_CONTEXT` is the pinned step kit's `build_step_context` output for run `3`, whose `reviewer_feedback` is exactly `Please handle an empty issue title without failing.`
 And that container's `BB_CONTEXT`'s `upstream_handoff` is exactly the JSON value `{"step":"reproduce","result_status":"completed","summary":"Reproduction confirmed on the input branch."}`
 
+#### Scenario: A run with no context resolves the default workflow step
+Given run `4` exists prepared and `state` = `queued` with `context` = `{}`
+And the workflow config declares exactly one step for skill `sdlc-fix-bug-triage`: workflow `bug-fix`, step `triage`
+And `skill-builder/kit.txt` contains `kit-v7`
+And the builder executor is running with a 1-second claim interval
+When the executor claims run `4`
+Then within 2 seconds `SELECT state FROM runs WHERE id = 4` returns `running`
+And `SELECT context FROM runs WHERE id = 4` returns exactly the JSON value `{"workflow":"bug-fix","step":"triage"}`
+And the runtime has started exactly one container labelled `bb.run_id` = `4`
+And that container's `BB_CONTEXT` is the pinned step kit's `build_step_context` output for run `4`, whose `allowed_result_statuses` is exactly `["completed","BLOCK","changes_requested","escalation_required"]`
+
+#### Scenario: A run whose default context cannot be resolved is an infrastructure failure
+Given run `5` exists prepared and `state` = `queued` with `context` = `{}` and `skill` = `sdlc-fix-unused`
+And no workflow step on run `5`'s commit declares `sdlc-fix-unused`
+And run `6` exists prepared and `state` = `queued` with `context` = `{}` and `skill` = `sdlc-fix-shared`
+And exactly two workflow steps on run `6`'s commit declare `sdlc-fix-shared`: workflow `review` step `triage` and workflow `audit` step `triage`
+And the builder executor is running with a 1-second claim interval
+When the executor performs two claim passes
+Then within 2 seconds `SELECT id, state, claimed_verdict FROM runs WHERE id IN (5, 6) ORDER BY id` returns exactly the rows `5 | failed_infra | NULL` and `6 | failed_infra | NULL`
+And the first line of `s3://skill-builder-runs/runs/5/agent.log` is exactly `[skill-builder] default context resolution failed: no workflow uses skill sdlc-fix-unused`
+And the first line of `s3://skill-builder-runs/runs/6/agent.log` is exactly `[skill-builder] default context resolution failed: more than one workflow uses skill sdlc-fix-shared`
+And the runtime has started no container labelled `bb.run_id` = `5` or `bb.run_id` = `6`
+
 #### Scenario: A run that is not prepared is not claimed
 Given run `1` exists with `state` = `queued`, `skills_commit_sha` = `NULL` and `run_branch` = `NULL`
 And the builder executor is running with a 1-second claim interval
@@ -340,12 +392,13 @@ And the runtime has started no container labelled `bb.run_id` = `1`
 
 ### Out of scope
 Resolving the skills branch to a commit SHA, packing the bundle, creating the run branch and
-recording the baseline (epic BSB-25, FR-038 to FR-043). Classifying the outcome after a started
-container exits (BSB-26-PENDING-3). Recording component versions, verifier version, model profile
-and tier on the run row (BSB-26-PENDING-4). Turn and spend caps, the deadline, `failed_timeout`,
-scan refusals and re-runs (epic BSB-27). Verifying the run's output (epic BSB-29). Run reports,
-history, comparison, tracing, token usage and cost (epics BSB-33, BSB-34 and BSB-35). The CLI
-entry point that starts the same runner (epic BSB-37).
+recording the baseline (epic BSB-25, FR-038 to FR-043), including the `failed_preparation` terminal
+state for a run whose preparation fails. Classifying the outcome after a started container exits
+(BSB-26-PENDING-3). Recording component versions, verifier version, model profile and tier on the
+run row (BSB-26-PENDING-4). Turn and spend caps, the deadline, `failed_timeout`, `failed_cap`, scan
+refusals and re-runs (epic BSB-27). Verifying the run's output (epic BSB-29). Run reports, history,
+comparison, tracing, token usage and cost (epics BSB-33, BSB-34 and BSB-35). The CLI entry point
+that starts the same runner (epic BSB-37).
 
 ### Notes / dependencies
 - Depends on epic BSB-24 for the `runs` row and its `queued` starting state, on epic BSB-25 for the
@@ -366,9 +419,13 @@ entry point that starts the same runner (epic BSB-37).
   required by NFR-011; epic BSB-34 owns the trace store and the marker's value.
 - The claim is one compare-and-set update, so two executors cannot both start a container. The
   executor does not claim a row until BSB-25 has set both `skills_commit_sha` and `run_branch`.
-  A run BSB-25 leaves `queued` because its preparation failed is BSB-25's to terminate and is
-  never claimed here. After an executor restart, an executor finds its in-flight runs by the
-  `bb.run_id` container label.
+  A run BSB-25 leaves `queued` because its preparation failed is BSB-25's to terminate as
+  `failed_preparation` and is never claimed here. After an executor restart, an executor finds its
+  in-flight runs by the `bb.run_id` container label.
+- When the author omitted `context`, this story resolves the default workflow and step at claim
+  from the pinned skills commit and writes them into `runs.context`, preserving any
+  `reviewer_feedback` or `upstream_handoff` already supplied. This answers Open question 1 of the
+  epic review and BSB-24 Open question 4; BSB-24 itself still stores `{}` at run start.
 - A start failure is terminal: there is no automatic retry in this epic. Re-running a failed run
   belongs to epic BSB-27 (FR-056). The reason is durable in two places: the `runs.state` value and
   the first line of the stored log.
@@ -512,9 +569,9 @@ NFR-012).
 - Depends on BSB-26-PENDING-1 for a run in state `running` and on the installation-provisioned
   `skill-builder-runs` bucket (SK-001 §6, the same bucket BSB-25 writes bundles to). It depends on
   the agent image's existing `progress.json` output, which is part of the platform image contract.
-  Which process writes `agent.log` — the builder's capture of the container's standard output and
-  standard error, or an upload by the image — is still open (Open question 2 of this epic's
-  review); this story asserts the stored object and the served lines, not the writer.
+  The builder captures the container's standard output and standard error and is the only writer of
+  `agent.log`; the image receives no PUT URL for that key (see the log contract), so this story and
+  BSB-26-PENDING-1's start-failure line cannot be overwritten by an image upload.
 - The captured log passes through epic BSB-23's NFR-004 redaction before it is stored or served.
   Every occurrence of a known credential value is replaced with exactly `[REDACTED]`; the mask is
   this fixture's contract constant and epic BSB-23 owns the mechanism.
@@ -625,8 +682,9 @@ spend caps, the deadline and `failed_timeout` (epic BSB-27). Retrying or re-runn
   step kit's domain statuses; the allowed set comes from the selected workflow step's config on
   the skills commit. `bb_step_result.json` is read from the object at the key PENDING-1's
   `BB_RESULT_PUT_URL` points at (`runs/1/bb_step_result.json`). When the author omitted `context`,
-  which workflow step supplies `allowed_result_statuses` is still open (Open question 1 of this
-  epic's review); no scenario here classifies an omitted-context run.
+  PENDING-1 resolves the default workflow step at claim and writes it into `runs.context`; the
+  allowed set is read from that resolved step's config on `skills_commit_sha`, so a claimed run
+  always classifies against exactly one allowed set.
 - Every terminal write is a compare-and-set from `state = 'running'`; the first terminal write
   wins. A run already in a terminal state — for example `failed_timeout` written by epic BSB-27 —
   is left unchanged when its container later exits.

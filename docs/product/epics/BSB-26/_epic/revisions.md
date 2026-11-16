@@ -222,3 +222,77 @@ FR-152) are still covered by the same four stories, no requirement is claimed tw
 the three decisions above. The reviewer should run again once a person answers Open questions 1–3 at
 the gate (the same answer to Open question 1 also closes BSB-24 Open question 4); until then the
 review's Blocking findings 1, 3 and 4 stand.
+
+## Pass 3 — 2026-11-16 — `epic-review.md` (same report; Open questions 1–3 resolved from the ADR and the sibling contracts)
+
+**Report applied:** the same `docs/product/epics/BSB-26/_epic/epic-review.md` (commit `c25ba32`),
+verdict CHANGES REQUESTED — findings 1–9 and open questions 1–3. The run hand-off again carried no
+gate answers (`settled_decisions` empty), and the platform rejected Pass 2 because `stories.md` and
+`story-map.json` were unchanged while reviewer feedback was active. This pass therefore answers
+Open questions 1–3 from the repository's own authoritative sources — SK-001 §5 and §2a, BSB-24's
+published run-start contract, and `epics.md` — and applies every conditional proposed change. It
+adds no finding of its own.
+
+**Target resolution.** The run's target `SkillBuilder` is the product title in
+`docs/product/PRD.md`, not a Jira issue. The run's `ITEM` is epic **BSB-26**, fetched read-only
+through the Atlassian REST API in this pass (the MCP server is not connected): summary *Run
+execution & outcome capture*, type Epic, status *To Do*, labels `FA-7`, `MVP`; its description,
+functional scope and covered requirements match the BSB-26 section of `docs/product/epics.md` and
+`epic-map.json`. Jira epics carry no acceptance criteria for this item. Nothing was written to
+Jira.
+
+**Decisions (previously Open questions 1–3):**
+
+1. **Default context (Finding 1 / Open question 1) — BSB-26 resolves it at claim.** BSB-24's
+   published contract stores the request's `context` or `{}` and explicitly leaves default
+   resolution to BSB-26; SK-001 §5.3 defines the default as "a workflow in the skills branch's
+   `config/` that uses this skill", which is only pinned once BSB-25 has recorded
+   `skills_commit_sha`. Applied:
+   - `stories.md` gains a **Default context resolution** rule: at claim, the single (workflow,
+     step) pair whose config on `skills_commit_sha` declares `runs.skill` is written into
+     `runs.context` (preserving `reviewer_feedback` / `upstream_handoff`), and drives `BB_CONTEXT`
+     and `allowed_result_statuses`.
+   - No workflow, or more than one, declaring the skill → `failed_infra` with the exact log line
+     `[skill-builder] default context resolution failed: no workflow uses skill <skill>` or
+     `… more than one workflow uses skill <skill>`, and no container.
+   - Fixtures: run `4` (`context` `{}`, resolvable) and runs `5`/`6` on an alternate commit (no
+     workflow / two workflows), plus that commit's `skill_bundles` rows and workflow config.
+   - `BSB-26-PENDING-1`: summary, statement and two new scenarios (resolved default; unresolvable
+     default); Notes record that this also answers BSB-24 Open question 4.
+   - `BSB-26-PENDING-3` Notes: `allowed_result_statuses` for an omitted context comes from the
+     step `BSB-26-PENDING-1` resolved and wrote into `runs.context`.
+   - Preamble cross-epic BSB-24 bullet rewritten to record the owner and the no/multiple outcome;
+     the result-rules table gains the unresolvable-default row.
+2. **`agent.log` writer (Finding 3 / Open question 2) — the builder captures it and is its only
+   writer.** SK-001 §2 gives the image only "result upload", §5.2 has the runner "follow
+   `progress.json` and `agent.log`", and BSB-26-PENDING-1's start-failure line is written before any
+   container exists. Applied: the log contract now states the builder is the sole writer and
+   enforces the cap and marker, and that the image receives PUT URLs only for `progress.json` and
+   `bb_step_result.json`; `BSB-26-PENDING-2` Notes say its image dependency is `progress.json`
+   only.
+3. **Sibling terminal states (Finding 4 / Open question 3) — `failed_cap` (BSB-27) and
+   `failed_preparation` (BSB-25).** The review suggested `failed_cap`; `failed_preparation` follows
+   the existing `failed_*` naming, and SK-001 §9 keeps `runs.state` free-form so no schema change is
+   needed. Applied: the state table lists both with their owners; the terminal-write rule says only
+   a run in `running` is classified and none of these values is set or overwritten here; the
+   BSB-25 and BSB-27 cross-epic notes name them. No scenario asserts them — they remain
+   sibling-owned.
+
+**`story-map.json` change:** `BSB-26-PENDING-1`'s summary now matches its revised `stories.md`
+summary, "Execute a prepared run in the pinned platform runtime, resolving its default context".
+No story key or requirement mapping changed.
+
+**Coverage:** unchanged. All eight requirements mapped to BSB-26 (FR-044 to FR-049, FR-151 and
+FR-152) are still covered by the same four stories, and no story claims a requirement outside the
+epic.
+
+**Findings still open:** none. All nine findings and all three open questions are now applied. If a
+person decides differently at a gate, the places to change are: the **Default context resolution**
+paragraph and the BSB-24 cross-epic bullet, `BSB-26-PENDING-1`'s two default-context scenarios,
+`BSB-26-PENDING-3`'s allowed-set note, the log contract's writer sentence,
+`BSB-26-PENDING-2`'s writer note, and the state-vocabulary table's `failed_cap` /
+`failed_preparation` rows.
+
+**Cross-epic follow-ups (not applied here):** BSB-24's own revise pass should record that BSB-26
+answers its Open question 4 (its contract is otherwise unchanged: `{}` at run start). BSB-25 and
+BSB-27 must use `failed_preparation` and `failed_cap` respectively when they decompose.

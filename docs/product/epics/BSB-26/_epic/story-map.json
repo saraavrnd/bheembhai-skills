@@ -4,7 +4,7 @@
   "stories": [
     {
       "story_key": "BSB-26-PENDING-1",
-      "summary": "Execute a prepared run in the pinned platform runtime",
+      "summary": "Execute a prepared run in the pinned platform runtime, resolving its default context",
       "requirement_ids": ["FR-044"]
     },
     {
