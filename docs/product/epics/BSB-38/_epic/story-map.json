@@ -1,0 +1,51 @@
+{
+  "epic_key": "BSB-38",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-38-PENDING-1",
+      "summary": "Operate every builder control from the keyboard on every surface",
+      "requirement_ids": ["FR-130"]
+    },
+    {
+      "story_key": "BSB-38-PENDING-2",
+      "summary": "Show a visible focus indicator on every focused control on every surface",
+      "requirement_ids": ["FR-131"]
+    },
+    {
+      "story_key": "BSB-38-PENDING-3",
+      "summary": "Expose the name, role and state of every custom status component",
+      "requirement_ids": ["FR-132"]
+    },
+    {
+      "story_key": "BSB-38-PENDING-4",
+      "summary": "Expose every form field's label, instructions and error to assistive technology",
+      "requirement_ids": ["FR-133"]
+    },
+    {
+      "story_key": "BSB-38-PENDING-5",
+      "summary": "Announce run progress and readiness changes to assistive technology",
+      "requirement_ids": ["FR-134"]
+    },
+    {
+      "story_key": "BSB-38-PENDING-6",
+      "summary": "Convey readiness, verdict and diff status without relying on colour",
+      "requirement_ids": ["FR-135"]
+    },
+    {
+      "story_key": "BSB-38-PENDING-7",
+      "summary": "Meet WCAG 2.1 AA contrast for text and status colours in normal, hover and focus states",
+      "requirement_ids": ["FR-136"]
+    },
+    {
+      "story_key": "BSB-38-PENDING-8",
+      "summary": "Run automated accessibility checks on every builder change in continuous verification",
+      "requirement_ids": ["FR-137"]
+    },
+    {
+      "story_key": "BSB-38-PENDING-9",
+      "summary": "Reflow every builder surface to 320 CSS pixels without two-dimensional scrolling",
+      "requirement_ids": ["NFR-012"]
+    }
+  ]
+}
