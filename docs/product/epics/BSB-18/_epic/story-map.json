@@ -1,0 +1,31 @@
+{
+  "epic_key": "BSB-18",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-18-PENDING-1",
+      "summary": "Sign in with the platform identity provider",
+      "requirement_ids": ["FR-002", "FR-138"]
+    },
+    {
+      "story_key": "BSB-18-PENDING-2",
+      "summary": "Create and reuse one local user record per person",
+      "requirement_ids": ["FR-005", "FR-142"]
+    },
+    {
+      "story_key": "BSB-18-PENDING-3",
+      "summary": "Block unauthenticated requests before any builder data is returned",
+      "requirement_ids": ["FR-001", "NFR-002"]
+    },
+    {
+      "story_key": "BSB-18-PENDING-4",
+      "summary": "Enforce current skill-builders membership on every request",
+      "requirement_ids": ["FR-003", "FR-004", "FR-141", "NFR-003"]
+    },
+    {
+      "story_key": "BSB-18-PENDING-5",
+      "summary": "Keep the builder isolated from the platform database",
+      "requirement_ids": ["FR-165"]
+    }
+  ]
+}
