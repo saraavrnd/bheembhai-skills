@@ -123,6 +123,11 @@ Given a signed-in skill author whose local "users" id is 42, an empty "builds" t
 When the author submits an edit build for "sdlc-plan-training" on the edit form at "/builds/new?mode=edit"
 Then the builder responds with HTTP 201 and a body containing "Build 1 opened for edits to sdlc-plan-training on branch build/sdlc-plan-training from base commit 4f1c2ab7d9e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3.", and exactly one "builds" row exists with skill "sdlc-plan-training", kind "edit", cloned_from NULL, created_by 42, branch "build/sdlc-plan-training", base_sha "4f1c2ab7d9e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3", head_sha "4f1c2ab7d9e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3", state "open" and ready_sha NULL, and the catalog repository has a branch "build/sdlc-plan-training" pointing at commit "4f1c2ab7d9e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3"
 
+Scenario: New edit build after a merged build resets the fixed branch and creates no second one
+Given a prior build for "sdlc-plan-training" in state "merged" whose fixed branch "build/sdlc-plan-training" exists at commit "9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b", a catalog repository whose "main" head is commit "4f1c2ab7d9e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3", and no "builds" row for "sdlc-plan-training" in state "open"
+When the author submits an edit build for "sdlc-plan-training" on the edit form at "/builds/new?mode=edit"
+Then the builder responds with HTTP 201 and exactly one "builds" row with state "open" exists and has skill "sdlc-plan-training", kind "edit", branch "build/sdlc-plan-training", base_sha "4f1c2ab7d9e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3" and head_sha "4f1c2ab7d9e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3", the catalog repository's branch "build/sdlc-plan-training" points at commit "4f1c2ab7d9e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3" rather than "9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b", no second branch whose name starts with "build/sdlc-plan-training" exists, and the prior build's row still has state "merged"
+
 Scenario: Edit build resolves to the existing skill folder and creates no second one
 Given an edit build with id 1 for skill "sdlc-plan-training" on branch "build/sdlc-plan-training" created from base commit "4f1c2ab7d9e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3", and "main" at commit "4f1c2ab7d9e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3" contains exactly one skill folder "skills/sdlc-plan-training/"
 When the edit build resolves its target skill folder at the head of branch "build/sdlc-plan-training"
@@ -153,7 +158,8 @@ Editing file content after the build exists (BSB-21, FR-127); creating a fresh o
 (BSB-19 and BSB-20-PENDING-1); BSB-19-PENDING-1 owns the base create route and create mode of the
 single `GET /builds/new` + `POST /builds` handler, and this story adds the edit mode to that same
 handler and creates no second handler at that route; submitting the branch or merging it into the
-catalog; deleting or reusing `build/<skill-name>` after a build is merged or abandoned (BSB-36);
+catalog; deleting or finalising `build/<skill-name>` after a build is merged or abandoned
+(BSB-36) — the reset of that fixed branch when a new build starts is in scope and asserted above;
 renaming, deleting or recovering a skill or build; readiness tracking, runs and scans (BSB-21
 onward).
 
