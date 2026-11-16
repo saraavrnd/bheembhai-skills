@@ -86,3 +86,80 @@ story key, title, statement, acceptance criterion or requirement ID changed. The
   `sdlc-tracker-sync`'s job after a clean review.
 - **Next pass:** once the gate answers for Findings 1–6 are supplied, apply them to the named
   stories in the shape Step 3 produces, then update `story-map.json` only if coverage changes.
+
+## Pass 2 — 2026-11-16 (verifier rejected Pass 1: artifacts unchanged)
+
+**Report applied:** the same `docs/product/epics/BSB-20/_epic/epic-review.md`, verdict CHANGES
+REQUESTED (2026-11-16). Pass 1 applied none of the findings because the hand-off carried no gate
+answers; the verifier rejected that pass because `stories.md` and `story-map.json` did not change
+while reviewer feedback was active. This pass applies the report's **Proposed changes** section as
+written — the reviewer's concrete recommendation for each finding — to the named stories in the
+shape Step 3 produces. Where a proposed change offered alternatives and no gate answer fixed the
+choice, the report's first/recommended option was applied and the decision is recorded below.
+
+**Work item `SkillBuilder-2` / epic lookup.** The Atlassian MCP tools were not exposed in this
+session, so the configured site was queried read-only over its REST API (no Jira writes).
+`GET /rest/api/3/issue/SkillBuilder-2` returned HTTP 404 ("Issue does not exist or you do not have
+permission to see it"), matching `PRD.md` section 8 and the review's Context loaded. The run's
+epic `BSB-20` returned HTTP 200: summary "Skill cloning & edit builds", type Epic, status To Do,
+labels `FA-2`/`MVP`, with a description matching the BSB-20 section of `epics.md`.
+
+### Findings applied
+
+| Finding | Severity | Stories touched | Change applied |
+|---|---|---|---|
+| 1 — catalog-manifest consistency | Blocking | BSB-20-PENDING-1 | AC 1 now says the clone rewrites both name-bearing fields; AC 2 exempts `verify.yaml` from byte-identity and asserts `skill: sdlc-plan-workshop` with all other bytes identical; new AC asserts `python tools/check.py` exits 0 on the clone; Notes rewritten; `story-map.json` summary updated. |
+| 2 — shared endpoint contract | Blocking | BSB-20-PENDING-1, BSB-20-PENDING-2 | Both stories now define the form as an extension of BSB-19-PENDING-1's single `GET /builds/new` + `POST /builds` handler, name the `mode` carrier, allowed values `create` (default)/`clone`/`edit` matching `builds.kind`, and the request fields per mode; scenarios use `/builds/new?mode=clone` and `/builds/new?mode=edit`; Out of scope names the shared handler. |
+| 3 — build-record contract | Blocking | BSB-20-PENDING-1, BSB-20-PENDING-2 | Clone AC 1 adds `head_sha` = the clone commit, its parent = `base_sha`, and the source read at `base_sha`; edit AC 1 adds `head_sha` = `base_sha`; both Notes state the head/base rule. |
+| 4 — branch lifecycle | Blocking | BSB-20-PENDING-1, BSB-20-PENDING-2 | Both Notes state the fixed `build/<skill-name>` rule: a new build resets the branch to the new `base_sha` and creates no second branch, and BSB-36 owns deleting/finalising it on merge or abandonment; both Out of scope entries assign cleanup to BSB-36. |
+| 5 — FR-125 proof location | Advisory | BSB-20-PENDING-2 | AC 2 now asserts the edit build's resolved target is the existing `skills/sdlc-plan-training/`, that `git ls-tree -d --name-only skills/` returns exactly `sdlc-plan-training`, and that no copy path exists; Notes require BSB-21's save AC to assert the commit touches only that folder. |
+| 6 — reciprocal BSB-19 notes | Advisory | BSB-20-PENDING-2 | Notes name BSB-19-PENDING-1/-3 as owners of the shared handler, validator and collision check for both clone and edit, and record that the validator takes a `mode` parameter selecting the inverted existence rule. |
+
+### Choices recorded (no gate answer supplied)
+
+1. **Finding 1 — manifest rewrite:** applied the first option: rewrite `SKILL.md`'s frontmatter
+   `name` and `verify.yaml`'s top-level `skill`; every other byte is identical. If a person does
+   not read FR-013's "frontmatter" as covering `verify.yaml`, the `PRD.md`/epic wording still needs
+   a separate clarification (cross-epic follow-up, not applied here).
+2. **Finding 2 — mode carrier:** the report named the values and default but not the carrier;
+   recorded as the `mode` query parameter on `GET /builds/new` plus a hidden `mode` form field on
+   the `POST /builds` body, absent = `create`. Clone request fields: source skill + new name;
+   edit request field: existing skill name.
+3. **Finding 3 — build head:** clone `head_sha` = the clone commit (parent `base_sha`, source read
+   at `base_sha`); edit `head_sha` = `base_sha` until BSB-21's first save.
+4. **Finding 4 — branch lifecycle:** the fixed `build/<skill-name>` name is kept and a new build
+   resets that branch to the new `base_sha`; BSB-36 owns deleting or finalising the branch when a
+   build is merged or abandoned. This avoids changing ADR SK-001 §1a and BSB-19-PENDING-1.
+5. **Finding 5 — FR-125:** kept in BSB-20-PENDING-2 with the strengthened target-folder AC; BSB-21's
+   future save story must additionally assert the no-second-folder rule.
+6. **Finding 6 — reciprocal notes:** BSB-19-PENDING-1/-3 own the shared pieces for both flows; the
+   validator exposes a `mode` parameter rather than the edit flow reusing only the pattern and
+   collision parts.
+
+### Still open
+
+- **Cross-epic follow-ups are not applied in this pass** (they belong to those epics' own revision
+  or a human decision): BSB-19-PENDING-1's reciprocal mode-contract and lifecycle sentence;
+  BSB-19-PENDING-3's edit-flow reuse note; the BSB-19 epic Notes correction about the scaffold
+  writer; BSB-21's save story asserting the FR-125 no-second-folder rule; BSB-36's branch-cleanup
+  scope; and the `PRD.md` FR-013 / `epics.md` BSB-20 wording clarification if needed.
+- **Gate confirmation of the six recorded choices is still advisable.** They are recorded here so
+  the next reviewer can see exactly which option was taken where the report offered a choice; none
+  blocks the stories as written.
+
+### Coverage re-check
+
+Unchanged and complete. BSB-20 still has 2 stories — BSB-20-PENDING-1 (FR-011, FR-012, FR-013,
+FR-014) and BSB-20-PENDING-2 (FR-124, FR-125, FR-126) — covering all 7 requirements mapped to
+BSB-20 in `epic-map.json`, with no foreign requirement. No story key, title, statement, requirement
+ID or story set changed; `story-map.json` changed only BSB-20-PENDING-1's summary text
+(Finding 1). `stories.md` and `story-map.json` now carry the changes above.
+
+### Notes for the next review
+
+- **Only this epic's story files changed:** `stories.md`, `story-map.json` and this `revisions.md`.
+  Nothing outside `docs/product/epics/BSB-20/_epic/` was touched.
+- **No Jira write was made.** Authoring only, per ADR-035; publication remains
+  `sdlc-tracker-sync`'s job after a clean review.
+- **Next pass:** `sdlc-plan-epic-review` re-runs on the revised set; if it returns
+  changes_requested, apply the new report the same way.

@@ -4,7 +4,7 @@
   "stories": [
     {
       "story_key": "BSB-20-PENDING-1",
-      "summary": "Clone an existing catalog skill into a new skill folder, rewriting only the frontmatter name and leaving the source skill and main unchanged, and reject a missing source, a new name already on main or a new name used by an open build",
+      "summary": "Clone an existing catalog skill into a new skill folder, rewriting the SKILL.md frontmatter name and the verify.yaml skill value and leaving the source skill and main unchanged, and reject a missing source, a new name already on main or a new name used by an open build",
       "requirement_ids": ["FR-011", "FR-012", "FR-013", "FR-014"]
     },
     {
