@@ -1,0 +1,41 @@
+{
+  "epic_key": "BSB-37",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-37-PENDING-1",
+      "summary": "Start a test run from the command line under the same session, skill-builders and project-membership gates as the web",
+      "requirement_ids": ["FR-116"]
+    },
+    {
+      "story_key": "BSB-37-PENDING-2",
+      "summary": "Run a static-only security scan from the command line without creating a test run",
+      "requirement_ids": ["FR-117"]
+    },
+    {
+      "story_key": "BSB-37-PENDING-3",
+      "summary": "Run a full security scan from the command line without creating a test run",
+      "requirement_ids": ["FR-118"]
+    },
+    {
+      "story_key": "BSB-37-PENDING-4",
+      "summary": "Save a named suite whose entries name skill, skills branch, input branch, context, expectations, model profile and tier",
+      "requirement_ids": ["FR-119", "FR-120"]
+    },
+    {
+      "story_key": "BSB-37-PENDING-5",
+      "summary": "Run a saved suite and create one run per entry",
+      "requirement_ids": ["FR-121"]
+    },
+    {
+      "story_key": "BSB-37-PENDING-6",
+      "summary": "Schedule a saved suite for nightly execution and run it once per night",
+      "requirement_ids": ["FR-122"]
+    },
+    {
+      "story_key": "BSB-37-PENDING-7",
+      "summary": "Record each scheduled suite entry's result, including an entry that cannot start",
+      "requirement_ids": ["FR-123"]
+    }
+  ]
+}
