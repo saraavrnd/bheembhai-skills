@@ -1,0 +1,31 @@
+{
+  "epic_key": "BSB-34",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-34-PENDING-1",
+      "summary": "Record each run's token usage, cost and turn count from terminal execution telemetry, with zero, absent and invalid telemetry handled and no credential values stored",
+      "requirement_ids": ["NFR-015", "NFR-016", "NFR-017"]
+    },
+    {
+      "story_key": "BSB-34-PENDING-2",
+      "summary": "Show the recorded token usage and cost on the run report, distinguishing not-recorded from zero and enforcing project membership",
+      "requirement_ids": ["FR-159", "FR-160"]
+    },
+    {
+      "story_key": "BSB-34-PENDING-3",
+      "summary": "Register each run's trace with the installation's test-environment identity and record its trace identifier, tolerating disabled tracing and an unavailable trace store",
+      "requirement_ids": ["NFR-011"]
+    },
+    {
+      "story_key": "BSB-34-PENDING-4",
+      "summary": "Expire run transcripts, logs and results under the installation retention period (three months by default), keeping audit-critical run metadata and shared bundles",
+      "requirement_ids": ["NFR-013", "NFR-018"]
+    },
+    {
+      "story_key": "BSB-34-PENDING-5",
+      "summary": "Purge a run's transcripts, logs and results on project-owner request, with authorization, idempotence, an auditable result and a retryable failure",
+      "requirement_ids": ["NFR-014"]
+    }
+  ]
+}
