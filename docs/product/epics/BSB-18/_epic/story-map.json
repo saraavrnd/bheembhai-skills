@@ -4,17 +4,17 @@
   "stories": [
     {
       "story_key": "BSB-18-PENDING-1",
-      "summary": "Sign in with the platform's Cognito credentials through the builder's public /sign-in and /auth/callback routes, land on a builds page that shows the signed-in author and an empty build list, and own the /sign-in page's three-value error contract (sign_in_incomplete, session_required, session_expired) that BSB-18-PENDING-3's denials use, refusing non-members, incorrect passwords and unverifiable callbacks without a session or users row",
+      "summary": "Own the public GET /sign-in and GET /auth/callback entry points, exempt from BSB-18-PENDING-3's per-request middleware, that sign a current skill-builders member in with the platform's Cognito credentials through the authorization-code flow, establish the server-side sb_session contract consumed by PENDING-2 and PENDING-3, land the member on the minimal /builds page and the empty GET /api/builds list, and own the three-value /sign-in error contract (sign_in_incomplete, session_required, session_expired) and its exact messages that PENDING-3's denials use, refusing non-members, incorrect passwords and unverifiable callbacks without a session or users row",
       "requirement_ids": ["FR-002", "FR-138"]
     },
     {
       "story_key": "BSB-18-PENDING-2",
-      "summary": "Keep one stable builder account per Cognito subject, visible on the account page and reused on later sign-ins, in the builder's own users table, with no platform database client, connection or credential anywhere in the deployment",
+      "summary": "Keep exactly one builder account per Cognito subject in the builder's own users table (cognito_sub UNIQUE), created and reused on every successful sign-in by a current skill-builders member and shown on /account as the token email plus users.id, while the deployed image, its runtime and its startup carry no platform database client, connection or credential and refuse to start if one is configured",
       "requirement_ids": ["FR-005", "FR-142", "FR-165"]
     },
     {
       "story_key": "BSB-18-PENDING-3",
-      "summary": "Own the single per-request authorization middleware for protected authoring pages and APIs, with /sign-in and /auth/callback exempt as public routes, refusing anonymous and expired-session requests before any builder data is returned, sending pages to the sign-in entry point with BSB-18-PENDING-1's error codes and messages, and denying a member removed from the skill-builders group within one hour with JSON 401 and 403 for APIs",
+      "summary": "Own the single per-request authorization middleware for protected authoring pages and APIs, with GET /sign-in (including its ?error= render) and GET /auth/callback named as public exemptions owned by BSB-18-PENDING-1, refusing anonymous and expired-session requests before any builder data is returned, sending pages to BSB-18-PENDING-1's shared error codes and messages and APIs a JSON 401, and re-reading the cognito:groups claim on every request so a member removed from the skill-builders group is denied within one hour with a 403 and no builder data",
       "requirement_ids": ["FR-001", "FR-003", "FR-004", "FR-141", "NFR-002", "NFR-003"]
     }
   ]

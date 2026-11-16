@@ -186,6 +186,11 @@ Given a user signed in with a valid "sb_session" cookie whose verified ID token 
 When the user requests "/builds"
 Then the builder responds with HTTP 200 rendering "Your builds" and "You have no builds yet."
 
+Scenario: Public sign-in page is not gated by the middleware
+Given a browser that carries no "sb_session" cookie
+When it requests GET "/sign-in"
+Then the builder responds with HTTP 200 and does not respond with HTTP 302 to "/builds" or to "/sign-in?error=session_required"
+
 Scenario: Visitor without a session is sent to sign in
 Given a browser that carries no "sb_session" cookie
 When it requests the page "/builds"
@@ -235,7 +240,8 @@ and current skill-builders membership on protected authoring pages and APIs befo
 `GET /sign-in` (including its `?error=…` render) and `GET /auth/callback` are public entry points
 owned by BSB-18-PENDING-1 and are exempt from this middleware; every other page and API route is
 gated. The two stories are not two gates, and BSB-18-PENDING-1's sign-in is the only other auth
-path. Both denial contracts stated in the scenarios are this middleware's contract.
+path. "Public sign-in page is not gated by the middleware" is the executable proof of that
+exemption. Both denial contracts stated in the scenarios are this middleware's contract.
 
 The two page-denial redirects use the `/sign-in` error-query contract owned by BSB-18-PENDING-1
 rather than a vocabulary defined here: `session_required` and `session_expired` are two of the
