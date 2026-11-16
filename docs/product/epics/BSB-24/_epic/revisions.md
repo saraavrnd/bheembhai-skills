@@ -234,3 +234,79 @@ key or requirement mapping changed.
 
 **Next:** a person must answer Finding 4 / Open question 3 in the run hand-off; then run
 `sdlc-plan-stories-write` again to apply it and re-run `sdlc-plan-epic-review`.
+
+## Pass 3 — 2026-11-16 — `epic-review.md` (re-dispatched; no gate answers, so the one remaining open question stays open)
+
+**Report applied:** the same `docs/product/epics/BSB-24/_epic/epic-review.md` — verdict CHANGES
+REQUESTED, findings 1–8 and open questions 1–4. The run hand-off again carries no answers:
+`settled_decisions` reports `answered: 0`, `eligible: 0`, `shown: 0`, `gate_follows` is false,
+`reviewer_feedback` is empty and `upstream_handoff` is null. No open question was answered, so no
+conditional proposal was applied and `stories.md` and `story-map.json` are unchanged by this pass.
+
+**Target resolution:** the run item is `SkillBuilder`, the product title in `docs/product/PRD.md`,
+not a Jira issue; a read-only JQL search for a summary containing "SkillBuilder" returned no issues
+across the accessible projects. The run context's `ITEM` is epic **BSB-24** (*Run start & input
+selection*, FA-6, MVP). The Atlassian MCP tools were not exposed in this session, so the epic was
+fetched **read-only** through `GET /rest/api/3/issue/BSB-24`: type Epic, status To Do, labels
+`FA-6` and `MVP`, summary *Run start & input selection*, no acceptance-criteria field; its
+description, functional scope and covered-requirements list match the BSB-24 section of
+`docs/product/epics.md`. Nothing was written to Jira.
+
+**Re-checked in the current `stories.md`; nothing new to apply:**
+
+- **Finding 1 (option (a), applied in Pass 2)** still matches `BSB-22-PENDING-4` as revised:
+  BSB-22's `revisions.md` Passes 3 and 4 keep that story as the reusable `require_project_member`
+  guard, with the run-start route contract owned here. BSB-24-PENDING-1's guard bullet and the
+  preamble's cross-epic note agree.
+- **Finding 2 (applied in Pass 1)** — the four-stage validation order, every code in its stage and
+  the PENDING-5 precedence scenario are present in the preamble and in PENDING-2, -3, -4 and -5's
+  Notes.
+- **Finding 3 (option (a), applied in Pass 2)** — the `skills` options entry, the `skill_not_found`
+  error row, the branch-stage position and PENDING-2's missing-skill scenario are present.
+- **Finding 4 (answer-independent parts, applied in Passes 1–2)** — PENDING-2's form-submit and
+  branch/skill page scenarios, PENDING-3's workflow/step page scenario, PENDING-4's feedback and
+  handoff page scenario, PENDING-5's profile/tier page scenario, the `SKILL.md` preselection moved
+  to Out of scope, and the BSB-38 accessibility pointers are present.
+- **Finding 5 (option (b), applied in Pass 2)** still matches `BSB-26-PENDING-1`: BSB-26's
+  `revisions.md` Pass 3 resolves the default workflow and step at claim and its story records the
+  unresolvable-default `failed_infra` path. BSB-24 stores the author's input or `{}`.
+- **Findings 6, 7 and 8 (applied in Pass 1)** — the unknown-context-key row and scenario, the
+  unknown-top-level-field rule, the BSB-27 extension note and the stable profile-id dependency
+  remain present.
+
+**Still open — not applied, because the question has no answer in the run hand-off:**
+
+- **Finding 4 / Open question 3 (blocking).** When a project has no `github` integration or no
+  `ai_model` integration, should the options API and run-start page refuse with a 422 (as the start
+  route does) or return `200` with empty lists and an explanatory message? The report names no
+  recommended option, the hand-off supplies no answer, and no repository artifact settles it:
+  BSB-23 (which owns the integration schemas) has no stories, and the sibling revisions address
+  different questions. Either answer changes the options response or page contract (including
+  whether a new error code such as `model_profiles_not_configured` exists), so the project `8`
+  options/page scenario and the no-`ai_model` page behaviour remain unapplied.
+
+**Notes for the next review (not findings of this pass):**
+
+- Jira BSB-24's implementation guidance says workflow and step choices are populated "from the
+  platform's workflow definitions", while BSB-24-PENDING-3 and SK-001 §5.3 read them from the
+  chosen skills branch's `config/`. The PRD treats the published epic set as a downstream
+  traceability view generated from an earlier revision, so the ADR and the stories were left as
+  they are; the next review should confirm the `config/` source is authoritative.
+- Jira BSB-24's non-goals include "automatically choosing defaults that the author cannot see or
+  override". BSB-26-PENDING-1's claim-time default resolution (Finding 5, option (b)) is automatic;
+  the next review should confirm that the post-claim visibility in the run report satisfies that
+  non-goal. Nothing was changed, because the report names no such finding.
+- BSB-22's `revisions.md` Pass 4 records that BSB-24's run form needs the caller's projects and
+  that the project-list read endpoint is part of BSB-22's unanswered Open question 2. BSB-24's
+  stories name no project picker or project-list endpoint; this is not a finding of this report,
+  so it is recorded here only.
+- Size signal carried from Pass 2: `BSB-24-PENDING-2` has ten acceptance scenarios, above the
+  skill's ~7-scenario signal. A split along the API/page seam is worth considering once Finding 4
+  is answered.
+
+**Coverage:** unchanged. All 7 requirements mapped to BSB-24 (FR-037 and FR-145 to FR-150) are
+still covered by the same five stories, and no story claims a requirement outside the epic.
+`story-map.json` is unchanged.
+
+**Next:** a person must answer Finding 4 / Open question 3 in the run hand-off; then run
+`sdlc-plan-stories-write` again to apply it and re-run `sdlc-plan-epic-review`.
