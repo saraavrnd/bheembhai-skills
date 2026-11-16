@@ -278,3 +278,76 @@ The report asked only for the message change, so no scenario was added.
 **Next:** a person must answer Open questions 1(a), 1(b) and 3 in the run hand-off; then run
 `sdlc-plan-stories-write` again to apply the collision rule and the save-contract ownership, and
 re-run `sdlc-plan-epic-review`.
+
+## Pass 5 — 2026-11-16 — `epic-review.md` (re-dispatched review, no gate answers)
+
+**Report applied:** the same `docs/product/epics/BSB-20/_epic/epic-review.md` — verdict CHANGES
+REQUESTED, findings 1–7 and open questions 1–3. This run was re-dispatched with no answers at the
+gate: `settled_decisions` has zero eligible and zero answered entries, `reviewer_feedback` is empty
+and `upstream_handoff` is null.
+
+**Target resolution:** the run item is `SkillBuilder`. A read-only Jira search of project `BSB`
+returns only epics BSB-18 to BSB-38 and no issue whose summary contains "SkillBuilder", and the
+foreach item in the run context is epic **BSB-20**, so `SkillBuilder` is the product title in
+`docs/product/PRD.md` and the target is BSB-20. BSB-20 was fetched read-only from
+`GET https://saraavrnd.atlassian.net/rest/api/3/issue/BSB-20`: summary "Skill cloning & edit
+builds", status To Do, labels FA-2 and MVP, and a description, functional scope and
+covered-requirements list identical to `docs/product/epics.md`. The Atlassian MCP entry in
+`.mcp.json` is skipped by Claude Code because its `args` is a string rather than an array, so the
+equivalent read-only Jira REST call was used. No Jira issue was created or changed.
+
+**Applied in this pass (Finding 1 ownership-record part; the applicability part of Open question
+1(a) is recorded from SK-001 §1a):**
+
+- **`BSB-20-PENDING-1` Notes and Out of scope.** FR-016 is now recorded as owned by epic BSB-19
+  (its requirement home in `epic-map.json`), with SK-001 §1a applying it to clone builds as well as
+  create builds ("Both refuse a name that already exists on `main` or on another open build"). The
+  story still writes no collision scenario because BSB-19 has not fixed the rejection's status,
+  code and exact message; the Notes say the clone path asserts the same response once BSB-19 does.
+  The former "FR-016's scope for the clone kind is unresolved" wording is removed.
+- **`BSB-20-PENDING-2` Notes.** FR-016 is recorded as applying to create and clone builds only
+  (SK-001 §1a), so it does not cover the `edit` kind and this epic defines no edit-kind concurrency
+  rule. The live-branch case for a submitted, merged or abandoned build is pointed at Open
+  question 1(b) rather than 1(a).
+- **Coverage summary above the contract tables.** The FR-016 sentence now states the same
+  ownership and the 1(b) stale-branch caveat; the two name-rule response rows stay attributed to
+  BSB-19 (FR-015 and FR-017).
+- **Header provenance.** The `stories.md` header now records the read-only Jira REST fetch this run
+  used (`GET /rest/api/3/issue/BSB-20`) instead of claiming an MCP tool call that the skipped
+  `.mcp.json` entry could not provide. This changes no story content.
+- Findings 2–7 remain applied as recorded in Passes 1–2; this pass re-checked them against the
+  report and reverted nothing. No story statement, scenario, contract row or requirement mapping
+  changed.
+
+**Still open — not applied, because the question has no answer in the run hand-off:**
+
+- **Finding 1 / Open question 1(a), response-contract part (blocking).** The exact status, error
+  code and message for a clone collision under FR-016 are BSB-19's to define, and BSB-19 is not
+  decomposed yet. Without them the proposed `BSB-20-PENDING-1` collision scenario and its
+  contract-table row cannot be written as an executable test, so neither was added.
+- **Finding 1 / Open question 1(b) (blocking).** When `build/<skill>` already exists on origin for
+  a `merged` or `abandoned` build (or was left from outside the builder), or for a `submitted`
+  build whose branch is live, it is undecided whether a new clone or edit build is rejected with a
+  named error or the stale branch is reset, and whether BSB-20 or BSB-36 owns that. No scenario,
+  contract row or reset rule was invented.
+- **Finding 2 / Open question 3 (blocking, ownership part).** Who owns the save-path confinement
+  rule and the `PUT /api/builds/{id}/files/{path}` contract — BSB-21 for every build kind, or
+  BSB-20-PENDING-3 sequenced after BSB-21. The answer-independent kind-neutral wording and the
+  dependency note remain applied; option (a), which would replace `BSB-20-PENDING-3`'s exact
+  PUT/403 assertions with references to BSB-21's contract, was not chosen without the answer.
+
+**Coverage:** unchanged. All 7 requirements mapped to BSB-20 (FR-011 to FR-014, FR-124, FR-125,
+FR-126) are still covered by the same three stories, no requirement is claimed twice, and
+`story-map.json` maps each requirement to exactly the same story. The Notes and Out-of-scope
+edits change no story key, summary, scenario or requirement mapping, so `story-map.json` is
+unchanged.
+
+**Note for the next review (carried, not a new finding):** the only invalid-name fixture is
+`BugTriage`, which fails the lowercase rule; a fixture such as `sdlc-triage` (lowercase but missing
+the action segment) would exercise the FR-017 `sdlc-<area>-<action>` pattern the message states.
+The report asked only for the message change, so no scenario was added.
+
+**Next:** a person must answer Open questions 1(b) and 3 in the run hand-off (the applicability
+part of 1(a) is now recorded from SK-001 §1a, while its response contract waits on BSB-19's
+decomposition); then run `sdlc-plan-stories-write` again to apply the collision response and the
+save-contract ownership, and re-run `sdlc-plan-epic-review`.
