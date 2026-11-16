@@ -1,0 +1,31 @@
+{
+  "epic_key": "BSB-33",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-33-PENDING-1",
+      "summary": "Report identity: the skill, skills commit SHA, input and output branches and exact agent-image, step-kit and verifier versions on the run report, with not-recorded and access-denied states",
+      "requirement_ids": ["FR-094", "FR-095", "FR-096", "FR-097", "FR-157"]
+    },
+    {
+      "story_key": "BSB-33-PENDING-2",
+      "summary": "Report verdicts: the claimed verdict, the final verdict after verification and every L0/L1/L2 check result, including overturned, verification-not-run and unavailable-record states",
+      "requirement_ids": ["FR-098", "FR-099", "FR-158"]
+    },
+    {
+      "story_key": "BSB-33-PENDING-3",
+      "summary": "Report diff: capture the baseline-to-output-branch diff once after the run and render its files, counts and patches, pinned to the recorded head and showing empty or unavailable states",
+      "requirement_ids": ["FR-100"]
+    },
+    {
+      "story_key": "BSB-33-PENDING-4",
+      "summary": "Report Jira changes: capture the configured Jira project's before/after state, persist field-level changes with the run and render them, tolerating no integration or an unavailable tracker",
+      "requirement_ids": ["FR-140", "FR-101"]
+    },
+    {
+      "story_key": "BSB-33-PENDING-5",
+      "summary": "Report turns and trace: show the recorded turn count and, when tracing is enabled and a trace identifier exists, link to the run's trace",
+      "requirement_ids": ["FR-102", "FR-103"]
+    }
+  ]
+}
