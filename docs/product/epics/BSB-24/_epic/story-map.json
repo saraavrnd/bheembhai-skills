@@ -9,7 +9,7 @@
     },
     {
       "story_key": "BSB-24-PENDING-2",
-      "summary": "Choose the skills branch and input branch",
+      "summary": "Choose the skill, skills branch and input branch",
       "requirement_ids": ["FR-145", "FR-146"]
     },
     {

@@ -12,7 +12,10 @@ covered by at least one story and no story claims a requirement outside this epi
 The run labelled the target `SkillBuilder`, which is the product title in `docs/product/PRD.md`,
 not a Jira issue. The Atlassian project `bheembhai-skill-builder` contains only the epic issues
 BSB-18 to BSB-38; this run's item, from the workflow context, is epic **BSB-24**, fetched
-read-only through the Atlassian API (the Atlassian MCP server was not connected in this session),
+read-only in this pass through `GET /rest/api/3/issue/BSB-24` (the Atlassian MCP tools were not
+exposed in this session). Jira returns summary *Run start & input selection*, type Epic, status
+*To Do*, labels `FA-6` and `MVP`; an epic carries no acceptance-criteria field. Its description,
+functional scope and covered requirements match the BSB-24 section of `docs/product/epics.md`,
 and its seven requirements are the ones decomposed here. Nothing was written to Jira.
 
 ## Coverage summary
@@ -58,7 +61,7 @@ columns follow `docs/adr/SK-001-skill-builder.md` §5 and §9.
 | Sandbox repository | `saraavrnd/bheembhai-skill-fixtures`, from the project's `github` integration; its base branch is `main` |
 | Catalog branches offered | `build/sdlc-fix-bug-triage`, `main`, `test/ada/fix-reproduce`, `test/ada/fix-reproduce-2`, `test/grace/fix-reproduce`, each existing on `saraavrnd/bheembhai-skills` |
 | Sandbox branches offered | `fixtures/blocked-handoff`, `fixtures/empty-title`, `main`, `test/ada/run-7-output`, each existing on `saraavrnd/bheembhai-skill-fixtures` |
-| Skills present on the fixture branches | `sdlc-fix-bug-triage` exists at `skills/sdlc-fix-bug-triage/` on every catalog branch offered |
+| Skills present on the fixture branches | exactly one skill folder exists on every catalog branch offered: `sdlc-fix-bug-triage` at `skills/sdlc-fix-bug-triage/`; no other skill folder exists on those branches |
 | Workflow config on the fixture branches | `config/bug-fix.yaml` declares workflow `bug-fix` with steps `triage`, `reproduce`, `root-cause`, `implement`; `config/smoke.yaml` declares workflow `smoke` with step `triage` |
 | `github` integration (project 7) | row `id` = `6`, `project_id` = `7`, `kind` = `github`, `config` = `{"repo":"saraavrnd/bheembhai-skill-fixtures","base_branch":"main"}`, `secret_ref` = `skill-builder/7/github`, `mcp` = `null`, `verified_at` = `2026-11-14T09:02:00Z` |
 | `ai_model` integration (project 7) | row `id` = `7`, `project_id` = `7`, `kind` = `ai_model`, `config` = `{"profiles":[{"id":3,"name":"Anthropic test","vendor":"anthropic","base_url":"https://api.anthropic.test","tiers":{"high":"test-model-high","medium":"test-model-medium"}},{"id":4,"name":"Smoke","vendor":"anthropic","base_url":"https://api.anthropic.test","tiers":{"medium":"test-model-medium"}}]}`, `secret_ref` = `skill-builder/7/ai_model`, `mcp` = `null`, `verified_at` = `2026-11-14T09:03:00Z` |
@@ -94,6 +97,12 @@ The `runs` row a successful start returns and persists is exactly these columns:
 | `kind` | `run` |
 | `created_at` | the database clock, `2026-11-15T10:00:00Z` |
 
+At run start the `context` column records the author's input only: the request's `context`, or `{}`
+when it is omitted. Epic BSB-26-PENDING-1 later resolves a default workflow and step at claim from
+the pinned skills commit and writes the resolved values into the same column, preserving
+`reviewer_feedback` and `upstream_handoff`; a run whose default cannot be resolved ends
+`failed_infra`. This epic never stores a resolved context.
+
 The successful start response body is exactly:
 
 ```
@@ -108,7 +117,7 @@ in the order `workflow`, `step`, `reviewer_feedback`, `upstream_handoff`.
 
 | Field | Required | Type and rule |
 |-------|----------|---------------|
-| `skill` | yes | non-empty string after trimming leading and trailing ASCII spaces |
+| `skill` | yes | non-empty string after trimming leading and trailing ASCII spaces; must name a skill folder on the selected skills branch |
 | `skills_ref` | yes | non-empty string after trimming; must name a branch of `saraavrnd/bheembhai-skills` |
 | `input_branch` | yes | non-empty string after trimming; must name a branch of the project's sandbox repository |
 | `model_profile_id` | yes | JSON integer; must be the `id` of a profile in the project's `ai_model` integration |
@@ -125,13 +134,14 @@ refused, and only the fields above reach validation and the `runs` row.
 The options response for `GET .../runs/options?skills_ref=test/ada/fix-reproduce` is exactly:
 
 ```
-{"skills_branches":["build/sdlc-fix-bug-triage","main","test/ada/fix-reproduce","test/ada/fix-reproduce-2","test/grace/fix-reproduce"],"input_branches":["fixtures/blocked-handoff","fixtures/empty-title","main","test/ada/run-7-output"],"workflows":[{"name":"bug-fix","steps":["triage","reproduce","root-cause","implement"]},{"name":"smoke","steps":["triage"]}],"model_profiles":[{"id":3,"name":"Anthropic test","tiers":["high","medium"]},{"id":4,"name":"Smoke","tiers":["medium"]}]}
+{"skills_branches":["build/sdlc-fix-bug-triage","main","test/ada/fix-reproduce","test/ada/fix-reproduce-2","test/grace/fix-reproduce"],"skills":["sdlc-fix-bug-triage"],"input_branches":["fixtures/blocked-handoff","fixtures/empty-title","main","test/ada/run-7-output"],"workflows":[{"name":"bug-fix","steps":["triage","reproduce","root-cause","implement"]},{"name":"smoke","steps":["triage"]}],"model_profiles":[{"id":3,"name":"Anthropic test","tiers":["high","medium"]},{"id":4,"name":"Smoke","tiers":["medium"]}]}
 ```
 
-Branch names are ordered ascending by plain byte comparison; workflows are ordered by `name`;
-profiles are ordered by `id`; tier keys are ordered ascending by plain byte comparison. When
-`skills_ref` is absent from the query, `workflows` is `[]`. When it names no branch, `workflows` is
-`[]`; branch existence is enforced by the start API, not by the options API.
+Branch names and skill names are ordered ascending by plain byte comparison; workflows are ordered
+by `name`; profiles are ordered by `id`; tier keys are ordered ascending by plain byte comparison.
+When `skills_ref` is absent from the query, `skills` and `workflows` are `[]`. When it names no
+branch, `skills` and `workflows` are `[]`; branch existence and skill existence are enforced by the
+start API, not by the options API.
 
 **Validation order** on the start API is fixed: epic BSB-18's session gate (401
 `authentication_required`), then BSB-18's group gate (403 `not_a_member`), then project resolution
@@ -145,7 +155,8 @@ and only then the `runs` row.
   `reviewer_feedback_invalid`, `upstream_handoff_invalid`. An unknown top-level field is ignored
   and produces no error.
 - **Integration-and-branch stage**, in order: `source_control_not_configured`,
-  `skills_branch_not_found`, `input_branch_not_found`.
+  `skills_branch_not_found`, `skill_not_found` (the `skill` is not a folder on the resolved skills
+  branch), `input_branch_not_found`.
 - **Workflow stage**, in order: `workflow_not_found`, `step_not_found`.
 - **Model stage**, in order: `model_profile_not_found`, `model_tier_not_mapped`.
 
@@ -164,6 +175,7 @@ the FR-054/FR-055 start refusals.
 | `skill` is missing, empty, or whitespace only after trimming | 422 | `{"error":{"code":"skill_required","message":"A skill is required."}}` |
 | `skills_ref` is missing, empty, or whitespace only after trimming | 422 | `{"error":{"code":"skills_ref_required","message":"A skills branch is required."}}` |
 | `skills_ref` names no branch of `saraavrnd/bheembhai-skills` | 422 | `{"error":{"code":"skills_branch_not_found","message":"Skills branch 'test/ada/missing' does not exist."}}` |
+| `skill` names no skill folder on the selected skills branch | 422 | `{"error":{"code":"skill_not_found","message":"Skill 'sdlc-missing' does not exist on skills branch 'test/ada/fix-reproduce'."}}` |
 | `input_branch` is missing, empty, or whitespace only after trimming | 422 | `{"error":{"code":"input_branch_required","message":"An input branch is required."}}` |
 | `input_branch` names no branch of the project's sandbox repository | 422 | `{"error":{"code":"input_branch_not_found","message":"Input branch 'fixtures/missing' does not exist."}}` |
 | The project has no source-control (`github`) integration | 422 | `{"error":{"code":"source_control_not_configured","message":"Project 8 has no source-control integration."}}` |
@@ -183,22 +195,25 @@ the FR-054/FR-055 start refusals.
 | The caller is not a member of the project | 403 | `{"error":{"code":"project_membership_required","message":"You are not a member of this project."}}` |
 | The project id does not exist | 404 | `{"error":{"code":"project_not_found","message":"Project 999 does not exist."}}` |
 
-In every `skills_branch_not_found`, `input_branch_not_found`, `source_control_not_configured`,
-`workflow_not_found`, `model_profile_not_found` and `model_tier_not_mapped` body, the quoted or
+In every `skills_branch_not_found`, `skill_not_found`, `input_branch_not_found`,
+`source_control_not_configured`, `workflow_not_found`, `model_profile_not_found` and
+`model_tier_not_mapped` body, the quoted or
 numeric value is the value from the request or path. The 401 and 403 bodies of the BSB-18 gates are
 fixed by BSB-18 and are not restated here.
 
-**Cross-epic note — BSB-22's run-start fixture.** Epic BSB-22 owns the project and membership rules,
-and its BSB-22-PENDING-4 fixes `POST /api/projects/{project_id}/runs` as the shared run-start route
-with the request fields `skill`, `skills_ref` and `input_branch`. This epic owns the full contract
-of that route. BSB-22-PENDING-4's scenarios predate this epic: their run-start bodies omit
-`model_profile_id` and `tier`, and their fixture for project `7` has no `github` or `ai_model`
-integration. That story's Notes explicitly permit its shared fixture to be re-pointed in a revise
-pass. To keep BSB-22-PENDING-4 true, its run-start scenarios must use the `github` and `ai_model`
-rows above and add `"model_profile_id":3,"tier":"high"` to the Ada and Grace request bodies; its
-403 `project_membership_required`, 404 `project_not_found` and `runs`-row assertions do not change.
-This epic does not edit BSB-22's files. BSB-22-PENDING-5's jira-only integration fixture is a
-different scenario and is unchanged.
+**Cross-epic note — BSB-22's membership guard.** Epic BSB-22 owns the project and membership rules
+and delivers them as the reusable `require_project_member` guard in BSB-22-PENDING-4. That story
+asserts only the guard's decision — a project member is not refused by the membership check, and a
+non-member or a missing project is refused — together with the guard's `project_members` read; it
+does not assert this route's success status, request schema or `runs` columns.
+`POST /api/projects/{project_id}/runs` and its full request, response and `runs`-row contract are
+owned by this epic, and BSB-24-PENDING-1 asserts the 403
+`project_membership_required` and 404 `project_not_found` outcomes at this route by applying that
+guard. BSB-22-PENDING-4's request body is a placeholder fixture until this epic fixes the contract,
+so only that fixture is re-pointed in BSB-22's revise pass; the 403/404 bodies and the membership
+decision fixed there do not change. This epic does not edit BSB-22's files. BSB-22-PENDING-5
+delivers the separate `require_project_owner` guard for the integration-settings route and is
+unchanged by this epic.
 
 ## STORY: BSB-24-PENDING-1
 
@@ -276,9 +291,10 @@ And `SELECT count(*) FROM runs` returns `0`
 - FR-037
 
 ### Out of scope
-The project membership and ownership rules themselves (epic BSB-22); this story only applies BSB-22's
-membership decision at the run-start route. The choice and validation of branches
-(BSB-24-PENDING-2), workflow and step (BSB-24-PENDING-3), reviewer feedback and upstream handoff
+The project membership and ownership rules themselves (epic BSB-22); this story only applies
+BSB-22-PENDING-4's `require_project_member` guard at the run-start route. The choice and validation
+of branches (BSB-24-PENDING-2), workflow and step (BSB-24-PENDING-3), reviewer feedback and upstream
+handoff
 (BSB-24-PENDING-4), and model profile and tier (BSB-24-PENDING-5). Resolving the skills branch to a
 commit SHA, packaging the skill bundle and creating the run branch or baseline (epic BSB-25, FR-038
 to FR-043). Executing the skill, recording component versions and classifying the outcome (epic
@@ -291,10 +307,11 @@ Project and integration configuration (epics BSB-22 and BSB-23). The CLI (epic B
   project and its `project_members` rule (BSB-22-PENDING-1 to BSB-22-PENDING-3), and on epic BSB-23
   for the `github` and `ai_model` integrations (FR-029 to FR-036). The integration rows in the
   contract above are the minimum fixture this epic consumes; BSB-23 owns their full schemas.
-- **Shares the route with BSB-22-PENDING-4.** That story owns the membership decision and fixes
-  `POST /api/projects/{project_id}/runs`; this story owns the route's full request, response and
-  `runs`-row contract. The cross-epic note in the contract preamble records the small fixture
-  re-point BSB-22 needs.
+- **Cites BSB-22-PENDING-4's membership guard.** That story delivers the reusable
+  `require_project_member` guard and owns the membership decision; this story owns
+  `POST /api/projects/{project_id}/runs` and its full request, response and `runs`-row contract.
+  The 403/404 decision is BSB-22-PENDING-4's guard; this story asserts it at the route. The
+  cross-epic note in the contract preamble records the split.
 - The `runs` row is the durable evidence that a run was started. It is written in one transaction
   only after every validation in the contract preamble passes. `skills_commit_sha`, `run_branch`,
   `agent_image_digest`, `stepkit_version`, `verify_version`, `claimed_verdict`, `final_verdict`,
@@ -306,8 +323,9 @@ Project and integration configuration (epics BSB-22 and BSB-23). The CLI (epic B
   and the options route must be added to the set of authoring routes BSB-18's gate protects.
 - A non-member is refused before branch validation or any run row, bundle, branch or container
   work: the scenarios assert `SELECT count(*) FROM runs` = `0`.
-- `skill` is only checked for presence here. Whether that skill folder exists on the chosen skills
-  branch is resolved by epic BSB-25 when it packs the branch.
+- `skill` presence is checked here (the field stage). Whether that skill folder exists on the chosen
+  skills branch is BSB-24-PENDING-2's `skill_not_found` check, which happens before any `runs` row;
+  epic BSB-25 packages the skill at the resolved commit.
 - Epic BSB-27 extends this route: turn and spend cap request fields and `runs` columns (FR-050,
   FR-052; SK-001 §9 has no cap columns yet), and the FR-054/FR-055 refusals as stages before the
   `runs` row. "Exactly" in this contract means exactly as of this epic.
@@ -319,21 +337,22 @@ Project and integration configuration (epics BSB-22 and BSB-23). The CLI (epic B
 
 ## STORY: BSB-24-PENDING-2
 
-**Summary:** Choose the skills branch and input branch
+**Summary:** Choose the skill, skills branch and input branch
 **Epic:** BSB-24 · **Release:** MVP · **Estimate:** 3 · **Labels:** FA-6, MVP
 
 ### Story
-As a **skill author who is a project member**, I want **the run start to offer the skills branches of the catalog and the input branches of the project's sandbox**, so that **I can choose the exact starting state for the run and a branch that does not exist is refused before anything is queued**.
+As a **skill author who is a project member**, I want **the run start to offer the catalog's skills branches, the skills on the chosen branch, and the input branches of the project's sandbox**, so that **I can choose the exact skill and starting state for the run and a skill or branch that does not exist is refused before anything is queued**.
 
 ### Acceptance Criteria
 
-#### Scenario: Run-start page shows the branch choices
+#### Scenario: Run-start page shows the branch and skill choices
 Given project `7` exists with `owner_id` = `42`
 And `project_members` contains row `7 | 42 | owner`
 And the `integrations` table contains the three fixture rows, including the `github` row for project `7`
 And the catalog branch and sandbox branch fixtures exist as listed in the contract
+And the catalog branch `test/ada/fix-reproduce` contains `skills/sdlc-fix-bug-triage/` as listed in the contract
 And Ada has a valid member session with local `users.id` = `42`
-When Ada sends `GET https://builder.skillbuilder.internal/projects/7/runs/new` carrying that `sb_session` cookie
+When Ada sends `GET https://builder.skillbuilder.internal/projects/7/runs/new?skills_ref=test/ada/fix-reproduce` carrying that `sb_session` cookie
 Then the builder responds with HTTP status 200
 And the `Content-Type` response header is `text/html; charset=utf-8`
 And the response body contains the exact text `build/sdlc-fix-bug-triage`
@@ -342,6 +361,8 @@ And the response body contains the exact text `test/ada/fix-reproduce-2`
 And the response body contains the exact text `test/grace/fix-reproduce`
 And the response body contains the exact text `fixtures/blocked-handoff`
 And the response body contains the exact text `fixtures/empty-title`
+And the response body contains the exact text `name="skill"`
+And the response body contains the exact text `value="sdlc-fix-bug-triage"`
 
 #### Scenario: Submitting the run-start form creates the run through the start API
 Given project `7` exists with `owner_id` = `42`
@@ -356,7 +377,7 @@ And the builder responds with HTTP status 201
 And the response body is exactly `{"id":1,"project_id":7,"user_id":42,"skill":"sdlc-fix-bug-triage","skills_ref":"test/ada/fix-reproduce","input_branch":"main","context":{},"model_profile_id":3,"tier":"high","state":"queued","kind":"run","created_at":"2026-11-15T10:00:00Z"}`
 And `SELECT count(*) FROM runs` returns `1`
 
-#### Scenario: Options API lists the skills branches and input branches
+#### Scenario: Options API lists the skills, skills branches and input branches
 Given project `7` exists with `owner_id` = `42`
 And `project_members` contains row `7 | 42 | owner`
 And the `integrations` table contains the three fixture rows, including the `github` row for project `7`
@@ -366,6 +387,7 @@ When Ada sends `GET https://builder.skillbuilder.internal/api/projects/7/runs/op
 Then the builder responds with HTTP status 200
 And the `Content-Type` response header is `application/json`
 And the JSON response body's `skills_branches` value is exactly `["build/sdlc-fix-bug-triage","main","test/ada/fix-reproduce","test/ada/fix-reproduce-2","test/grace/fix-reproduce"]`
+And the JSON response body's `skills` value is exactly `["sdlc-fix-bug-triage"]`
 And the JSON response body's `input_branches` value is exactly `["fixtures/blocked-handoff","fixtures/empty-title","main","test/ada/run-7-output"]`
 
 #### Scenario: The chosen skills branch and input branch are recorded on the run
@@ -405,6 +427,19 @@ When Ada sends `POST https://builder.skillbuilder.internal/api/projects/7/runs` 
 Then the builder responds with HTTP status 422
 And the `Content-Type` response header is `application/json`
 And the response body is exactly `{"error":{"code":"skills_branch_not_found","message":"Skills branch 'test/ada/missing' does not exist."}}`
+And `SELECT count(*) FROM runs` returns `0`
+
+#### Scenario: A skill that does not exist on the chosen skills branch is refused
+Given project `7` exists with `owner_id` = `42`
+And `project_members` contains row `7 | 42 | owner`
+And the `integrations` table contains the three fixture rows for project `7`
+And the catalog branch `test/ada/fix-reproduce` contains exactly one skill folder, `skills/sdlc-fix-bug-triage/`
+And `SELECT count(*) FROM runs` returns `0`
+And Ada has a valid member session with local `users.id` = `42`
+When Ada sends `POST https://builder.skillbuilder.internal/api/projects/7/runs` with `Content-Type: application/json` and body exactly `{"skill":"sdlc-missing","skills_ref":"test/ada/fix-reproduce","input_branch":"main","model_profile_id":3,"tier":"high"}`
+Then the builder responds with HTTP status 422
+And the `Content-Type` response header is `application/json`
+And the response body is exactly `{"error":{"code":"skill_not_found","message":"Skill 'sdlc-missing' does not exist on skills branch 'test/ada/fix-reproduce'."}}`
 And `SELECT count(*) FROM runs` returns `0`
 
 #### Scenario: An empty input branch is refused
@@ -451,12 +486,11 @@ And `SELECT count(*) FROM runs` returns `0`
 ### Out of scope
 Creating, deleting, protecting or pushing to branches; the `github` integration's settings,
 credentials and verification (epic BSB-23). Resolving the chosen skills branch to a commit SHA,
-creating the run branch and recording the baseline (epic BSB-25, FR-038 to FR-043). Validating that
-the chosen skill folder exists on the chosen branch (epic BSB-25). Workflow and step choice
-(BSB-24-PENDING-3), reviewer feedback and upstream handoff (BSB-24-PENDING-4), and model profile and
-tier choice (BSB-24-PENDING-5). Listing branches of any repository other than the catalog and the
-project's sandbox repository. Accessibility of the branch controls on the run-start page (epic
-BSB-38, FR-130 to FR-137 and NFR-012).
+creating the run branch and recording the baseline (epic BSB-25, FR-038 to FR-043). Workflow and
+step choice (BSB-24-PENDING-3), reviewer feedback and upstream handoff (BSB-24-PENDING-4), and
+model profile and tier choice (BSB-24-PENDING-5). Listing branches or skills of any repository
+other than the catalog and the project's sandbox repository. Accessibility of the branch and skill
+controls on the run-start page (epic BSB-38, FR-130 to FR-137 and NFR-012).
 
 ### Notes / dependencies
 - Depends on BSB-24-PENDING-1 for the run-start route and the `runs` row, and on epic BSB-23 for the
@@ -468,11 +502,14 @@ BSB-38, FR-130 to FR-137 and NFR-012).
 - The options API and the run-start page apply the same BSB-18 session and group gates and the same
   BSB-22 project resolution and membership check as the start route. A non-member gets the BSB-22
   403 `project_membership_required` body and sees no branch data.
-- The options API's `workflows` value is `[]` when `skills_ref` is absent or names no branch; the
-  start route, not the options API, refuses a branch that does not exist.
-- `source_control_not_configured` comes before both branch lookups: a project with no `github`
-  integration is refused before either `skills_branch_not_found` or `input_branch_not_found` could
-  be returned.
+- The options API's `skills` and `workflows` values are `[]` when `skills_ref` is absent or names
+  no branch; the start route, not the options API, refuses a branch that does not exist.
+- `source_control_not_configured` comes before both branch lookups and the skill lookup: a project
+  with no `github` integration is refused before `skills_branch_not_found`, `skill_not_found` or
+  `input_branch_not_found` could be returned.
+- The options API's `skills` list and the start API's `skill_not_found` come from the same read of
+  the selected skills branch. `skill_not_found` is returned only after `skills_branch_not_found` (a
+  skill cannot be resolved on a branch that does not exist) and before `input_branch_not_found`.
 - An empty or whitespace-only branch value is a required-field failure (`skills_ref_required` or
   `input_branch_required`), not a not-found failure. A non-empty value that names no branch is
   `skills_branch_not_found` or `input_branch_not_found`. Both happen before a `runs` row is written.
@@ -610,8 +647,9 @@ And `SELECT count(*) FROM runs` returns `1`
 
 ### Out of scope
 Defining or validating the workflow config schema; the `config/` files are supplied with the skills
-branch and the platform owns their format. Resolving the default workflow when the author omits the
-context, and rendering the chosen context into `BB_CONTEXT` (epic BSB-26). Executing a workflow,
+branch and the platform owns their format. Resolving the default workflow and step when the author
+omits the context, and rendering the chosen context into `BB_CONTEXT` (epic BSB-26,
+BSB-26-PENDING-1). Executing a workflow,
 gates or routing (an explicit product non-goal). Branch choice and validation (BSB-24-PENDING-2),
 reviewer feedback and upstream handoff (BSB-24-PENDING-4), and model profile and tier choice
 (BSB-24-PENDING-5). Accessibility of the workflow and step controls on the run-start page (epic
@@ -628,8 +666,13 @@ BSB-38, FR-130 to FR-137 and NFR-012).
   be supplied together; a supplied `workflow` without `step` is `step_required`, and a supplied
   `step` without `workflow` is `workflow_required`. Any other key is `context_invalid` with the
   message naming that key.
-- Context is optional, as in ADR §5: when it is omitted the run row's `context` is `{}` and the
-  default workflow resolution is left to epic BSB-26. This story records only an explicit choice.
+- Context is optional, as in ADR §5. When it is omitted this story stores `{}`; epic
+  BSB-26-PENDING-1 resolves the default workflow and step at claim from the pinned skills commit
+  (SK-001 §5.3: a workflow in the branch's `config/` that uses the skill) and writes the resolved
+  values into `runs.context`, preserving `reviewer_feedback` and `upstream_handoff`. No workflow, or
+  more than one, declaring the skill is BSB-26's `failed_infra`. This story records only an explicit
+  choice, so at run start `runs.context` is the author's input, not a resolved context; epics
+  BSB-33 and BSB-35 read the column after claim, when BSB-26 has resolved it.
 - `step_required`, `workflow_required` and `context_invalid` (including an unknown context key) are
   field-stage checks; `workflow_not_found` and `step_not_found` happen after branch validation.
   All of them happen before any `runs` row is written; the scenarios assert
@@ -755,7 +798,8 @@ And `SELECT count(*) FROM runs` returns `0`
 
 ### Out of scope
 The internal schema and meaning of `upstream_handoff` and `reviewer_feedback`; the platform step kit
-owns them. Rendering these values into `BB_CONTEXT` (epic BSB-26). Gate routing, send-back handling
+owns them. Rendering these values into `BB_CONTEXT` (epic BSB-26, BSB-26-PENDING-1). Gate routing,
+send-back handling
 or BLOCK hand-off behaviour (an explicit product non-goal for this epic). Workflow and step choice
 (BSB-24-PENDING-3), branch choice (BSB-24-PENDING-2), and model profile and tier choice
 (BSB-24-PENDING-5). Persisting feedback or a handoff outside the run row, or editing either after
@@ -776,6 +820,11 @@ BSB-38, FR-130 to FR-137 and NFR-012).
   testing a send-back or a BLOCK hand-off, and carrying both tests both paths in one run.
 - An omitted `context`, or a context with only `workflow` and `step`, carries neither key. No null
   placeholders are added, so the stored context is exactly the allowed keys the author supplied.
+- When `context` is omitted, epic BSB-26-PENDING-1 resolves the default workflow and step at claim
+  and writes them into `runs.context` without changing `reviewer_feedback` or `upstream_handoff`.
+  Before claim, this story stores exactly the allowed keys the author supplied; epics BSB-33 and
+  BSB-35 read the column after claim, when BSB-26-PENDING-1 has added the resolved workflow and
+  step.
 - The page's `upstream_handoff` control is a text area whose value is parsed as a JSON object before
   the start API is called; a value that is not a JSON object surfaces the same
   `upstream_handoff_invalid` 422 as the API scenario above.
@@ -944,7 +993,7 @@ controls on the run-start page (epic BSB-38, FR-130 to FR-137 and NFR-012).
   `model_profile_not_found` and `model_tier_not_mapped` happen after branch and workflow
   validation. All of them happen before any `runs` row is written; the scenarios assert
   `SELECT count(*) FROM runs` = `0`.
-- Making `model_profile_id` and `tier` required changes the shared run-start body
+- Making `model_profile_id` and `tier` required changes the placeholder run-start body
   BSB-22-PENDING-4 uses; see the cross-epic note in the contract preamble.
 - Turn and spend caps (epic BSB-27) are separate run-start inputs from the model profile and tier,
   so the options API may later carry cap defaults.
