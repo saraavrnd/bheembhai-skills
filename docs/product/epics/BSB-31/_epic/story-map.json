@@ -1,0 +1,41 @@
+{
+  "epic_key": "BSB-31",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-31-PENDING-1",
+      "summary": "Run a synchronous static scan of the exact packed run bundle before the run-start preflight returns, recording the scanner version and image digest, and executing the scanner container with no network access and a failed record when it writes no report",
+      "requirement_ids": ["FR-076", "NFR-005"]
+    },
+    {
+      "story_key": "BSB-31-PENDING-2",
+      "summary": "Reuse a completed static scan result only when stage, content bundle and scanner version match, scan again when content or scanner version changes, and never reuse a failed scan while reusing a completed failing result",
+      "requirement_ids": ["FR-077"]
+    },
+    {
+      "story_key": "BSB-31-PENDING-3",
+      "summary": "Compute one static verdict from the scanner report: pass only with a non-DO_NOT_INSTALL recommendation, no critical finding and complete coverage, recording each blocking reason and never letting an accepted finding clear a block",
+      "requirement_ids": ["FR-078", "FR-079", "FR-080", "FR-081"]
+    },
+    {
+      "story_key": "BSB-31-PENDING-4",
+      "summary": "Enforce a fixed ten-minute limit on the static scan, kill a container still running at the limit, and record the scan as failed with verdict fail and the reason Scan exceeded the ten-minute limit.",
+      "requirement_ids": ["FR-087", "FR-088"]
+    },
+    {
+      "story_key": "BSB-31-PENDING-5",
+      "summary": "Show the static scan report with verdict, score, recommendation, coverage, every finding's severity, rule, file and line, an in-progress state, and a not-found response for an unknown scan id",
+      "requirement_ids": ["FR-089", "FR-154", "FR-155"]
+    },
+    {
+      "story_key": "BSB-31-PENDING-6",
+      "summary": "Let a project member start a static-only scan from the skill page without creating a run, using BSB-22's shared project-membership check, refusing non-members, and resolving no integration or credential",
+      "requirement_ids": ["FR-092"]
+    },
+    {
+      "story_key": "BSB-31-PENDING-7",
+      "summary": "Prove the builder's static verdict equals the platform's for the same bundle and pinned scanner version across a fixed corpus, recording scanner version and image digest and failing loudly on a version mismatch or missing baseline",
+      "requirement_ids": ["FR-091"]
+    }
+  ]
+}
