@@ -1,0 +1,21 @@
+{
+  "epic_key": "BSB-35",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-35-PENDING-1",
+      "summary": "List every run of one skill in a project newest first with its skills commit SHA, input branch, final verdict and check results, including failed runs and an empty history",
+      "requirement_ids": ["FR-104"]
+    },
+    {
+      "story_key": "BSB-35-PENDING-2",
+      "summary": "Compare two runs of one skill side by side with their commit, input branch, verdict and check results, refusing incomplete, same-run, cross-skill, other-project and non-member requests",
+      "requirement_ids": ["FR-105"]
+    },
+    {
+      "story_key": "BSB-35-PENDING-3",
+      "summary": "Highlight checks that flipped between the two compared runs with their pass-to-fail or fail-to-pass direction, leaving unchanged, one-sided and unavailable checks unmarked",
+      "requirement_ids": ["FR-106"]
+    }
+  ]
+}
