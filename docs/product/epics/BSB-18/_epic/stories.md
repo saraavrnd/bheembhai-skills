@@ -57,6 +57,8 @@ Depends on the external Cognito User Pool and the externally managed "skill-buil
 (ADR SK-001 section 3). The session contract established here is the prerequisite for
 BSB-18-PENDING-3 and BSB-18-PENDING-4. The local "users" row insert is detailed in
 BSB-18-PENDING-2 and must not turn a rejected non-member sign-in into a successful one.
+Because this story rejects a non-member at sign-in, a signed-in non-member can only exist after
+BSB-18-PENDING-4's group-removal and token-refresh path; no scenario in this story creates one.
 Tests use the test-pool fixtures "ada@example.com" (password "Correct-Horse-Battery-1",
 group member) and "bob@example.com" (password "Correct-Horse-Battery-2", non-member); the
 builder's own sign-in page is served at "/sign-in" and renders the fixed failure message for
@@ -168,7 +170,7 @@ When the user requests "/builds", "/builds/17" and GET "/api/builds" in sequence
 Then each request returns HTTP 200 with the builder data for that route
 
 Scenario: Signed-in non-member is denied
-Given a signed-in user whose verified ID token does not carry "skill-builders" in the "cognito:groups" claim
+Given a user who signed in while a member, was later removed from the skill-builders group, and whose refreshed ID token omits "skill-builders" from the "cognito:groups" claim
 When the user requests "/builds"
 Then the builder responds with HTTP 403 and the message "Access is limited to members of the skill-builders group" and returns no build data
 
@@ -178,7 +180,7 @@ When the user is removed from the group at 10:15 and requests "/builds" at 11:15
 Then the builder responds with HTTP 403 and the message "Access is limited to members of the skill-builders group" and returns no build data
 
 Scenario: Token without a group claim is denied
-Given a signed-in user whose verified ID token has no "cognito:groups" claim
+Given a user who signed in while a member, was later removed from the skill-builders group, and whose refreshed ID token has no "cognito:groups" claim
 When the user requests GET "/api/builds"
 Then the builder responds with HTTP 403 and the message "Access is limited to members of the skill-builders group" and returns no build data
 
