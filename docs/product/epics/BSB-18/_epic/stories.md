@@ -10,7 +10,7 @@ NFR-002 and NFR-003. Decomposed into 5 stories below; coverage of all 11 require
 
 ## STORY: BSB-18-PENDING-1
 
-**Title:** Sign in with the platform identity provider
+**Title:** Sign in with platform credentials and reject invalid sign-ins
 **Epic:** BSB-18 · **Release:** MVP · **Estimate:** 5 · **Labels:** FA-1, MVP
 
 ### Story
@@ -19,24 +19,29 @@ As a **skill author**, I want **to sign in to the builder with the same platform
 ### Acceptance Criteria
 
 Scenario: Current group member signs in
-Given a Cognito user "ada@example.com" with a valid password whose verified ID token carries "skill-builders" in the "cognito:groups" claim
-When the user completes sign-in through the builder's Cognito app client at "/auth/callback"
+Given a Cognito user "ada@example.com" with the valid password "Correct-Horse-Battery-1" whose verified ID token carries "skill-builders" in the "cognito:groups" claim
+When the user submits "ada@example.com" and "Correct-Horse-Battery-1" on the sign-in page at "/sign-in"
 Then the builder sets a session cookie and responds with HTTP 302 to "/builds", and a follow-up GET "/builds" returns HTTP 200
 
 Scenario: Non-member sign-in is rejected
-Given a Cognito user with valid credentials whose verified ID token does not carry "skill-builders" in the "cognito:groups" claim
-When the user completes sign-in at "/auth/callback"
+Given a Cognito user "bob@example.com" with the valid password "Correct-Horse-Battery-2" whose verified ID token does not carry "skill-builders" in the "cognito:groups" claim
+When the user submits "bob@example.com" and "Correct-Horse-Battery-2" on the sign-in page at "/sign-in"
 Then the builder responds with HTTP 403 and the message "Access is limited to members of the skill-builders group", sets no session cookie, and creates no row in the "users" table
 
 Scenario: Invalid credentials are rejected
-Given a visitor who is not signed in to Cognito
-When they submit the username "ada@example.com" with an incorrect password on the platform sign-in page
-Then Cognito returns an authentication error, the builder sets no session cookie, and the sign-in page shows "Sign-in failed. Check your username and password."
+Given the Cognito user "ada@example.com" exists with the valid password "Correct-Horse-Battery-1"
+When a visitor submits "ada@example.com" with the incorrect password "wrong-password-123" on the sign-in page at "/sign-in"
+Then Cognito's token endpoint returns HTTP 400 with error code "NotAuthorizedException", the builder responds with HTTP 200 rendering "/sign-in" with the message "Sign-in failed. Check your username and password.", sets no session cookie, and creates no row in the "users" table
 
-Scenario: Callback without a verifiable token is rejected
-Given a request to "/auth/callback" with no "code" parameter, or with an ID token whose signature fails "CognitoProvider" verification
+Scenario: Callback without a code parameter is rejected
+Given a GET request to "/auth/callback" with no "code" query parameter
 When the builder handles the callback
-Then it responds with HTTP 401, sets no session cookie, and returns no builder data
+Then the builder responds with HTTP 401, sets no session cookie, and returns no builder data
+
+Scenario: Callback with an unverifiable token is rejected
+Given a GET request to "/auth/callback?code=test-code" that Cognito answers with an ID token whose signature fails "CognitoProvider" verification
+When the builder handles the callback
+Then the builder responds with HTTP 401, sets no session cookie, and returns no builder data
 
 ### Covered requirements (traceability)
 - FR-002
@@ -52,6 +57,10 @@ Depends on the external Cognito User Pool and the externally managed "skill-buil
 (ADR SK-001 section 3). The session contract established here is the prerequisite for
 BSB-18-PENDING-3 and BSB-18-PENDING-4. The local "users" row insert is detailed in
 BSB-18-PENDING-2 and must not turn a rejected non-member sign-in into a successful one.
+Tests use the test-pool fixtures "ada@example.com" (password "Correct-Horse-Battery-1",
+group member) and "bob@example.com" (password "Correct-Horse-Battery-2", non-member); the
+builder's own sign-in page is served at "/sign-in" and renders the fixed failure message for
+Cognito's "NotAuthorizedException".
 
 ---
 

@@ -4,7 +4,7 @@
   "stories": [
     {
       "story_key": "BSB-18-PENDING-1",
-      "summary": "Sign in with the platform identity provider",
+      "summary": "Sign in with platform credentials and reject invalid sign-ins",
       "requirement_ids": ["FR-002", "FR-138"]
     },
     {
