@@ -14,7 +14,8 @@ not a Jira issue. The Atlassian project `bheembhai-skill-builder` contains only 
 BSB-18 to BSB-38; this run's item, from the workflow context (`ITEM.id` = `BSB-35`), is epic
 **BSB-35**. The Atlassian MCP server exposed no tools in this session (the `.mcp.json` entry passes
 `args` as a string where Claude Code expects an array), so the epic was fetched read-only through
-the Atlassian REST API with the same credentials. Nothing was written to Jira.
+the Atlassian REST API using the `JIRA_EMAIL`/`JIRA_API_TOKEN` credentials in the environment.
+Nothing was written to Jira.
 
 ## Coverage summary
 
@@ -196,10 +197,10 @@ The compare page contains `<section id="compare-flips">`. When the lists are ava
 this order: every flip as `<id>: <from> → <to>`, then every new check as
 `<id>: new (<status>)`, then every removed check as `<id>: removed (<status>)`. When all three
 lists are empty it contains the exact text `No checks flipped`. When the lists are unavailable it
-contains `<p id="flips-unavailable">` with the exact text `Checks not retained for comparison (run
-<id> evidence was purged).` for `evidence_purged`, or `Checks not available for comparison (run
-<id> is not verified).` for `run_not_verified`; `<id>` is the run whose checks are missing (the
-lower id if both are).
+contains `<p id="flips-unavailable">` with the exact text
+`Checks not retained for comparison (run <id> evidence was purged).` for `evidence_purged`, or
+`Checks not available for comparison (run <id> is not verified).` for `run_not_verified`; `<id>` is
+the run whose checks are missing (the lower id if both are).
 
 ## Decisions recorded in this decomposition (confirm at review)
 
@@ -277,7 +278,7 @@ lower id if both are).
 
 ## STORY: BSB-35-PENDING-1
 
-**Summary:** List a skill's run history with commit SHA, input branch, verdict and checks
+**Summary:** List a skill's accessible runs with commit SHA, input branch, verdict and checks on page and API
 **Epic:** BSB-35 · **Release:** Later · **Estimate:** 5 · **Labels:** FA-14, Later
 
 ### Story
@@ -372,7 +373,7 @@ Reporting each run's full detail, messages, timing, diff, Jira changes or securi
 
 ## STORY: BSB-35-PENDING-2
 
-**Summary:** Compare two runs of a skill side by side
+**Summary:** Compare two runs of one skill side by side on page and API
 **Epic:** BSB-35 · **Release:** Later · **Estimate:** 5 · **Labels:** FA-14, Later
 
 ### Story
@@ -465,7 +466,7 @@ Highlighting or computing flipped checks (BSB-35-PENDING-3). Reporting each run'
 
 ## STORY: BSB-35-PENDING-3
 
-**Summary:** Highlight checks that flipped between two compared runs
+**Summary:** Highlight checks that flipped between two compared runs on page and API
 **Epic:** BSB-35 · **Release:** Later · **Estimate:** 3 · **Labels:** FA-14, Later
 
 ### Story

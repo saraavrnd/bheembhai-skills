@@ -4,17 +4,17 @@
   "stories": [
     {
       "story_key": "BSB-35-PENDING-1",
-      "summary": "List a skill's run history with commit SHA, input branch, verdict and checks",
+      "summary": "List a skill's accessible runs with commit SHA, input branch, verdict and checks on page and API",
       "requirement_ids": ["FR-104"]
     },
     {
       "story_key": "BSB-35-PENDING-2",
-      "summary": "Compare two runs of a skill side by side",
+      "summary": "Compare two runs of one skill side by side on page and API",
       "requirement_ids": ["FR-105"]
     },
     {
       "story_key": "BSB-35-PENDING-3",
-      "summary": "Highlight checks that flipped between two compared runs",
+      "summary": "Highlight checks that flipped between two compared runs on page and API",
       "requirement_ids": ["FR-106"]
     }
   ]
