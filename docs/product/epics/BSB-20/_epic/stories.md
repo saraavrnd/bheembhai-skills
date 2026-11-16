@@ -339,7 +339,7 @@ As a **skill author**, I want **every save in an edit build to change the existi
 ### Acceptance Criteria
 
 #### Scenario: Saving an edited file commits into the existing skill folder
-Given an edit build with `id` = `17` exists on branch `build/sdlc-fix-bug-triage` cut from `main` head `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b`
+Given an edit build with `id` = `17` in state `open` exists on branch `build/sdlc-fix-bug-triage` cut from `main` head `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b`
 And the edit build was opened by BSB-20-PENDING-2, whose open commit changes no files
 And no save has been made on that branch, so `git diff --name-only 4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b origin/build/sdlc-fix-bug-triage` is empty
 And the author has a valid member session with local `users.id` = `42`
@@ -353,7 +353,7 @@ And `git ls-tree --name-only origin/build/sdlc-fix-bug-triage skills/` equals `g
 And no path under `skills/` on `build/sdlc-fix-bug-triage` differs from `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b` except paths under `skills/sdlc-fix-bug-triage/`
 
 #### Scenario: Saving a new file creates it inside the existing skill folder
-Given an edit build with `id` = `17` exists on branch `build/sdlc-fix-bug-triage` cut from `main` head `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b`
+Given an edit build with `id` = `17` in state `open` exists on branch `build/sdlc-fix-bug-triage` cut from `main` head `4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b`
 And the edit build was opened by BSB-20-PENDING-2, whose open commit changes no files
 And no save has been made on that branch, so `git diff --name-only 4f3c2b1a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b origin/build/sdlc-fix-bug-triage` is empty
 And the author has a valid member session with local `users.id` = `42`
@@ -366,7 +366,7 @@ And `git show origin/build/sdlc-fix-bug-triage:skills/sdlc-fix-bug-triage/refere
 And `git ls-tree -r --name-only origin/build/sdlc-fix-bug-triage -- skills/sdlc-fix-bug-recheck` returns no paths
 
 #### Scenario: A save cannot create or change a second skill folder
-Given an edit build with `id` = `17` exists on branch `build/sdlc-fix-bug-triage`
+Given an edit build with `id` = `17` in state `open` exists on branch `build/sdlc-fix-bug-triage`
 And the branch head is captured as `git rev-parse origin/build/sdlc-fix-bug-triage`
 And the author has a valid member session with local `users.id` = `42`
 When the author sends the raw, unnormalised `PUT` path `https://builder.skillbuilder.internal/api/builds/17/files/../sdlc-fix-bug-recheck/SKILL.md` with `Content-Type: text/markdown` and body exactly `# Hijacked skill`

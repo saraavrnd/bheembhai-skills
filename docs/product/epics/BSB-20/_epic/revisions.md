@@ -95,3 +95,60 @@ or requirement mapping changed, and no Finding 2 answer moved FR-125's save-path
 segment) would exercise the pattern the message claims. The report asked only for the message
 change, so no scenario was added; flagging it so the next reviewer can decide whether to require
 it.
+
+## Pass 2 — 2026-11-16 — `epic-review.md` (re-dispatched review, no gate answers)
+
+**Report applied:** the same `docs/product/epics/BSB-20/_epic/epic-review.md` — verdict CHANGES
+REQUESTED, findings 1–7 and open questions 1–3. This run was re-dispatched from
+`sdlc-plan-epic-review` with no answers at the gate: `settled_decisions` contains zero
+eligible/answered entries. Target resolution: the run item is `SkillBuilder`; a read-only Jira
+query of project `BSB` returns only epics BSB-18 to BSB-38 and no issue whose summary contains
+"SkillBuilder", so `SkillBuilder` is the `docs/product/PRD.md` product title and the target
+remains epic **BSB-20**, fetched read-only (summary "Skill cloning & edit builds"; description
+and functional scope match `docs/product/epics.md`). No Jira issue was created or changed.
+
+**Applied in this pass:**
+
+- **Finding 1 (answer-independent part only).** `BSB-20-PENDING-3`: all three scenarios' Givens
+  now state that the fixture edit build is `id` = `17` in state `open`, matching the state that
+  `BSB-20-PENDING-2`'s successful open records. This does not choose an answer to Open question
+  1(a) or 1(b).
+- The rest of the report's answer-independent changes (Findings 2–7) were applied in Pass 1 and
+  remain in place; this pass re-checked them against the report. That covers the owner-split
+  contract table, the FR-017 name message, the kind-neutral `file_outside_skill_folder` message,
+  the single `skill` request field, the clone-source `skill_not_found` scenario and resolution
+  note, the "edit-open commit changes no files" AC, the save-confinement target-folder notes, and
+  the `BSB-20-PENDING-2` / `BSB-20-PENDING-3` / epic BSB-18 dependency notes. No story statement,
+  AC assertion or contract row was reverted.
+
+**Still open — not applied, because the question has no answer in the run hand-off:**
+
+- **Finding 1 / Open questions 1(a) and 1(b) (blocking).** Whether FR-016's "open build" means
+  `state` = `open` only or every state with a live branch (`open` and `submitted`); whether the
+  rule applies to clone and edit builds as well as create builds and which epic owns it; and
+  whether a stale `build/<skill>` branch from a `merged` or `abandoned` build is rejected or
+  reset. Applying either branch would invent an error status, code and message and move ownership
+  of the rule between epics. Consequently no collision rejection scenario was added to
+  `BSB-20-PENDING-1` or `BSB-20-PENDING-2`, no collision row was added to the shared contract
+  table, and the `BSB-20-PENDING-1` / `BSB-20-PENDING-2` Notes still point FR-016 at epic BSB-19
+  as the report asked to replace.
+- **Finding 2 / Open question 3 (blocking, ownership part).** Who owns the save-path confinement
+  rule and the `PUT /api/builds/{id}/files/{path}` contract — BSB-21 for every build kind, or
+  BSB-20-PENDING-3 sequenced after BSB-21. The answer-independent wording and dependency note
+  were applied; the option-(a) change that would replace `BSB-20-PENDING-3`'s exact PUT/403
+  assertions with references to BSB-21's contract was not, because choosing it without the answer
+  would be guessing.
+
+**Coverage:** unchanged. All 7 requirements mapped to BSB-20 (FR-011 to FR-014, FR-124, FR-125,
+FR-126) are still covered by the same three stories, no requirement is claimed twice, and
+`story-map.json` is unchanged: no story key or requirement mapping changed, and no Finding 2
+answer moved FR-125's save-path part to BSB-21.
+
+**Note for the next review (carried from Pass 1, not a new finding):** the only invalid-name
+fixture is `BugTriage`, which fails the lowercase rule; a fixture such as `sdlc-triage`
+(lowercase but missing the action segment) would exercise the FR-017 pattern the message now
+states. The report asked only for the message change, so no scenario was added.
+
+**Next:** a person must answer Open questions 1(a), 1(b) and 3 in the run hand-off; then run
+`sdlc-plan-stories-write` again to apply the collision rule and the save-contract ownership, and
+re-run `sdlc-plan-epic-review`.
