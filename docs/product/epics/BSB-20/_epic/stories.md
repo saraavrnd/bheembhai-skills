@@ -33,10 +33,10 @@ Given the clone of "sdlc-plan-training" to "sdlc-plan-workshop" whose source "SK
 When "skills/sdlc-plan-workshop/SKILL.md" at the clone commit is parsed
 Then its frontmatter has name "sdlc-plan-workshop", its description is "Plan a training session", its role is "author" and its model is "medium", and its body is byte-identical to the source body, so the frontmatter name value is the only difference from the source file
 
-Scenario: Clone passes the catalog's tier-1 check
+Scenario: Clone passes the catalog's static manifest checks
 Given the clone of "sdlc-plan-training" to "sdlc-plan-workshop" completed on branch "build/sdlc-plan-workshop" in the catalog repository
-When "python tools/check.py" is run at the root of the catalog repository checked out on branch "build/sdlc-plan-workshop"
-Then it exits with code 0 and its output contains no line naming "skills/sdlc-plan-workshop"
+When "python tools/check.py" runs at the root of the catalog repository checked out on branch "build/sdlc-plan-workshop" and the pinned "bheembhai-verify lint" runs on "skills/sdlc-plan-workshop/"
+Then "python tools/check.py" exits with code 0 with no output line naming "skills/sdlc-plan-workshop", and "bheembhai-verify lint" exits with code 0 with no error line naming "skills/sdlc-plan-workshop"
 
 Scenario: Cloning leaves the source skill and main unchanged
 Given the clone of "sdlc-plan-training" to "sdlc-plan-workshop" completed on branch "build/sdlc-plan-workshop" from base commit "4f1c2ab7d9e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3"
@@ -65,10 +65,11 @@ Then the builder responds with HTTP 422 and the message "Skill sdlc-plan-worksho
 - FR-014
 
 ### Out of scope
-Creating a fresh build and its scaffold (BSB-19-PENDING-1 and BSB-19-PENDING-2); the shared create
-form and `POST /builds` handler (BSB-19-PENDING-1); opening an edit build (BSB-20-PENDING-2);
-editing the cloned skill's files after creation (BSB-21); running, scanning, readiness and catalog
-submission (later epics); deleting or reusing `build/<skill-name>` after a build is merged or
+Creating a fresh build and its scaffold (BSB-19-PENDING-1 and BSB-19-PENDING-2); the base create
+route and create mode of the shared `GET /builds/new` + `POST /builds` handler (BSB-19-PENDING-1),
+to which this story adds the clone mode on that same handler and not a second handler; opening an
+edit build (BSB-20-PENDING-2); editing the cloned skill's files after creation (BSB-21); running,
+scanning, readiness and catalog submission (later epics); deleting or reusing `build/<skill-name>` after a build is merged or
 abandoned (BSB-36); renaming or deleting the source skill or the clone; preserving the source
 repository's git history (the clone copies content, not history); skill versioning.
 
@@ -85,8 +86,9 @@ The build is the durable system of record: a row in the builder's own "builds" t
 not a placeholder. The copy is a whole-folder copy at identical relative paths. SKILL.md and
 verify.yaml's `skill` value are the only files rewritten: SKILL.md's frontmatter `name` and
 verify.yaml's top-level `skill` both become "sdlc-plan-workshop", and every other byte of both
-files and every other copied file stays byte-identical, so `python tools/check.py` (tier-1) exits
-0 on the clone. The clone has no runtime link back to the source beyond the cloned_from column.
+files and every other copied file stays byte-identical, so both `python tools/check.py` and the
+pinned `bheembhai-verify lint` exit 0 on the clone. The clone has no runtime link back to the
+source beyond the cloned_from column.
 
 The clone form extends BSB-19-PENDING-1's single `GET /builds/new` + `POST /builds` handler and
 adds no second handler at that route. The build mode is carried as the `mode` query parameter on
@@ -145,10 +147,12 @@ Then the builder responds with HTTP 422 and the message "A skill name is require
 
 ### Out of scope
 Editing file content after the build exists (BSB-21, FR-127); creating a fresh or cloned build
-(BSB-19 and BSB-20-PENDING-1); the shared create form and `POST /builds` handler
-(BSB-19-PENDING-1); submitting the branch or merging it into the catalog; deleting or reusing
-`build/<skill-name>` after a build is merged or abandoned (BSB-36); renaming, deleting or
-recovering a skill or build; readiness tracking, runs and scans (BSB-21 onward).
+(BSB-19 and BSB-20-PENDING-1); the base create route and create mode of the shared
+`GET /builds/new` + `POST /builds` handler (BSB-19-PENDING-1), to which this story adds the edit
+mode on that same handler and not a second handler; submitting the branch or merging it into the
+catalog; deleting or reusing `build/<skill-name>` after a build is merged or abandoned (BSB-36);
+renaming, deleting or recovering a skill or build; readiness tracking, runs and scans (BSB-21
+onward).
 
 ### Notes / dependencies
 Depends on BSB-19-PENDING-1 for the build record, the branch name rule, base_sha and the single
