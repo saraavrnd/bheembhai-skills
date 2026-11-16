@@ -113,7 +113,7 @@ In each `skill_not_found` body the quoted name is the skill name that was reques
 
 ## STORY: BSB-20-PENDING-1
 
-**Summary:** Clone a catalog skill into a new build under a new name
+**Summary:** Clone an existing catalog skill into a new build under a validated new name
 **Epic:** BSB-20 · **Release:** MVP · **Estimate:** 5 · **Labels:** FA-2, MVP
 
 ### Story

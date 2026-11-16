@@ -4,7 +4,7 @@
   "stories": [
     {
       "story_key": "BSB-20-PENDING-1",
-      "summary": "Clone a catalog skill into a new build under a new name",
+      "summary": "Clone an existing catalog skill into a new build under a validated new name",
       "requirement_ids": ["FR-011", "FR-012", "FR-013", "FR-014"]
     },
     {
