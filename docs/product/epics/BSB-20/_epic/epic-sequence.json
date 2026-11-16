@@ -1,0 +1,22 @@
+{
+  "epic_key": "BSB-20",
+  "approved": false,
+  "stories": [
+    {
+      "story_key": "BSB-20-PENDING-1",
+      "title": "Clone a catalog skill into a new skill under a new name",
+      "wave": 1,
+      "depends_on": [],
+      "edge_sources": {}
+    },
+    {
+      "story_key": "BSB-20-PENDING-2",
+      "title": "Open an existing catalog skill in an edit build",
+      "wave": 1,
+      "depends_on": [],
+      "edge_sources": {}
+    }
+  ],
+  "cycles": [],
+  "retired_edges": []
+}
