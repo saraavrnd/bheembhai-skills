@@ -1,0 +1,21 @@
+{
+  "epic_key": "BSB-19",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-19-PENDING-1",
+      "summary": "Create a build and cut its branch from the head of main",
+      "requirement_ids": ["FR-006", "FR-007"]
+    },
+    {
+      "story_key": "BSB-19-PENDING-2",
+      "summary": "Scaffold a catalog-shaped skill folder on the build branch",
+      "requirement_ids": ["FR-008", "FR-009", "FR-010", "FR-143", "FR-144"]
+    },
+    {
+      "story_key": "BSB-19-PENDING-3",
+      "summary": "Reject invalid and duplicate skill names before creating a build",
+      "requirement_ids": ["FR-015", "FR-016", "FR-017"]
+    }
+  ]
+}
