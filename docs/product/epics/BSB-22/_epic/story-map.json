@@ -19,12 +19,12 @@
     },
     {
       "story_key": "BSB-22-PENDING-4",
-      "summary": "Project membership authorizes starting a run",
+      "summary": "Membership guard admits project members at every run start",
       "requirement_ids": ["FR-027"]
     },
     {
       "story_key": "BSB-22-PENDING-5",
-      "summary": "Only the project owner can change integrations",
+      "summary": "Owner guard admits only the project owner on integration changes",
       "requirement_ids": ["FR-028"]
     }
   ]

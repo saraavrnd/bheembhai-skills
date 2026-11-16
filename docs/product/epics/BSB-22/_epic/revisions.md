@@ -145,3 +145,96 @@ and the blocking findings depend on unanswered questions.
 alone. They need answers to open questions 1–3 first (and, for the settled narrowing and the
 scan-model scope, questions 4–5). Once the gate returns those answers, a single revise pass can
 apply the contract-preamble, new-story and PENDING-4/PENDING-5 changes together.
+
+## Pass 3 — 2026-11-16 — `epic-review.md` (re-dispatch with reviewer feedback active)
+
+**Report applied:** `docs/product/epics/BSB-22/_epic/epic-review.md` — verdict CHANGES REQUESTED,
+findings 1–8 and open questions 1–5. The run was re-dispatched after the verifier rejected Pass 2
+because `stories.md` and `story-map.json` were unchanged (`feedback_active: true`), so this pass
+applies the reviewer's own recommended option where the report states one and the change needs no
+new product decision, and records the remaining product questions as still open. The run hand-off
+still supplies no gate answers (`settled_decisions` reports `answered: 0`, `gate_follows` is false,
+`reviewer_feedback` is empty); the recommendations used below are the reviewer's, not invented
+here.
+
+**Target resolution:** the run item is `SkillBuilder`. The run context's `ITEM` is epic **BSB-22**
+(*Test projects & membership*, FA-4, MVP) and `epic-map.json` maps it to FR-023 to FR-028. A
+read-only Atlassian MCP call was not available in this session; the equivalent Jira REST search for
+`SkillBuilder` returned no issue and `GET /rest/api/3/issue/BSB-22` returned "Issue does not exist
+or you do not have permission to see it", so the epic's summary, description and functional scope
+were taken from the BSB-22 section of `docs/product/epics.md`. Nothing was written to Jira.
+
+**Applied in this pass:**
+
+- **Finding 1 (blocking) / Open question 1 — option (a), the reviewer's recommended option.**
+  BSB-22-PENDING-4 and BSB-22-PENDING-5 are re-scoped from "the route's success behaviour" to the
+  reusable guards `require_project_member` and `require_project_owner`:
+  - `stories.md` contract preamble: the run-start and integration routes are marked as consumer
+    epics' contracts whose bodies are placeholders; the "success statuses" row now limits this
+    epic's assertions to project create/member add/member delete and says the run-start 201 and
+    integration 200 are asserted by BSB-24 and BSB-23; the cross-epic paragraph replaces the
+    "cannot be accepted before" two-way dependency with "each story supplies the guard the consumer
+    epic cites".
+  - `BSB-22-PENDING-4`: title summary changed to *Membership guard admits project members at every
+    run start*; the two 201/`runs`-row success scenarios were replaced by one scenario that
+    asserts only admission (no 403 and no membership/owner refusal body) and the guard's
+    `project_members` read; the three refusal scenarios (non-member, removed member, missing
+    project) are kept unchanged. Out of scope now names BSB-24's route contract, success status and
+    `runs` columns. Notes now say the story *provides* the guard BSB-24's run-start story must cite.
+  - `BSB-22-PENDING-5`: title summary changed to *Owner guard admits only the project owner on
+    integration changes*; the 200/config-rewrite scenario was replaced by one scenario that
+    asserts only that the owner is not refused (no 403 and no owner/membership refusal body) and
+    the guard's role read; the three 403 scenarios are kept unchanged. Out of scope now names
+    BSB-23's success status and `integrations` row write. Notes now say the story *provides* the
+    guard BSB-23's integration-settings story must cite.
+  - `story-map.json`: the `PENDING-4` and `PENDING-5` summaries mirror the new story summaries.
+    Requirement mappings are unchanged.
+- **Finding 2 (blocking) — the answer-independent part.** The missing project/membership web
+  surfaces are now recorded as an explicit gap instead of being implied by story prose:
+  - `stories.md` preamble: a new paragraph states that the projects list/create page, the project
+    settings/members page, the add-member picker, the remove control and the `GET` read endpoints
+    they need are not delivered by any story in this epic and must be assigned by Finding 2 /
+    Open question 2.
+  - `BSB-22-PENDING-1`, `-2` and `-3` Out of scope name their respective missing page/read
+    endpoint and point at the open question.
+  - `BSB-22-PENDING-2` Notes: the sentence that implied this story builds the add form now says
+    this story delivers the membership **API** only and the picker is not delivered here.
+- **Header provenance.** `stories.md` now records the target resolution and the failed read-only
+  Jira lookup this run actually performed, replacing the previous claim that BSB-22 had been
+  fetched through the Atlassian API.
+
+**Re-checked, no further edit needed (applied in Pass 1):**
+
+- **Finding 5 (advisory)** — every run and scan start path applies the membership check, and the
+  check sits in the run/scan start service; PENDING-3's next-request note matches.
+- **Finding 6 (advisory)** — the fixed authorization order includes BSB-18's 403 `not_a_member`
+  and ends with 422 body validation; PENDING-2 carries the non-owner `{}` → 403 scenario.
+- **Finding 7 (advisory)** — the owner check reads `project_members.role = 'owner'` and
+  `projects.owner_id` must equal it; PENDING-1 carries the at-most-one-owner invariant.
+- **Finding 8 (advisory)** — PENDING-2 ↔ PENDING-5 dependency is declared in both directions.
+
+**Still open — not applied, because the question has no answer in the run hand-off:**
+
+- **Finding 2 / Open question 2 (blocking).** Whether the project and membership web pages and
+  their read endpoints are new BSB-22 stories or owned by a named other epic. The gap is now
+  recorded and the owning surface is named in each affected story's Out of scope, but no story was
+  added and no other epic was named, because either choice is the decision the question asks for.
+- **Finding 2 / Open question 3 (blocking).** Whether any project owner may see every local user's
+  name and email to pick a member, or the picker must take an exact email address. No privacy rule
+  was invented; the missing picker is part of the recorded gap.
+- **Finding 3 / Open question 4 (blocking).** Whether "has a local `users` row" is the accepted
+  add-time meaning of "a current skill-builder", with former group members neutralized by BSB-18's
+  per-request gate. PENDING-2's "Boundary for review" bullet is unchanged.
+- **Finding 4 / Open question 5 (blocking).** Whether the project's LLM-scan default model is an
+  integration setting covered by FR-028/PENDING-5's owner check or a separate setting owned by
+  BSB-23/BSB-32. PENDING-5's Out-of-scope entry and Notes are unchanged.
+
+**Coverage:** unchanged. All 6 requirements mapped to BSB-22 (FR-023 to FR-028) are still covered
+by the same five stories, and no story claims a requirement outside the epic. `story-map.json`
+changes only the two story summaries that mirror the re-scoped stories; no story key or
+requirement ID changed.
+
+**Note for the next review:** with Finding 1's option (a) applied, the two-way acceptance cycle
+with BSB-24/BSB-23 is gone. The remaining blockers are the four product questions above; once the
+gate answers them, a single pass can add or assign the web surfaces and settle the membership
+evidence and LLM-scan-model scope.

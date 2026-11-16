@@ -10,9 +10,11 @@ Epic BSB-22 covers 6 requirements. They decompose into the 5 stories below; ever
 covered by at least one story and no story claims a requirement outside this epic.
 
 The run labelled the target `SkillBuilder`, which is the product title in `docs/product/PRD.md`,
-not a Jira issue. The Atlassian project `bheembhai-skill-builder` contains only the epic issues
-BSB-18 to BSB-38; this run's item, from the workflow context, is epic **BSB-22**, fetched
-read-only through the Atlassian API, and its six requirements are the ones decomposed here.
+not a Jira issue. The run context's item is epic **BSB-22** (summary *Test projects & membership*,
+feature area FA-4, release MVP), and `epic-map.json` maps it to six requirements. The Atlassian MCP
+server was not connected in this session; the equivalent read-only Jira REST calls returned no
+accessible issue for `SkillBuilder` or `BSB-22`, so the epic's summary, description and functional
+scope were taken from the BSB-22 section of `docs/product/epics.md`. Nothing was written to Jira.
 
 ## Coverage summary
 
@@ -32,7 +34,10 @@ Every scenario below uses these exact values. The member session, the local `use
 `docs/adr/SK-001-skill-builder.md` §4 and the `projects` and `project_members` tables in §9. The
 run-start route used by FR-027 is owned by epic BSB-24, and the integration-settings route used by
 FR-028 is owned by epic BSB-23; this epic owns only the membership and owner checks applied to
-them.
+them. Those checks are delivered as reusable guards (`require_project_member` and
+`require_project_owner`). BSB-22-PENDING-4 and BSB-22-PENDING-5 assert only the guard decision —
+admit or refuse — and never the protected route's success status, request schema or row columns;
+the success-path assertions belong to BSB-24's and BSB-23's own stories, which cite the guard.
 
 | Item | Exact value |
 |------|-------------|
@@ -49,9 +54,9 @@ them.
 | `integrations` fixture | exactly one row: `id` = `5`, `project_id` = `7`, `kind` = `jira`, `config` = `{"site_url":"https://old.atlassian.net","project_key":"OLD"}`, `secret_ref` = `skill-builder/7/jira`, `mcp` = `null`, `verified_at` = `2026-11-14T09:00:00Z`; no row for project `8` |
 | Project API | `POST https://builder.skillbuilder.internal/api/projects` |
 | Membership API | `POST https://builder.skillbuilder.internal/api/projects/{project_id}/members` and `DELETE https://builder.skillbuilder.internal/api/projects/{project_id}/members/{user_id}` |
-| Run-start route (owned by BSB-24) | `POST https://builder.skillbuilder.internal/api/projects/{project_id}/runs` |
-| Integration route (owned by BSB-23) | `PUT https://builder.skillbuilder.internal/api/projects/{project_id}/integrations/{kind}` |
-| Success statuses | HTTP 201 for project create, member add and an admitted run start; HTTP 204 for member delete; HTTP 200 for an accepted integration change |
+| Run-start route (owned by BSB-24) | `POST https://builder.skillbuilder.internal/api/projects/{project_id}/runs`; the body used in the scenarios below is a placeholder until BSB-24 fixes the request contract |
+| Integration route (owned by BSB-23) | `PUT https://builder.skillbuilder.internal/api/projects/{project_id}/integrations/{kind}`; the body used in the scenarios below is a placeholder until BSB-23 fixes the request contract |
+| Success statuses (this epic) | HTTP 201 for project create and member add; HTTP 204 for member delete. The run-start 201 and the integration 200 are asserted by BSB-24's and BSB-23's own scenarios, which cite these guards. |
 | Error body shape | `{"error":{"code":"code_value","message":"message text"}}` |
 
 Project name rules are this epic's API contract: the submitted `name` is trimmed of leading and
@@ -99,12 +104,21 @@ the group can still have a row, but their own requests are refused by BSB-18's p
 membership check, so their project membership row grants no access at use time. This boundary is
 restated in BSB-22-PENDING-2's Notes for the next review.
 
-Two cross-epic boundaries are also flagged, not hidden: BSB-22-PENDING-4's run-start route is
-epic BSB-24's contract and BSB-22-PENDING-5's integration route is epic BSB-23's, so each story
-owns only the membership/owner decision applied at that route and both carry a "cannot be accepted
-before" dependency note. The dependency is two-way — BSB-24 and BSB-23 authorize their own actions
-against the membership and ownership rules this epic fixes — which is why the routes and the
-authorization order are pinned once, here, rather than left for each consumer to invent.
+Two cross-epic boundaries are also flagged, not hidden. BSB-22-PENDING-4 delivers the reusable
+`require_project_member` guard and BSB-22-PENDING-5 delivers `require_project_owner`; the run-start
+route is epic BSB-24's contract and the integration route is epic BSB-23's, so each story asserts
+only its guard's decision and carries an acceptance hook naming the consumer epic rather than a
+"cannot be accepted before" dependency. This removes the earlier two-way acceptance cycle: BSB-22
+can be accepted on the guards alone, and BSB-24's and BSB-23's stories apply them to their routes
+and cite them. Requirements FR-027 and FR-028 stay in this epic because the membership and owner
+decisions are what they state.
+
+The project and membership **web pages** — the projects list and create page, the project settings
+and members page, the add-member picker and the remove control — and the `GET` read endpoints they
+need are **not delivered by any story in this epic**. The scenarios below are the JSON API and
+guard contract only. Epic review Finding 2 / Open question 2 must assign those surfaces to a named
+story or epic; until then they are recorded as a gap here and in each story's Out of scope, not
+silently assumed.
 
 ---
 
@@ -188,7 +202,9 @@ And `SELECT count(*) FROM projects` returns `10`
 Renaming or deleting a project; project ownership transfer (an explicit non-goal); project skills and
 their contents; project integrations; managing members after creation (BSB-22-PENDING-2 and
 BSB-22-PENDING-3); user or group administration (the FA-1 gate owns admission, and the platform
-administrator owns the `skill-builders` group).
+administrator owns the `skill-builders` group); the projects list and create-project web page and
+any `GET` project read endpoint — no story in this epic delivers them, and epic-review Finding 2 /
+Open question 2 must assign them.
 
 ### Notes / dependencies
 - Depends on epic BSB-18 for the member session and for the local `users` rows `42`, `43` and `44`
@@ -302,13 +318,17 @@ And `SELECT count(*) FROM project_members WHERE project_id = 7` returns `2`
 ### Out of scope
 Creating or inviting a user who has never signed in; reading or administering the Cognito
 `skill-builders` group; per-project roles beyond `owner` and `member`; bulk add; adding a second
-owner or transferring ownership; changing a member's role; deleting a member (BSB-22-PENDING-3).
+owner or transferring ownership; changing a member's role; deleting a member (BSB-22-PENDING-3);
+the project settings/members web page, the add-member picker and the `GET
+/api/projects/{id}/members` read endpoint — no story in this epic delivers them, and epic-review
+Finding 2 / Open questions 2 and 3 must assign them.
 
 ### Notes / dependencies
 - Depends on BSB-22-PENDING-1 for the project record, its `projects.owner_id` and its owner
   `project_members` row, and on epic BSB-18 for the member session and the local `users` rows.
-- The add form lists the local `users` rows the FA-1 gate created and submits the chosen
-  `users.id`; the API request carries `user_id`. The builder never creates a `users` row here, so a
+- This story delivers the membership **API** only. The add-member form and the picker that would
+  list local `users` rows are not delivered by this epic (epic-review Finding 2 / Open questions 2
+  and 3). The API request carries `user_id`. The builder never creates a `users` row here, so a
   person who has never signed in cannot be added.
 - **Boundary for review:** the builder cannot read another person's current `skill-builders` group
   membership; it sees membership only on the requesting user's own token (BSB-18-PENDING-3). A
@@ -399,7 +419,9 @@ And `SELECT count(*) FROM project_members WHERE project_id = 7` returns `2`
 ### Out of scope
 Ownership transfer (an explicit non-goal) or any way to remove the owner; deleting the project;
 deleting or deactivating the `users` row; deleting or reassigning the removed member's builds and
-runs; a transfer flow; changing a member's role.
+runs; a transfer flow; changing a member's role; the project settings/members web page and the
+remove control — no story in this epic delivers them, and epic-review Finding 2 / Open question 2
+must assign them.
 
 ### Notes / dependencies
 - Depends on BSB-22-PENDING-1 for the project and its owner row, on BSB-22-PENDING-2 for the
@@ -423,34 +445,23 @@ runs; a transfer flow; changing a member's role.
 
 ## STORY: BSB-22-PENDING-4
 
-**Summary:** Project membership authorizes starting a run
+**Summary:** Membership guard admits project members at every run start
 **Epic:** BSB-22 · **Release:** MVP · **Estimate:** 3 · **Labels:** FA-4, MVP
 
 ### Story
-As a **skill author who is a project member**, I want **to start a run in that project**, so that **I can test my skill against the project's sandbox and test credentials, while people who are not members cannot**.
+As a **skill author who is a project member**, I want **the run-start path to admit me and refuse anyone outside the project**, so that **I can test my skill against the project's sandbox while non-members cannot start a run there**.
 
 ### Acceptance Criteria
 
-#### Scenario: The project owner, who is also a member, starts a run
-Given project `7` exists with `owner_id` = `42`
-And `project_members` contains row `7 | 42 | owner`
-And `SELECT count(*) FROM runs` returns `0`
-And Ada has a valid member session with local `users.id` = `42`
-When Ada sends `POST https://builder.skillbuilder.internal/api/projects/7/runs` with `Content-Type: application/json` and body exactly `{"skill":"sdlc-fix-bug-triage","skills_ref":"test/ada/fix-reproduce","input_branch":"main"}`
-Then the builder responds with HTTP status 201
-And the `Content-Type` response header is `application/json`
-And `SELECT project_id, user_id, skill, skills_ref, input_branch FROM runs WHERE id = 1` returns exactly `7 | 42 | sdlc-fix-bug-triage | test/ada/fix-reproduce | main`
-And `SELECT count(*) FROM runs` returns `1`
-
-#### Scenario: A plain member starts a run
+#### Scenario: A project member is admitted by the run-start membership guard
 Given project `7` exists with `owner_id` = `42`
 And Grace has `project_members` row `7 | 43 | member`
-And `SELECT count(*) FROM runs` returns `0`
 And Grace has a valid member session with local `users.id` = `43`
 When Grace sends `POST https://builder.skillbuilder.internal/api/projects/7/runs` with `Content-Type: application/json` and body exactly `{"skill":"sdlc-fix-bug-triage","skills_ref":"test/grace/fix-reproduce","input_branch":"main"}`
-Then the builder responds with HTTP status 201
-And `SELECT project_id, user_id, skill, skills_ref, input_branch FROM runs WHERE id = 1` returns exactly `7 | 43 | sdlc-fix-bug-triage | test/grace/fix-reproduce | main`
-And `SELECT count(*) FROM runs` returns `1`
+Then the builder does not respond with HTTP status `403`
+And the response body does not contain the string `project_membership_required`
+And the response body does not contain the string `project_owner_required`
+And the membership guard reads `SELECT role FROM project_members WHERE project_id = 7 AND user_id = 43`, which returns exactly `member`
 
 #### Scenario: A non-member cannot start a run
 Given project `7` exists with `owner_id` = `42`
@@ -488,23 +499,26 @@ And `SELECT count(*) FROM runs` returns `0`
 - FR-027
 
 ### Out of scope
-The run setup form and its other fields, skill packaging, run-branch preparation, run execution,
-guardrails, deadlines, re-runs and verdicts (epics BSB-24 to BSB-33); listing or reading runs;
-starting a static or LLM security scan (epics BSB-31 and BSB-32); project membership management
-itself (BSB-22-PENDING-2 and BSB-22-PENDING-3).
+The run-start route's request and response contract, its success status and the `runs` row
+columns (epic BSB-24, FR-037); the run setup form and its other fields, skill packaging,
+run-branch preparation, run execution, guardrails, deadlines, re-runs and verdicts (epics BSB-24
+to BSB-33); listing or reading runs; starting a static or LLM security scan (epics BSB-31 and
+BSB-32); project membership management itself (BSB-22-PENDING-2 and BSB-22-PENDING-3).
 
 ### Notes / dependencies
 - Depends on BSB-22-PENDING-1 for the project and its owner row, on BSB-22-PENDING-2 for member
   rows, on BSB-22-PENDING-3 for the removal the *removed member* scenario exercises, and on epic
   BSB-18 for the member session and local `users` rows.
-- **Cannot be accepted before epic BSB-24's run-start story (FR-037) is delivered.** BSB-24 owns
-  `POST /api/projects/{project_id}/runs`, the run request and response contract, and the `runs`
-  row's other columns. This story owns only the membership decision: it admits a caller who has a
-  `project_members` row for the path's `project_id` and refuses everyone else before a run row is
-  written. The minimal body above is the shared fixture; BSB-24 must accept the `skill`,
-  `skills_ref` and `input_branch` fields and create the `runs` row the scenarios assert. If
-  BSB-24's decomposition chooses a different route or field names, only the fixture is re-pointed
-  in a revise pass; the 403/404 bodies and the membership decision fixed here do not change.
+- **Provides the guard epic BSB-24's run-start story (FR-037) applies.** This story owns the
+  reusable `require_project_member` check: it reads the caller's `project_members` row for the
+  path's `project_id`, admits the request when the row exists, and refuses it before any run row,
+  bundle, branch or container work starts otherwise. BSB-24 owns `POST
+  /api/projects/{project_id}/runs`, the run request and response contract, and the `runs` row's
+  columns; its story must cite this guard and carry the admitted-path 201 and `runs` row
+  assertions. The body above is a placeholder fixture until BSB-24 fixes the request, so only the
+  fixture is re-pointed in a revise pass; the 403/404 bodies and the membership decision fixed here
+  do not change. The success response and the `runs` row an admitted request produces are asserted
+  by BSB-24's run-start story, not here.
 - Every path that starts a run or a scan for a project applies this same `project_members` check,
   including re-runs and output chaining (BSB-27, FR-056 and FR-057), scans (BSB-31 and BSB-32,
   FR-092 and FR-093) and the CLI (BSB-37, FR-116 to FR-118). The check therefore belongs in the
@@ -523,7 +537,7 @@ itself (BSB-22-PENDING-2 and BSB-22-PENDING-3).
 
 ## STORY: BSB-22-PENDING-5
 
-**Summary:** Only the project owner can change integrations
+**Summary:** Owner guard admits only the project owner on integration changes
 **Epic:** BSB-22 · **Release:** MVP · **Estimate:** 2 · **Labels:** FA-4, MVP
 
 ### Story
@@ -531,16 +545,16 @@ As a **skill author who owns a project**, I want **only me to be able to change 
 
 ### Acceptance Criteria
 
-#### Scenario: The owner changes the project's Jira integration
+#### Scenario: The project owner is admitted by the integration owner guard
 Given project `7` exists with `owner_id` = `42`
+And Ada has `project_members` row `7 | 42 | owner`
 And the `integrations` table contains exactly one row with `id` = `5`, `project_id` = `7`, `kind` = `jira`, `config` = `{"site_url":"https://old.atlassian.net","project_key":"OLD"}` and `secret_ref` = `skill-builder/7/jira`
 And Ada has a valid member session with local `users.id` = `42`
 When Ada sends `PUT https://builder.skillbuilder.internal/api/projects/7/integrations/jira` with `Content-Type: application/json` and body exactly `{"site_url":"https://test.atlassian.net","project_key":"TEST"}`
-Then the builder responds with HTTP status 200
-And the `Content-Type` response header is `application/json`
-And `SELECT config FROM integrations WHERE project_id = 7 AND kind = 'jira'` equals the JSON value `{"site_url":"https://test.atlassian.net","project_key":"TEST"}`
-And `SELECT secret_ref FROM integrations WHERE project_id = 7 AND kind = 'jira'` returns exactly `skill-builder/7/jira`
-And `SELECT count(*) FROM integrations WHERE project_id = 7 AND kind = 'jira'` returns `1`
+Then the builder does not respond with HTTP status `403`
+And the response body does not contain the string `project_owner_required`
+And the response body does not contain the string `project_membership_required`
+And the owner guard reads `SELECT role FROM project_members WHERE project_id = 7 AND user_id = 42`, which returns exactly `owner`
 
 #### Scenario: A member who is not the owner cannot change an integration
 Given project `7` exists with `owner_id` = `42`
@@ -578,24 +592,26 @@ And `SELECT count(*) FROM integrations WHERE project_id = 8` returns `0`
 - FR-028
 
 ### Out of scope
-The integration settings schema, validation and response body (epic BSB-23, FR-029 to FR-036);
-credential values, their verification and the external secret store; MCP server definitions;
-creating, deleting or reading integrations; the LLM-scan model setting (FR-163); the GitHub
-repository-overlap warning.
+The integration settings schema, validation, success status and response body, and the
+`integrations` row write (epic BSB-23, FR-029 to FR-036); credential values, their verification and
+the external secret store; MCP server definitions; creating, deleting or reading integrations; the
+LLM-scan model setting (FR-163); the GitHub repository-overlap warning.
 
 ### Notes / dependencies
 - Depends on BSB-22-PENDING-1 for the project and its owner row, on BSB-22-PENDING-2 for the
   `member` role rows its non-owner scenario exercises, and on epic BSB-18 for the member session
   and local `users` rows.
-- **Cannot be accepted before epic BSB-23's integration-settings story (FR-029 to FR-036) is
-  delivered.** BSB-23 owns the `PUT /api/projects/{project_id}/integrations/{kind}` request and
-  response contract and the `integrations` row. This story owns only the owner check: an
-  authenticated caller who is a member but not the owner gets 403 `project_owner_required`, and a
-  caller who is not a member gets 403 `project_membership_required`. The minimal body above is the
-  shared fixture; BSB-23 must accept the `site_url` and `project_key` non-secret settings at that
-  route (`docs/adr/SK-001-skill-builder.md` §4). If BSB-23's decomposition chooses a different
-  route or field names, only the fixture is re-pointed in a revise pass; the 403 bodies and the
-  owner/membership decision fixed here do not change.
+- **Provides the guard epic BSB-23's integration-settings story (FR-029 to FR-036) applies.**
+  This story owns the reusable `require_project_owner` check: an authenticated caller who is a
+  member but not the owner gets 403 `project_owner_required`, and a caller who is not a member gets
+  403 `project_membership_required`. BSB-23 owns the `PUT
+  /api/projects/{project_id}/integrations/{kind}` request and response contract, its success
+  status, and the `integrations` row; its story must cite this guard and carry the admitted-path
+  200 and rewritten-config assertions. The body above is a placeholder fixture until BSB-23 fixes
+  the request, so only the fixture is re-pointed in a revise pass; the 403 bodies and the
+  owner/membership decision fixed here do not change. The success response and the rewritten
+  `integrations` row an admitted request produces are asserted by BSB-23's integration-settings
+  story, not here.
 - FR-028 applies to every integration kind BSB-23 adds (`jira`, `github`, `ai_model`); this story
   uses the `jira` kind as the representative fixture.
 - Ownership is per project. Ada owning project `7` grants her nothing on project `8`, and Grace
