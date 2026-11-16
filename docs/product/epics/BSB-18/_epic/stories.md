@@ -237,12 +237,13 @@ owned by BSB-18-PENDING-1 and are exempt from this middleware; every other page 
 gated. The two stories are not two gates, and BSB-18-PENDING-1's sign-in is the only other auth
 path. Both denial contracts stated in the scenarios are this middleware's contract.
 
-The two page-denial redirects use the `/sign-in` error-query contract defined in BSB-18-PENDING-1
-rather than defining their messages locally: `session_required` renders "Sign in to use the
-builder." and `session_expired` renders "Your session expired. Sign in again."; the redirect
-targets, codes and messages in the scenarios above are that contract. BSB-37's command-line entry
-point must authenticate against this same gate rather than re-implement it; command-line
-authentication is out of scope here.
+The two page-denial redirects use the `/sign-in` error-query contract owned by BSB-18-PENDING-1
+rather than a vocabulary defined here: `session_required` and `session_expired` are two of the
+three error values that page specifies, and the redirect targets, codes and messages in the
+scenarios above are exactly that contract. This story neither adds nor renames an error value, so
+there is one code-to-message mapping, owned by the story that owns `/sign-in`. BSB-37's
+command-line entry point must authenticate against this same gate rather than re-implement it;
+command-line authentication is out of scope here.
 
 The check reads the verified token's "cognito:groups" claim on every request and must not memoise a
 positive membership result past the token's lifetime; the one-hour boundary is the acceptance limit,

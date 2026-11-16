@@ -320,3 +320,73 @@ None. The report's Open questions section lists no question, and every proposed 
 - **Stale PRD wording, no story change.** The report's informational note that `PRD.md` section 8
   says FR-165 "will be mapped on the next epics pass" while `epic-map.json` already maps it remains
   true; it is a PRD wording issue outside this skill's write scope, recorded here only.
+
+## Pass 6 — 2026-11-16 (epic-review re-routed here; same report re-verified)
+
+**Report applied:** `docs/product/epics/BSB-18/_epic/epic-review.md`, verdict CHANGES REQUESTED
+(2026-11-16), handed back from the `sdlc-plan-epic-review` step whose upstream commit is
+`48d6abb`. The report's **Open questions** section is empty, so every proposed change is
+applicable without guessing a product decision.
+
+**Work item `SkillBuilder-2`.** The Atlassian MCP tools were not exposed in this session, so the
+configured site was queried read-only over its REST API (`GET /rest/api/3/issue/SkillBuilder-2`);
+it returned HTTP 404 "Issue does not exist or you do not have permission to see it." The epic
+`BSB-18` was also read read-only from the same site (HTTP 200, summary "Access, identity & the
+authoring gate"), consistent with this run's `ITEM.id`. This matches `docs/product/PRD.md`
+section 8; no Jira write was attempted and no issue-content assumption is made from the lookup.
+
+**State found.** Pass 5 had already landed the substance of all three findings. This pass
+re-checked each proposed change against the current text rather than assuming the prior pass was
+complete, found Findings 1 and 3 applied in full, and found Finding 2's PENDING-3 half applied
+only in name: its Notes said the messages were used "rather than defining their messages locally"
+and then defined both messages locally, leaving two copies of the code-to-message mapping. That
+contradiction is fixed here.
+
+### Findings applied (verified against the current text)
+
+- **Finding 1 — public-route exemption for the shared middleware (Blocking; BSB-18-PENDING-1 and
+  BSB-18-PENDING-3).** Verified present:
+  - **BSB-18-PENDING-3**, Notes: the middleware is scoped to "protected authoring pages and APIs"
+    before any handler runs; `GET /sign-in` (including its `?error=…` render) and
+    `GET /auth/callback` are named as public entry points owned by BSB-18-PENDING-1 and exempt
+    from it; every other page and API route is gated.
+  - **BSB-18-PENDING-1**, Notes: states the reciprocal half — `/sign-in` and `/auth/callback` are
+    public routes not gated by PENDING-3's middleware, and every other page and API route is.
+- **Finding 2 — shared `/sign-in` error-query vocabulary (Blocking; BSB-18-PENDING-1 and
+  BSB-18-PENDING-3).** Verified on the PENDING-1 side and completed on the PENDING-3 side:
+  - **BSB-18-PENDING-1**, Notes: defines exactly three error values and their messages —
+    `sign_in_incomplete` → "Sign-in was not completed. Try again."; `session_required` → "Sign in
+    to use the builder."; `session_expired` → "Your session expired. Sign in again." — and states
+    that PENDING-3's redirects use them. Verified unchanged.
+  - **BSB-18-PENDING-3**, Notes: now references PENDING-1's contract without restating the
+    messages, and states that this story neither adds nor renames an error value. Its two
+    redirect targets, error codes and the messages asserted in its scenarios are unchanged.
+- **Finding 3 — successful-sign-in fixtures carry membership (Advisory; BSB-18-PENDING-2).**
+  Verified present: the Givens of "First sign-in creates my builder account and shows it on my
+  account page" and "Signing in again shows the same account", and the setup of "Serving a
+  signed-in session opens no platform database connection", all state that the Cognito user is a
+  current member of the `skill-builders` group whose verified ID token carries `skill-builders`
+  in the `cognito:groups` claim.
+
+### Coverage re-check
+
+Every requirement mapped to BSB-18 in `epic-map.json` — FR-001, FR-002, FR-003, FR-004, FR-005,
+FR-138, FR-141, FR-142, FR-165, NFR-002, NFR-003 — still appears in exactly one story's
+`requirement_ids`, and no story claims a requirement outside the epic. 3 stories, 11 requirements,
+no gap and no foreign requirement. `story-map.json` is unchanged by this pass (the report proposes
+no mapping change and coverage is unchanged).
+
+### Still open
+
+None. The report's Open questions section lists no question, and every proposed change is now
+applied as written.
+
+### Notes for the next review
+
+- **Scenario count, titles, keys, estimates and requirement IDs are unchanged.** This pass edits
+  only the second Notes paragraph of PENDING-3; no acceptance criterion changed. Findings 1 and 3
+  and the PENDING-1 half of Finding 2 were already present from Pass 5 and were re-verified, not
+  rewritten.
+- **Stale PRD wording, no story change.** `PRD.md` section 8 still says FR-165 "will be mapped on
+  the next epics pass" although `epic-map.json` already maps it and PENDING-2 covers it; that is a
+  PRD wording issue outside this skill's write scope.
