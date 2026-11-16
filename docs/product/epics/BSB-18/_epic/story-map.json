@@ -4,28 +4,18 @@
   "stories": [
     {
       "story_key": "BSB-18-PENDING-1",
-      "summary": "Sign in at /sign-in with the platform's Cognito credentials, admit current skill-builders members, and reject non-members, invalid passwords and unverifiable callbacks without a session or users row",
+      "summary": "Sign in with the platform's Cognito credentials through the builder's /sign-in and /auth/callback flow and land on a builds page that shows the signed-in author and an empty build list, refusing non-members, incorrect passwords and unverifiable callbacks without a session or users row",
       "requirement_ids": ["FR-002", "FR-138"]
     },
     {
       "story_key": "BSB-18-PENDING-2",
-      "summary": "Create exactly one local users row per Cognito subject on first successful sign-in and reuse that same row on later and concurrent sign-ins",
-      "requirement_ids": ["FR-005", "FR-142"]
+      "summary": "Keep one stable builder account per Cognito subject, visible on the account page and reused on later sign-ins, in the builder's own users table, with no platform database client, connection or credential anywhere in the deployment",
+      "requirement_ids": ["FR-005", "FR-142", "FR-165"]
     },
     {
       "story_key": "BSB-18-PENDING-3",
-      "summary": "Refuse anonymous and expired-session page and API requests before any builder data is returned, with a 302 to the sign-in entry point for pages and a JSON 401 for APIs",
-      "requirement_ids": ["FR-001", "NFR-002"]
-    },
-    {
-      "story_key": "BSB-18-PENDING-4",
-      "summary": "Re-check the skill-builders group claim on every authoring request and deny removed or claim-less users with 403 and no builder data within one hour of group removal",
-      "requirement_ids": ["FR-003", "FR-004", "FR-141", "NFR-003"]
-    },
-    {
-      "story_key": "BSB-18-PENDING-5",
-      "summary": "Keep the builder isolated from the platform database: no client library, connection string or credential, no connection while serving requests, and startup refusal when platform database configuration is supplied",
-      "requirement_ids": ["FR-165"]
+      "summary": "Refuse anonymous and expired-session page and API requests before any builder data is returned, and deny a member removed from the skill-builders group within one hour, sending pages to the sign-in entry point with a message and returning JSON 401 and 403 for APIs",
+      "requirement_ids": ["FR-001", "FR-003", "FR-004", "FR-141", "NFR-002", "NFR-003"]
     }
   ]
 }

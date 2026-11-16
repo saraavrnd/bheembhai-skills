@@ -165,3 +165,90 @@ answer, so none was applied:
   matches `docs/product/PRD.md` section 8; no Jira write was attempted.
 - **Story set unchanged.** Still 5 stories with the same keys, titles and requirement coverage;
   only the five `story_map` summaries changed in this pass.
+
+## Pass 4 — 2026-11-16 (automated verifier feedback, third attempt)
+
+**Report applied:** the step hand-off feedback for this retry of run
+`2e351540-8ae0-4117-90a3-bef1c4e28bd3`. Two failing checks were reported, and both are fixed by
+this pass:
+
+1. `artifact 'stories_md': artifact did not change since precheck` — the previous pass changed only
+   `story-map.json`, so `stories.md` was byte-identical while reviewer feedback was active.
+   `stories.md` is substantively rewritten here.
+2. Judge criterion `vertical_slices` — BSB-18-PENDING-2 was a persistence-layer enabler whose
+   criteria asserted only database state, BSB-18-PENDING-5 was a pure negative/architectural
+   constraint, and BSB-18-PENDING-3 and -4 were two halves of the shared authorization middleware.
+   The five-story layer decomposition is replaced by three vertical slices.
+
+### Findings applied
+
+- **`stories_md` — re-sliced from 5 technical layers to 3 user journeys.** Each story now starts and
+  ends with something a person sees or does in the builder, and the persistence, gate and isolation
+  work rides inside a journey instead of being its deliverable:
+  - **BSB-18-PENDING-1 — "Sign in with my platform account and open my builds page."** Absorbs the
+    old PENDING-1 and owns the minimal authenticated "/builds" page and GET "/api/builds" (empty
+    list). Its scenarios are a member's full sign-in journey (ends on "Your builds" showing the
+    signed-in email and the empty state), a non-member refusal, an incorrect-password refusal, three
+    callback-failure refusals, and a signed-in API read. Covers FR-002 and FR-138.
+  - **BSB-18-PENDING-2 — "Keep my builder account stable in the builder's own database."** Absorbs
+    the old PENDING-2 and folds in the old PENDING-5 (FR-165), which no longer exists as a
+    standalone technical story. The `users` row now has a user-visible face — the account page
+    ("Builder account 42") that the same person sees across sign-ins — and the negative isolation
+    requirement is an acceptance criterion inside that journey rather than a story of its own.
+    Covers FR-005, FR-142 and FR-165.
+  - **BSB-18-PENDING-3 — "Only current members can open builder pages."** Merges the old PENDING-3
+    and PENDING-4 into one member-facing gate journey: a current member opens "Your builds"; an
+    anonymous visitor and an expired session are redirected to the sign-in page with a message; a
+    removed member sees the 403 message within the hour. One story owns the single shared middleware,
+    so there is no longer an unowned cross-story layer. Covers FR-001, FR-003, FR-004, FR-141,
+    NFR-002 and NFR-003.
+- **`story-map.json` — rewritten to the three slices.** Old keys BSB-18-PENDING-4 and
+  BSB-18-PENDING-5 are removed; the draft keys were never published to Jira, so no real key is
+  orphaned. Every old requirement mapping is preserved: FR-001/-003/-004/-141/NFR-002/NFR-003 to
+  PENDING-3, FR-005/-142/-165 to PENDING-2, FR-002/-138 to PENDING-1. 3 stories, 11 requirements,
+  no gap and no foreign requirement. Summaries state the user-visible behaviour each story proves.
+
+### Epic-review findings settled by the re-slice
+
+`docs/product/epics/BSB-18/_epic/epic-review.md` (CHANGES REQUESTED) left Findings 1–3, 5 and 6 open
+because no gate answers were supplied in the hand-off. The vertical-slice requirement cannot be met
+while those questions are left as a technical-layer split, so this pass adopts the first option in
+that report's own **Proposed changes** for each, and records the decision here for the next reviewer:
+
+1. **Finding 1 — route ownership.** BSB-18 owns the minimal authenticated "/builds" page and GET
+   "/api/builds" (empty list) as its representative protected surfaces; BSB-19/BSB-21 replace their
+   content. "/builds/17" is removed from every scenario — no story depends on a build record BSB-18
+   does not create.
+2. **Finding 2 — middleware ownership.** BSB-18-PENDING-1 defines the session contract (cookie
+   name/attributes, server-side session id, stored ID/refresh tokens, 60-minute lifetime and refresh
+   rule); BSB-18-PENDING-3 owns creating the single shared per-request authorization middleware and
+   its denial contract. There is one owner each, and PENDING-3 is no longer described as depending on
+   an unowned prerequisite.
+3. **Finding 3 — sign-in flow.** The authorization-code flow with Cognito's hosted sign-in page is
+   canonical: "/sign-in" redirects to the app client's Cognito sign-in URL and Cognito returns to the
+   builder's own callback "/auth/callback". The builder never handles a password. Both stories use
+   the same entry point.
+4. **Finding 4 — administrator persona.** Every story now opens "As a **skill author**"; the
+   "platform administrator" persona is no longer used for builder behaviour.
+5. **Finding 5 — signed-in non-member reachability.** PENDING-3's removal scenarios produce the
+   non-member session through the epic's own sign-in-then-group-removal-then-refresh path, and
+   PENDING-1 states that no other path creates one.
+6. **Finding 6 — CLI scope.** PENDING-3's Notes name BSB-37 as the command-line owner that must
+   authenticate against this gate; command-line authentication is in its Out of scope.
+
+No gate answer document accompanied the retry. These are the review's own proposed options, applied
+so the artifact can be reviewed again; if the reviewer rejects a choice, that finding reopens.
+
+### Still open
+
+None that blocks this pass. Findings 1–3 are answered by the recorded decisions above pending the
+reviewer's confirmation.
+
+### Notes for the next review
+
+- **Work item `SkillBuilder-2`.** The Atlassian MCP tools are not exposed in this session, so the
+  configured site was queried read-only over its REST API (`GET /rest/api/3/issue/SkillBuilder-2`)
+  and returned HTTP 404 "Issue does not exist or you do not have permission to see it." This matches
+  `docs/product/PRD.md` section 8; no Jira write was attempted and no issue content is assumed.
+- **Story set reduced, coverage unchanged.** 3 stories now replace the previous 5; all 11
+  requirements mapped to BSB-18 by `epic-map.json` remain covered exactly once.
