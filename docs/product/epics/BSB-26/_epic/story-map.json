@@ -1,0 +1,26 @@
+{
+  "epic_key": "BSB-26",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-26-PENDING-1",
+      "summary": "Launch a prepared run once in the platform's own pinned runtime, pull the skill bundle through its presigned URL and record the exact agent image digest, step kit version and verifier version on the run, refusing an image pinned by tag and failing a run whose bundle cannot be read",
+      "requirement_ids": ["FR-044", "FR-048", "FR-151"]
+    },
+    {
+      "story_key": "BSB-26-PENDING-2",
+      "summary": "Show a running run's latest progress and log tail on its run page and refresh them while the skill executes, with an empty state before the agent writes anything, a membership-checked 404 for another project's run, an unavailable state for an unreadable log, and injected credential values redacted",
+      "requirement_ids": ["FR-045", "FR-046"]
+    },
+    {
+      "story_key": "BSB-26-PENDING-3",
+      "summary": "Classify a run's execution outcome with the platform engine's result rules from the container exit and bb_step_result.json, keeping the agent's claimed verdict, recording completed, BLOCK, failed_execution, failed_incomplete or failed_infra, leaving final_verdict to verification, and publishing output only to the run branch",
+      "requirement_ids": ["FR-047"]
+    },
+    {
+      "story_key": "BSB-26-PENDING-4",
+      "summary": "Resolve the run's model profile and tier to the concrete model at launch, inject the model, vendor key and base URL into the agent environment, record the profile id, tier and model on the run and show them on the run page, without rewriting the record when the profile is edited later or falling back when it is gone",
+      "requirement_ids": ["FR-049", "FR-152"]
+    }
+  ]
+}
