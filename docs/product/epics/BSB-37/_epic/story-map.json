@@ -1,0 +1,41 @@
+{
+  "epic_key": "BSB-37",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-37-PENDING-1",
+      "summary": "Start a test run from the command line with a Cognito token from SKILL_BUILDER_TOKEN, the same membership and run-start contract as the web form, and one runs row",
+      "requirement_ids": ["FR-116"]
+    },
+    {
+      "story_key": "BSB-37-PENDING-2",
+      "summary": "Run the static-only security scan from the command line, record one static scans row with its findings, create no run, and exit 0 on PASS, 1 on FAIL or 2 when refused",
+      "requirement_ids": ["FR-117"]
+    },
+    {
+      "story_key": "BSB-37-PENDING-3",
+      "summary": "Run the full static-then-LLM security scan from the command line using the project's configured LLM-scan model, record both scans rows, create no run, and exit as the scan's contract requires",
+      "requirement_ids": ["FR-118"]
+    },
+    {
+      "story_key": "BSB-37-PENDING-4",
+      "summary": "Save a named project-scoped suite whose entries name a skill, input branch, context and expected final verdict, stored in suites.definition with the run's model profile and tier",
+      "requirement_ids": ["FR-119", "FR-120"]
+    },
+    {
+      "story_key": "BSB-37-PENDING-5",
+      "summary": "Run a saved suite, create one run per resolvable entry, grade each entry against its expected final verdict, and record matched, mismatched, skipped and failed outcomes on the suite run",
+      "requirement_ids": ["FR-121"]
+    },
+    {
+      "story_key": "BSB-37-PENDING-6",
+      "summary": "Enable or disable a saved suite's nightly schedule and have the 02:00 UTC tick create exactly one scheduled suite run per enabled suite per date",
+      "requirement_ids": ["FR-122"]
+    },
+    {
+      "story_key": "BSB-37-PENDING-7",
+      "summary": "Record every scheduled suite run's date, state, counts and each entry's outcome with its reason, including skipped entries and failed executions, and keep the results across dates",
+      "requirement_ids": ["FR-123"]
+    }
+  ]
+}
