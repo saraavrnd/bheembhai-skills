@@ -1,0 +1,36 @@
+{
+  "epic_key": "BSB-23",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-23-PENDING-1",
+      "summary": "Owner-only Jira integration configuration storing the site URL and exactly one of a project key or a template project, the API token only as a secret-store reference, the non-secret MCP definition and a not-verified state, rejecting ambiguous targets, non-https sites, blank tokens and credential-bearing MCP definitions",
+      "requirement_ids": ["FR-029", "FR-128"]
+    },
+    {
+      "story_key": "BSB-23-PENDING-2",
+      "summary": "Owner-only source-control configuration storing the sandbox repository, base branch and non-secret MCP definition with one integration per project, warning when the repository is also used by a platform project and reporting an unavailable inventory without blocking, and rejecting malformed repositories, blank base branches, credential-bearing MCP definitions and a second source-control integration",
+      "requirement_ids": ["FR-030", "FR-129", "FR-035"]
+    },
+    {
+      "story_key": "BSB-23-PENDING-3",
+      "summary": "Owner-only AI model profiles with a name, vendor, https base URL and a complete high/medium/low tier-to-model mapping, allowing several profiles per project and rejecting missing or unknown tiers, non-https base URLs and duplicate profile names",
+      "requirement_ids": ["FR-031"]
+    },
+    {
+      "story_key": "BSB-23-PENDING-4",
+      "summary": "Owner-triggered verification per provider (Jira myself, source-control user, model models) that resolves the secret at call time, stamps verified_at on success, leaves the last successful time unchanged on a rejected credential or missing secret, refuses non-owners, and clears the time when an edit changes the target",
+      "requirement_ids": ["FR-033", "FR-034"]
+    },
+    {
+      "story_key": "BSB-23-PENDING-5",
+      "summary": "Credential secrecy across the durable record, settings page, application log and run results: only an opaque secret reference in the integrations row, a masked interface, redacted logs and results, and an edit that preserves the stored secret",
+      "requirement_ids": ["FR-032", "FR-036", "NFR-004"]
+    },
+    {
+      "story_key": "BSB-23-PENDING-6",
+      "summary": "Test-purpose attestation required on every integration save, recorded as test_only in config with unconfirmed saves refused, and unconfirmed integrations excluded from the run-purpose integration list that run start consumes",
+      "requirement_ids": ["NFR-006"]
+    }
+  ]
+}
