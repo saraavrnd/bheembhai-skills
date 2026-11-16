@@ -43,6 +43,11 @@ Given the clone of "sdlc-plan-training" to "sdlc-plan-workshop" completed on bra
 When the catalog repository is queried after the clone
 Then "main" still points at commit "4f1c2ab7d9e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3" and has no path "skills/sdlc-plan-workshop/", and on branch "build/sdlc-plan-workshop" the set of files under "skills/sdlc-plan-training/" is identical to that commit and each of those files is byte-identical to it
 
+Scenario: New clone after an abandoned build resets the fixed branch and creates no second one
+Given a prior build for "sdlc-plan-workshop" in state "abandoned" whose fixed branch "build/sdlc-plan-workshop" exists at commit "9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b", a catalog repository whose "main" head is commit "4f1c2ab7d9e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3", no "builds" row for "sdlc-plan-workshop" in state "open", and a source skill folder "skills/sdlc-plan-training/" on "main"
+When the author submits a clone of "sdlc-plan-training" under the new name "sdlc-plan-workshop" on the clone form at "/builds/new?mode=clone"
+Then the builder responds with HTTP 201 and exactly one "builds" row with state "open" exists and has skill "sdlc-plan-workshop", kind "clone", branch "build/sdlc-plan-workshop", base_sha "4f1c2ab7d9e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3" and head_sha equal to the SHA of the clone commit at the head of that branch, the catalog repository's branch "build/sdlc-plan-workshop" head is the clone commit whose parent is "4f1c2ab7d9e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3" rather than "9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b", no second branch whose name starts with "build/sdlc-plan-workshop" exists, and the prior build's row still has state "abandoned"
+
 Scenario: Clone rejects a source skill that does not exist on main
 Given a signed-in skill author and a catalog "main" branch with no skill folder "skills/sdlc-plan-missing"
 When the author submits a clone of "sdlc-plan-missing" under the new name "sdlc-plan-workshop" on the clone form at "/builds/new?mode=clone"
@@ -70,7 +75,8 @@ owns the base create route and create mode of the single `GET /builds/new` + `PO
 handler, and this story adds the clone mode to that same handler and creates no second handler at
 that route; opening an edit build (BSB-20-PENDING-2); editing the cloned skill's files after
 creation (BSB-21); running, scanning, readiness and catalog submission (later epics); deleting or
-reusing `build/<skill-name>` after a build is merged or abandoned (BSB-36); renaming or deleting
+finalising `build/<skill-name>` after a build is merged or abandoned (BSB-36) — the reset of that
+fixed branch when a new build starts is in scope and asserted above; renaming or deleting
 the source skill or the clone; preserving the source repository's git history (the clone copies
 content, not history); skill versioning.
 
@@ -166,15 +172,15 @@ onward).
 ### Notes / dependencies
 Depends on BSB-19-PENDING-1 for the build record, the branch name rule, base_sha and the single
 shared `GET /builds/new` + `POST /builds` handler, and on BSB-19-PENDING-3 for the shared
-skill-name validator and open-build collision check. BSB-19-PENDING-1 owns the base create route
-and its `create` mode, and BSB-19-PENDING-3 owns the skill-name pattern validator and open-build
-collision check for both the clone flow and this edit flow; this story owns the `edit`-mode
-dispatch on the same handler and the inverted existence rule.
+skill-name pattern validator and open-build collision check. BSB-19-PENDING-1 owns the base create
+route and its `create` mode; this story owns the `edit`-mode dispatch on the same handler and the
+inverted existence rule.
 In edit mode the existence check is inverted: the name must exist on main (FR-126), so the create
 and clone rule that a name already on main is rejected does not apply; the open-build collision
-check does apply, so a skill already used by another open build is rejected. Because of that
-inversion, the shared validator takes a `mode` parameter (`create`/`clone` versus `edit`) that
-selects the existence rule, while the pattern and open-build collision parts are reused unchanged.
+check does apply, so a skill already used by another open build is rejected. This story reuses
+BSB-19-PENDING-3's skill-name pattern validator and open-build collision check unchanged; the edit
+mode's existence rule is inverted, so this story owns the existing-on-main predicate (reject when
+the name is absent) and does not parameterise BSB-19's validator.
 Depends on BSB-18 for the signed-in skill author and the local "users" row that "builds.created_by"
 references, and on the external catalog repository "bheembhai-skills" and its "main" branch (PRD
 section 8; ADR SK-001 section 1a).

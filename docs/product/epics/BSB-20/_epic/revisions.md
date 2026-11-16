@@ -402,3 +402,95 @@ and requirement IDs are identical to Pass 4.
   `sdlc-tracker-sync`'s job after a clean review.
 - **Next pass:** `sdlc-plan-epic-review` re-runs on the revised set; if it returns
   changes_requested, apply the new report the same way.
+
+## Pass 6 — 2026-11-16 (epic-review returned changes_requested; Finding 1 recommended option and Finding 2 applied)
+
+**Report applied:** `docs/product/epics/BSB-20/_epic/epic-review.md`, verdict CHANGES REQUESTED
+(2026-11-16), handed back from the `sdlc-plan-epic-review` step at commit `bd92ecb`. The report's
+**Open questions** section carries one question under Finding 1 and recommends the second option:
+BSB-20-PENDING-2 owns the inverted existing-on-main predicate and reuses BSB-19-PENDING-3's pattern
+and open-build collision checks unchanged, avoiding a BSB-19 revision. The report states that
+option is applyable inside BSB-20 and that the stories are safe to build as written, so this pass
+applies the recommended option and records the choice below. No other gate answer was needed.
+
+**Work item `SkillBuilder-2` / epic lookup.** The Atlassian MCP tools are not exposed in this
+session (no `mcp__atlassian__*` tools and no MCP server connection), so the configured site was
+queried read-only over its REST API (GET only; no Jira write). `GET /rest/api/3/issue/SkillBuilder-2`
+returned HTTP 404 with `"Issue does not exist or you do not have permission to see it."`, matching
+`PRD.md` section 8 and the review's Context loaded; no issue content is assumed from the lookup.
+The run's epic `BSB-20` was read read-only from the same site and returned HTTP 200: summary
+"Skill cloning & edit builds", type Epic, status To Do, labels `FA-2`/`MVP`, no parent and no
+sub-tasks, with a description matching the BSB-20 section of `epics.md`. That epic is the subject
+of this pass. No Jira write was attempted.
+
+### Findings applied
+
+| Finding | Severity | Stories touched | Change applied |
+|---|---|---|---|
+| 1 — cross-epic shared-validator contract | Blocking | BSB-20-PENDING-2 (cross-epic BSB-19-PENDING-3) | Applied the report's recommended second option. **Notes:** removed the sentence saying the shared validator takes a `mode` parameter; they now state that this story reuses BSB-19-PENDING-3's skill-name pattern validator and open-build collision check unchanged, owns the edit mode's inverted existing-on-main predicate (reject when the name is absent) and does not parameterise BSB-19's validator. The claim that BSB-19-PENDING-3 owns the check "for both the clone flow and this edit flow" was also removed, matching its stated clone-only scope. No acceptance criterion, statement, title or requirement ID changed. BSB-20-PENDING-1 unchanged, as the report directs: clone shares create's existence rule and reuses the validator unchanged. |
+| 2 — fixed-branch lifecycle | Advisory | BSB-20-PENDING-1 (cross-epic BSB-36) | **Out of scope:** "deleting or reusing `build/<skill-name>` after a build is merged or abandoned (BSB-36)" replaced with PENDING-2's wording: "deleting or finalising … (BSB-36) — the reset of that fixed branch when a new build starts is in scope and asserted above". Applied the optional remedy: new scenario "New clone after an abandoned build resets the fixed branch and creates no second one" asserts HTTP 201, exactly one new `open` `builds` row for the clone, the clone commit's parent at the current `main` head rather than the abandoned branch commit, no second branch whose name starts with `build/sdlc-plan-workshop`, and the prior row still `abandoned`. |
+| 3 — epic-boundary traceability | Advisory | BSB-20-PENDING-1 (cross-document `epics.md`, `PRD.md`, ADR SK-001) | No story change: the story already names both rewritten name-bearing fields (`SKILL.md` frontmatter `name`, `verify.yaml` top-level `skill`) and the `create`/`clone`/`edit` values. The cross-document wording follow-up remains open below. |
+
+### `story-map.json` change
+
+The summaries now state the contract the report settled; `story_key` and `requirement_ids` are
+untouched:
+
+- **BSB-20-PENDING-1** — names the reset of the fixed `build/<skill-name>` branch when a prior
+  build for the same name was abandoned, matching the new scenario.
+- **BSB-20-PENDING-2** — now says it adds the edit mode and its inverted existing-on-main predicate
+  to BSB-19-PENDING-1's shared handler and reuses BSB-19-PENDING-3's pattern validator and
+  open-build collision check unchanged rather than parameterising that validator.
+
+### Choices recorded (no gate answer supplied)
+
+1. **Finding 1 — shared validator interface:** the report's recommended second option was applied:
+   BSB-20-PENDING-2 owns the inverted existing-on-main predicate and reuses BSB-19-PENDING-3's
+   pattern and open-build collision checks unchanged. If a person rejects this choice, the first
+   option requires a BSB-19 revision (BSB-19-PENDING-3 defines the `mode` parameter and names the
+   edit flow; BSB-19-PENDING-1 notes the handler extension) and is a cross-epic follow-up, not a
+   BSB-20 story change.
+2. **Finding 2 — optional clone reset scenario:** applied, because the report notes PENDING-1 had no
+   executable proof of the reset rule for its own flow while the sibling PENDING-2 carries the
+   analogous scenario. PENDING-1 now has nine scenarios.
+
+### Still open (cross-epic/cross-document follow-ups, not applied in this pass)
+
+1. **Finding 1 — alternative interface (only if the recorded choice is rejected).** BSB-19-PENDING-3
+   would need to define the `mode` parameter and name the edit flow and its inverted existence
+   rule, and BSB-19-PENDING-1's Notes would need the reciprocal handler-extension sentence.
+2. **Finding 2 — branch cleanup ownership.** BSB-36's Functional scope should state what happens to
+   the fixed `build/<skill-name>` branch after a build is merged or abandoned, so the cleanup owner
+   named by both BSB-20 stories actually owns it.
+3. **Finding 3 — epic/PRD/ADR wording.** `PRD.md` FR-013, the BSB-20 description in `epics.md` (and
+   the Jira epic description) and ADR SK-001 section 1a should clarify that the clone's name rewrite
+   covers both name-bearing fields (`SKILL.md` frontmatter `name` and `verify.yaml` top-level
+   `skill`) and use the `create`/`clone`/`edit` mode vocabulary rather than "new".
+4. **BSB-21 forward note (unchanged).** BSB-21's future save story must assert that a save on an edit
+   build commits only to the existing `skills/<skill-name>/` folder (the FR-125 proof already handed
+   off in BSB-20-PENDING-2's Notes).
+
+No finding in the report lacks a usable answer now: Finding 1's recommended option is applied and
+recorded, and the remaining items are routed to other epics' own revision passes or a human
+documentation decision. None blocks BSB-20's stories as written.
+
+### Coverage re-check
+
+Unchanged and complete. BSB-20 still has 2 stories — BSB-20-PENDING-1 (FR-011, FR-012, FR-013,
+FR-014) and BSB-20-PENDING-2 (FR-124, FR-125, FR-126) — covering all 7 requirements mapped to
+BSB-20 in `epic-map.json`, with no foreign requirement and no duplicate claim. No story key, title,
+statement or requirement ID changed; `story-map.json` changed only the two summary strings.
+
+### Notes for the next review
+
+- **Only this epic's story files changed:** `stories.md` (PENDING-1's new reset scenario and
+  Out-of-scope phrase; PENDING-2's Notes), `story-map.json` (both summaries) and this
+  `revisions.md`. Nothing outside `docs/product/epics/BSB-20/_epic/` was touched.
+- **Finding 1 (Blocking) is closed in the stories** by the recommended option: PENDING-2 no longer
+  requires a `mode` parameter from BSB-19-PENDING-3 and owns the inverted existing-on-main
+  predicate. Finding 2's BSB-20-side inconsistency is closed in both stories; its remaining action
+  is BSB-36's scope. Finding 3 needs no story change.
+- **No Jira write was made.** Authoring only, per ADR-035; publication remains
+  `sdlc-tracker-sync`'s job after a clean review.
+- **Next pass:** `sdlc-plan-epic-review` re-runs on the revised set; if it returns
+  changes_requested, apply the new report the same way.
