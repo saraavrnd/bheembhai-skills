@@ -4,27 +4,27 @@
   "stories": [
     {
       "story_key": "BSB-18-PENDING-1",
-      "summary": "Sign in with platform credentials and reject invalid sign-ins",
+      "summary": "Sign in at /sign-in with the platform's Cognito credentials, admit current skill-builders members, and reject non-members, invalid passwords and unverifiable callbacks without a session or users row",
       "requirement_ids": ["FR-002", "FR-138"]
     },
     {
       "story_key": "BSB-18-PENDING-2",
-      "summary": "Create and reuse one local user record per person",
+      "summary": "Create exactly one local users row per Cognito subject on first successful sign-in and reuse that same row on later and concurrent sign-ins",
       "requirement_ids": ["FR-005", "FR-142"]
     },
     {
       "story_key": "BSB-18-PENDING-3",
-      "summary": "Block unauthenticated requests before any builder data is returned",
+      "summary": "Refuse anonymous and expired-session page and API requests before any builder data is returned, with a 302 to the sign-in entry point for pages and a JSON 401 for APIs",
       "requirement_ids": ["FR-001", "NFR-002"]
     },
     {
       "story_key": "BSB-18-PENDING-4",
-      "summary": "Enforce current skill-builders membership on every request",
+      "summary": "Re-check the skill-builders group claim on every authoring request and deny removed or claim-less users with 403 and no builder data within one hour of group removal",
       "requirement_ids": ["FR-003", "FR-004", "FR-141", "NFR-003"]
     },
     {
       "story_key": "BSB-18-PENDING-5",
-      "summary": "Keep the builder isolated from the platform database",
+      "summary": "Keep the builder isolated from the platform database: no client library, connection string or credential, no connection while serving requests, and startup refusal when platform database configuration is supplied",
       "requirement_ids": ["FR-165"]
     }
   ]
