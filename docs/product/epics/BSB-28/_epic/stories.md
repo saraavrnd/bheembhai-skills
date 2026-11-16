@@ -72,13 +72,13 @@ The fixture file `fixtures/bug-fix-empty-title/jira.json` is exactly:
       "alias": "bug",
       "issue_type": "Bug",
       "summary": "Checkout fails when the cart is empty",
-      "description": "The checkout button does nothing. Tracking issue: @task@."
+      "description": "The checkout button does nothing. Tracking issue: {{task}}."
     },
     {
       "alias": "task",
       "issue_type": "Task",
       "summary": "Investigate empty-cart checkout failure",
-      "description": "Found while reproducing @bug@."
+      "description": "Found while reproducing {{bug}}."
     }
   ]
 }
@@ -94,31 +94,41 @@ and no `project_key` has no configured project to seed into; fixture seeding is 
 
 **Fixture file format.** The file is a JSON object with one required key, `issues`, whose value is
 an array. Each entry has a required `alias` (unique in the file), `issue_type` and `summary`, and an
-optional `description` and `key`. An alias reference is written `@alias@`; the ADR expresses the
-same illustrative alias in a double-brace form, and the delimiter is the only difference — the
-semantics are the ADR's: the token is replaced with the created key at seed time. Only `summary`
-and `description` values may contain alias references.
+optional `description` and `key`. An alias reference is written `{{alias}}`, as in SK-001 §5; the
+token is replaced with the created key at seed time. Only `summary` and `description` values may
+contain alias references.
 
 **Seeding lifecycle.** Seeding runs in the executor's claim path after the claim compare-and-set
 and after the provenance values are written, and before the container is created. A run whose
 project has no `jira` integration or no `config.fixture` is not seeded at all: no Jira request is
 sent, no `run_jira` row is created, and the run starts exactly as BSB-26 describes. When seeding is
-enabled, the builder validates the fixture and then creates the issues; a successful seed inserts
-the `run_jira` row. If any step fails, the builder deletes every issue it created for this run's
-marker, leaves no `run_jira` row, writes no container, and moves the run to the terminal state
-`failed_seed` with `claimed_verdict` `NULL`, using BSB-26's terminal-write rule.
+enabled, the builder validates the fixture and then creates the issues; once every fixture issue
+exists it inserts the `run_jira` row with `aliases`, then rewrites the alias tokens. Before
+inserting `run_jira` and before creating the container, seeding re-checks that the run is still
+`running`. If it is not — the run lost its terminal write to BSB-27's deadline or to BSB-26's
+reconciliation — the builder deletes every issue it created for this run's marker, writes no
+`run_jira` row and no container, and does not write any run state. If any other step fails, the
+builder deletes every issue it created for this run's marker, leaves no `run_jira` row, writes no
+container, and moves the run to the terminal state `failed_seed` with `claimed_verdict` `NULL`,
+using BSB-26's terminal-write rule.
 
 **Alias replacement.** Seeding is two-phase. Phase 1 creates every fixture issue in file order,
-carrying its raw `summary` and `description` and the marker label. Once every issue exists, phase 2
-resolves `@alias@` tokens: the builder sends one `PUT` per issue whose `summary` or `description`
-contains a token, with the resolved values. The alias mapping is stored as `run_jira.aliases`, a
-JSON object whose keys are the fixture aliases and whose values are the created keys, in fixture
-order.
+carrying its raw `summary` and `description` and the marker label; when it finishes the builder
+inserts the `run_jira` row with `aliases`, a JSON object whose keys are the fixture aliases and
+whose values are the created keys, in fixture order. Phase 2 then resolves `{{alias}}` tokens: the
+builder sends one `PUT` per issue whose `summary` or `description` contains a token, with the
+resolved values.
 
-**Post-run state capture.** The builder's Jira finalizer runs once immediately after the executor
-writes a terminal `runs.state`, before epic BSB-29 verifies the run. It first captures the post-run
-state and then cleans up. The capture reads every key in `run_jira.aliases` in fixture order and
-stores `run_jira.state_after` as a JSON object with one `issues` array, in fixture order:
+**Post-run state capture.** The builder's Jira finalizer runs once after **every** terminal write
+of `runs.state`, whichever writer makes it — the executor's reconcile path, BSB-26's
+executor-restart reconciliation, or BSB-27's deadline and cap stops — and before epic BSB-29
+verifies the run. It first captures the post-run state and then cleans up (BSB-28-PENDING-4). On
+executor startup the finalizer also runs for every terminal run whose `run_jira.cleaned_at` is
+`NULL`, which recovers a run that crashed between the terminal write and the finalizer. The
+finalizer holds the run's `run_jira` row lock from the start of capture until cleanup completes,
+so the nightly sweep never overlaps it. The capture reads every key in `run_jira.aliases` in
+fixture order and stores `run_jira.state_after` as a JSON object with one `issues` array, in
+fixture order:
 
 ```json
 {"issues":[{"alias":"bug","key":"OLD-101","status":"In Progress","summary":"Checkout fails when the cart is empty"},{"alias":"task","key":"OLD-102","status":"Done","summary":"Investigate empty-cart checkout failure"}]}
@@ -133,23 +143,27 @@ no-op.
 **Cleanup.** Cleanup deletes only the issues recorded in `run_jira.aliases`, in fixture order, and
 only while each issue still carries the run's marker label. For each recorded key it reads
 `fields=labels`; a key the site reports absent is treated as already cleaned; a key whose labels
-do not contain the marker is skipped and logged; otherwise it sends `DELETE`. Cleanup is
-all-or-nothing on errors: an unexpected Jira error on any read or delete leaves other issues in
-place where possible, leaves `run_jira.cleaned_at` `NULL`, and logs the failure, so the nightly
-sweep or a retry can finish the job. When every recorded key is deleted or already absent,
-`cleaned_at` is set to the completion time. A second invocation after that sends no delete and
-leaves `cleaned_at` unchanged.
+do not contain the marker is skipped and logged; otherwise it sends `DELETE`. An unexpected Jira
+error on a read or delete does not stop the remaining keys: cleanup continues with the rest, leaves
+`run_jira.cleaned_at` `NULL`, and logs the failure, so the nightly sweep or a retry can finish the
+job. When, after the pass, no issue carrying the run's marker remains for any recorded key —
+deleted, already absent, or skipped because the marker was gone — `cleaned_at` is set to the
+completion time. A second invocation after that sends no delete and leaves `cleaned_at` unchanged.
 
-**Nightly sweep.** An installation-level scheduled job runs every day at `02:00` UTC. It iterates
-every project that has a `jira` integration and searches that integration's configured
-`project_key` for issues with at least one label, paging `maxResults=100` until it has read every
-result. It selects issues carrying a label that matches exactly the regular expression
-`^skilltest-[0-9]+$`. For each such issue it derives the run ID from the label; if a `runs` row
-with that ID exists and its `state` is `queued` or `running`, the issue is skipped so an active run
-never loses its fixture. Every other marked issue is deleted, including one whose run row no
-longer exists. When the sweep deletes at least one issue for a run that has a `run_jira` row with
-`cleaned_at` `NULL`, it sets that `cleaned_at` to the sweep time. Issues without a marker label are
-never deleted. The sweep is idempotent: a second run deletes nothing that the first removed.
+**Nightly sweep.** An installation-level scheduled job runs every day at `02:00` UTC; this epic
+owns that trigger, and BSB-37's suite scheduler may later reuse it. It iterates every project that
+has a `jira` integration and searches that integration's configured `project_key` for issues with
+at least one label, paging `maxResults=100` until it has read every result. It selects issues
+carrying a label that matches exactly the regular expression `^skilltest-[0-9]+$`. For each such
+issue it derives the run ID from the label; if a `runs` row with that ID exists and its `state` is
+`queued` or `running`, the issue is skipped so an active run never loses its fixture. It also
+skips a run whose `run_jira` row has `state_after` `NULL` and `cleaned_at` `NULL` while its
+finalizer is in progress: the sweep and the finalizer serialise on the run's `run_jira` row lock.
+Every other marked issue is deleted, including one whose run row no longer exists. When, after the
+sweep, no issue carrying a run's marker remains in the searched project and that run has a
+`run_jira` row with `cleaned_at` `NULL`, the sweep sets that `cleaned_at` to the sweep time —
+including when it had nothing to delete for that run. Issues without a marker label are never
+deleted. The sweep is idempotent: a second run deletes nothing that the first removed.
 
 **Jira API contract.** Each call is made against the integration's `config.site_url` with the
 credentials held at its `secret_ref`, and each JSON request has `Content-Type: application/json`.
@@ -173,8 +187,10 @@ failed: ` for capture, and `[skill-builder] jira cleanup failed: ` for cleanup.
 
 **Run state values.** This epic sets exactly one `runs.state` value, `failed_seed`: the Jira
 fixture could not be validated or seeded, no container was created, and `claimed_verdict` is
-`NULL`. Every other state these stories read (`queued`, `running`, `completed`, the failure states
-and the sibling-owned terminal values) belongs to epics BSB-24 to BSB-27.
+`NULL`. It also owns that state's run-page outcome text, exactly `The Jira fixture could not be
+seeded.`, which extends BSB-26's outcome table; BSB-26 needs no revise pass for it. Every other
+state these stories read (`queued`, `running`, `completed`, the failure states and the
+sibling-owned terminal values) belongs to epics BSB-24 to BSB-27.
 
 **Open decisions (flagged for review — no requirement answers them).**
 
@@ -184,13 +200,10 @@ and the sibling-owned terminal values) belongs to epics BSB-24 to BSB-27.
    the PRD says "when Jira fixture seeding is enabled". If review decides the fixture is instead a
    run-start input, only the source of the fixture name changes; the marker, file format, seeding,
    capture, cleanup and sweep do not.
-2. *The alias token delimiter.* The ADR's example uses a double-brace token; this epic pins
-   `@alias@` for the fixture file. If the double-brace form is mandatory, only the delimiter
-   changes in the fixture parser and in the scenarios of BSB-28-PENDING-2.
-3. *Template-project integrations.* FR-029 allows a Jira integration with a template project
+2. *Template-project integrations.* FR-029 allows a Jira integration with a template project
    instead of a project key. This epic seeds only into a `project_key` integration and leaves the
    template-project case out of scope.
-4. *Re-runs.* FR-056 (epic BSB-27) re-runs a run with the same inputs. Because the fixture is
+3. *Re-runs.* FR-056 (epic BSB-27) re-runs a run with the same inputs. Because the fixture is
    project-level here, a re-run uses the project's current fixture; if exact reproduction is
    required, the fixture name must be recorded per run, which this epic does not add to
    `run_jira` or `runs`.
@@ -205,17 +218,27 @@ and the sibling-owned terminal values) belongs to epics BSB-24 to BSB-27.
 - **BSB-24, BSB-25 and BSB-26 (run lifecycle).** The run-start route (BSB-24), the prepared run
   (BSB-25) and the claim and terminal-write rules (BSB-26) are consumed, not changed. Seeding adds
   one step to BSB-26's claim path between provenance persistence and container creation, and adds
-  the terminal state `failed_seed` to the state vocabulary. BSB-26's state table and failure text
-  must gain that row in a later revise pass; this epic does not edit BSB-26's files. No BSB-26
-  scenario has a Jira integration with `config.fixture`, so those scenarios are unchanged.
+  the terminal state `failed_seed` to the state vocabulary. This epic also adds the `failed_seed`
+  row and its exact run-page outcome text `The Jira fixture could not be seeded.` to BSB-26's
+  table in its own stories, so BSB-26 needs no revise pass; this epic does not edit BSB-26's files.
+  No BSB-26 scenario has a Jira integration with `config.fixture`, so those scenarios are
+  unchanged.
 - **BSB-27 (guardrails and re-runs).** Epic BSB-27 owns `failed_timeout`, the cap-stop states and
   re-runs. The finalizer runs for every terminal state, including BSB-27's, so a timed-out run's
-  seeded issues are still captured and cleaned up. Re-runs are covered by Open decision 4.
+  seeded issues are still captured and cleaned up. BSB-27's deadline can also write a terminal
+  state while seeding is still running; BSB-28-PENDING-1 re-checks `running` before inserting
+  `run_jira` or creating the container and rolls the seed back. Re-runs are covered by Open
+  decision 3.
 - **BSB-33 (run report).** Epic BSB-33 owns FR-140's durable record of the Jira changes a run
   makes and their display. This epic records `run_jira.state_after` for fixture assertions only;
   it does not compute a diff and does not add a run page region.
-- **BSB-38 (accessibility).** No web surface is added by this epic, so no NFR-012 scenario exists
-  here. The failure text BSB-26 shows for `failed_seed` is BSB-26's surface.
+- **BSB-34 (retention and purge).** The `run_jira` row is part of a run's results under NFR-013
+  and NFR-014: it is retained with the run's results and removed when the run is purged by BSB-34's
+  retention or purge mechanism. This epic records the dependency so BSB-34's decomposition covers
+  `run_jira`; it does not implement retention.
+- **BSB-38 (accessibility).** The `failed_seed` outcome text this epic adds to the run page is a
+  surface subject to BSB-38's NFR-012. No other web surface is added by this epic, so no other
+  NFR-012 scenario exists here.
 
 ## STORY: BSB-28-PENDING-1
 
@@ -237,8 +260,8 @@ And `SELECT count(*) FROM run_jira` returns `0`
 And the builder executor is running with a 1-second claim interval
 When the executor claims run `1` at `2026-11-15T10:01:00Z`
 Then the Jira stub records exactly two `POST /rest/api/2/issue` requests, in this order
-And the first request body is exactly `{"fields":{"project":{"key":"OLD"},"issuetype":{"name":"Bug"},"summary":"Checkout fails when the cart is empty","description":"The checkout button does nothing. Tracking issue: @task@.","labels":["skilltest-1"]}}`
-And the second request body is exactly `{"fields":{"project":{"key":"OLD"},"issuetype":{"name":"Task"},"summary":"Investigate empty-cart checkout failure","description":"Found while reproducing @bug@.","labels":["skilltest-1"]}}`
+And the first request body is exactly `{"fields":{"project":{"key":"OLD"},"issuetype":{"name":"Bug"},"summary":"Checkout fails when the cart is empty","description":"The checkout button does nothing. Tracking issue: {{task}}.","labels":["skilltest-1"]}}`
+And the second request body is exactly `{"fields":{"project":{"key":"OLD"},"issuetype":{"name":"Task"},"summary":"Investigate empty-cart checkout failure","description":"Found while reproducing {{bug}}.","labels":["skilltest-1"]}}`
 And the Jira stub contains exactly three issues: `OLD-100` with `labels` = `[]`, `OLD-101` with `labels` = `["skilltest-1"]`, and `OLD-102` with `labels` = `["skilltest-1"]`
 And `SELECT aliases FROM run_jira WHERE run_id = 1` equals the JSON value `{"bug":"OLD-101","task":"OLD-102"}`
 And `SELECT count(*) FROM run_jira WHERE run_id = 1 AND state_after IS NULL AND cleaned_at IS NULL` returns `1`
@@ -297,29 +320,56 @@ And the first line of `s3://skill-builder-runs/runs/1/agent.log` is exactly `[sk
 And the runtime has started no container labelled `bb.run_id` = `1`
 And a further claim pass leaves `SELECT state FROM runs WHERE id = 1` as `failed_seed`
 
+#### Scenario: A run that becomes terminal during seeding rolls the seed back
+Given the `jira` integration row `5` has `config.fixture` = `bug-fix-empty-title`
+And run `1` exists prepared with `state` = `queued`
+And BSB-27's deadline for run `1` is `2026-11-15T10:01:01Z`
+And the builder executor is running with a 1-second claim interval
+And the Jira stub accepts the two `POST /rest/api/2/issue` requests with `201`, `{"id":"10001","key":"OLD-101"}` and `{"id":"10002","key":"OLD-102"}`
+When the executor claims run `1` and the deadline writes `runs.state` = `failed_timeout` after the second create but before the seed completes
+Then the Jira stub records `DELETE /rest/api/2/issue/OLD-101` and then `DELETE /rest/api/2/issue/OLD-102`
+And the Jira stub contains exactly one issue: `OLD-100` with `labels` = `[]`
+And `SELECT count(*) FROM run_jira WHERE run_id = 1` returns `0`
+And `SELECT state FROM runs WHERE id = 1` returns `failed_timeout`
+And the runtime has started no container labelled `bb.run_id` = `1`
+
+#### Scenario: A failed seed shows its outcome on the run page
+Given run `1` exists with `state` = `failed_seed` and `claimed_verdict` = `NULL`
+And project `7` exists with `owner_id` = `42`
+And `project_members` contains row `7 | 42 | owner`
+And Ada is signed in with the member session from epic BSB-18
+When Ada requests `GET https://builder.skillbuilder.internal/projects/7/runs/1`
+Then the response status is `200` with `Content-Type` `text/html; charset=utf-8`
+And the body contains the exact text `The Jira fixture could not be seeded.`
+And the body has no element with id `run-progress`
+
 ### Covered requirements (traceability)
 - FR-058
 
 ### Out of scope
-Replacing alias tokens inside the fixture content and storing the alias mapping (BSB-28-PENDING-2).
-Capturing the post-run Jira state (BSB-28-PENDING-3). End-of-run cleanup (BSB-28-PENDING-4) and
-the nightly sweep (BSB-28-PENDING-5). Jira integrations configured with a template project instead
-of a project key. A fixture authoring or editing interface, and any mutation of an issue the run
-did not seed (the epic's non-goals). Provisioning the Jira project, its issue types or its
-credentials (epic BSB-23).
+Replacing alias tokens inside the fixture content (BSB-28-PENDING-2). Capturing the post-run Jira
+state (BSB-28-PENDING-3). End-of-run cleanup (BSB-28-PENDING-4) and the nightly sweep
+(BSB-28-PENDING-5). Jira integrations configured with a template project instead of a project key.
+A fixture authoring or editing interface, and any mutation of an issue the run did not seed (the
+epic's non-goals). Provisioning the Jira project, its issue types or its credentials (epic BSB-23).
 
 ### Notes / dependencies
 - Depends on epic BSB-23 for the `jira` integration, its `site_url`, `project_key` and
   `secret_ref`; on epic BSB-24 for the `runs` row and its `queued` starting state; on epic BSB-25
-  for the prepared `skills_commit_sha`, `run_branch` and `skill_bundles` row; and on epic BSB-26 for
-  the claim path, the terminal-write rule and the run log. The fixture file is read from
+  for the prepared `skills_commit_sha`, `run_branch` and `skill_bundles` row; on epic BSB-26 for
+  the claim path, the terminal-write rule and the run log; and on epic BSB-27 for the deadline
+  that can write a terminal state while seeding is running. The fixture file is read from
   `saraavrnd/bheembhai-skills` at the run's `skills_commit_sha`.
+- This story writes the `run_jira` row including `aliases`, in fixture order, as soon as phase 1
+  has created every issue; BSB-28-PENDING-2 then resolves the tokens in place.
 - The run marker is the single label `skilltest-1`; it is the only identification the cleanup and
   the sweep may rely on. A human-authored issue never carries it.
 - The fixture name comes from `config.fixture` (Open decision 1); a template-project integration is
-  out of scope (Open decision 3). The `@alias@` token delimiter is Open decision 2.
-- Seeding is a new pre-launch step in BSB-26's claim path, and `failed_seed` a new terminal state;
-  BSB-26's state table must gain it in a later revise pass (cross-epic note above).
+  out of scope (Open decision 2).
+- Seeding is a new pre-launch step in BSB-26's claim path, and `failed_seed` a new terminal state
+  whose run-page outcome text this epic adds to BSB-26's table (cross-epic note above).
+- The `run_jira` row is part of the run's results under NFR-013 and NFR-014 and is removed with
+  the run by BSB-34's retention and purge.
 - Failure reasons are the HTTP status for a Jira error, the fixture name for a missing or invalid
   file, and the offending key for an existing-issue collision. Credential values and the
   Authorization header are never logged.
@@ -346,7 +396,7 @@ And issue `OLD-101` in the stub has `description` = `The checkout button does no
 And issue `OLD-102` in the stub has `description` = `Found while reproducing OLD-101.`
 And `SELECT aliases FROM run_jira WHERE run_id = 1` equals the JSON value `{"bug":"OLD-101","task":"OLD-102"}`
 And `SELECT state FROM runs WHERE id = 1` returns `running`
-And no issue in the stub has a `summary` or `description` containing `@`
+And no issue in the stub has a `summary` or `description` containing `{{`
 
 #### Scenario: A fixture with no alias references sends no update
 Given the `jira` integration row `5` has `config.fixture` = `no-cross-references`
@@ -360,7 +410,7 @@ And `SELECT state FROM runs WHERE id = 1` returns `running`
 
 #### Scenario: An unknown alias fails the seed before any issue is created
 Given the `jira` integration row `5` has `config.fixture` = `unknown-alias`
-And `fixtures/unknown-alias/jira.json` declares one issue with `alias` = `bug` and `description` = `Blocks @missing@.`
+And `fixtures/unknown-alias/jira.json` declares one issue with `alias` = `bug` and `description` = `Blocks {{missing}}.`
 And the file declares no issue with `alias` = `missing`
 And run `1` exists prepared with `state` = `queued`
 And the builder executor is running with a 1-second claim interval
@@ -387,20 +437,20 @@ And the runtime has started no container labelled `bb.run_id` = `1`
 - FR-059
 
 ### Out of scope
-Creating the issues, applying the run marker and inserting the `run_jira` row (BSB-28-PENDING-1).
-Capturing the post-run state (BSB-28-PENDING-3), cleanup (BSB-28-PENDING-4) and the sweep
-(BSB-28-PENDING-5). Alias references in fields other than `summary` and `description`. Rewriting
-the fixture file on disk.
+Creating the issues, applying the run marker and inserting the `run_jira` row including its
+`aliases` mapping (BSB-28-PENDING-1). Capturing the post-run state (BSB-28-PENDING-3), cleanup
+(BSB-28-PENDING-4) and the sweep (BSB-28-PENDING-5). Alias references in fields other than
+`summary` and `description`. Rewriting the fixture file on disk.
 
 ### Notes / dependencies
-- Depends on BSB-28-PENDING-1 for the created issue keys and the `run_jira` row. The alias mapping
-  is written in fixture order and is the only place the cleanup and the state capture learn which
-  key belongs to which alias.
+- Depends on BSB-28-PENDING-1 for the created issue keys and the `run_jira` row; PENDING-1 writes
+  that row including the `aliases` mapping in fixture order. The mapping is the only place the
+  cleanup and the state capture learn which key belongs to which alias.
 - The two-phase order matters: phase 2 runs only after every issue in phase 1 exists, so a forward
   reference (an issue whose token names an issue declared later in the file) resolves exactly like
   a backward reference. No token survives in a stored issue.
-- The alias token delimiter is Open decision 2; changing it changes only this parser and these
-  scenarios.
+- This story also produces `failed_seed` for invalid or unresolvable aliases; that state's run-page
+  outcome text is BSB-28-PENDING-1's.
 
 ## STORY: BSB-28-PENDING-3
 
@@ -417,27 +467,29 @@ Given run `1` exists with `state` = `running` and a `run_jira` row whose `aliase
 And the Jira stub's project `OLD` contains `OLD-101` with `summary` = `Checkout fails when the cart is empty` and `status` = `In Progress`, and `OLD-102` with `summary` = `Investigate empty-cart checkout failure` and `status` = `Done`
 And the runtime has exited with status `0` and uploaded a valid result with `result_status` = `completed`
 And the builder clock reads `2026-11-15T10:05:00Z`
-When the executor writes `runs.state` = `completed`
+When the executor writes the terminal state `runs.state` = `completed` and the finalizer runs
 Then the Jira stub records `GET /rest/api/2/issue/OLD-101?fields=summary,status` and then `GET /rest/api/2/issue/OLD-102?fields=summary,status`
 And `SELECT state_after FROM run_jira WHERE run_id = 1` equals the JSON value `{"issues":[{"alias":"bug","key":"OLD-101","status":"In Progress","summary":"Checkout fails when the cart is empty"},{"alias":"task","key":"OLD-102","status":"Done","summary":"Investigate empty-cart checkout failure"}]}`
 And `SELECT state FROM runs WHERE id = 1` returns `completed`
 
-#### Scenario: The state is captured before the issues are cleaned up
+#### Scenario: A timed-out run's state is captured
 Given run `1` exists with `state` = `running` and a `run_jira` row whose `aliases` = `{"bug":"OLD-101","task":"OLD-102"}` and `state_after` = `NULL` and `cleaned_at` = `NULL`
-And the Jira stub serves both seeded issues as in the previous scenario
-And the runtime has exited with a classifiable `completed` result
-When the executor writes `runs.state` = `completed`
-Then the stub's request log contains the two `GET` reads of `fields=summary,status` before the first `DELETE`
-And `SELECT state_after IS NOT NULL, cleaned_at FROM run_jira WHERE run_id = 1` returns exactly `true | 2026-11-15T10:05:01Z`
+And the runtime is still running with no uploaded result
+And the Jira stub serves `OLD-101` with `status` = `In Progress` and `OLD-102` with `status` = `To Do`
+And BSB-27's deadline for run `1` is reached at `2026-11-15T10:05:00Z`
+When BSB-27 writes `runs.state` = `failed_timeout` and the finalizer runs
+Then the Jira stub records `GET /rest/api/2/issue/OLD-101?fields=summary,status` and then `GET /rest/api/2/issue/OLD-102?fields=summary,status`
+And `SELECT state_after FROM run_jira WHERE run_id = 1` equals the JSON value `{"issues":[{"alias":"bug","key":"OLD-101","status":"In Progress","summary":"Checkout fails when the cart is empty"},{"alias":"task","key":"OLD-102","status":"To Do","summary":"Investigate empty-cart checkout failure"}]}`
+And `SELECT state FROM runs WHERE id = 1` returns `failed_timeout`
 
 #### Scenario: An issue deleted during the run is recorded as missing
 Given run `1` exists with `state` = `running` and a `run_jira` row whose `aliases` = `{"bug":"OLD-101","task":"OLD-102"}`
 And the Jira stub serves `OLD-101` with `status` = `In Progress`
 And the Jira stub returns `404` with `{"errorMessages":["Issue does not exist"]}` for any read of `OLD-102`
 And the runtime has exited with a classifiable `completed` result
-When the executor writes `runs.state` = `completed`
+When the executor writes the terminal state `runs.state` = `completed` and the finalizer runs
 Then `SELECT state_after FROM run_jira WHERE run_id = 1` equals the JSON value `{"issues":[{"alias":"bug","key":"OLD-101","status":"In Progress","summary":"Checkout fails when the cart is empty"},{"alias":"task","key":"OLD-102","status":null,"summary":null,"missing":true}]}`
-And cleanup still runs and sets `cleaned_at` = `2026-11-15T10:05:01Z`
+And `SELECT state FROM runs WHERE id = 1` returns `completed`
 
 #### Scenario: A run with no seeded issues captures nothing
 Given run `1` exists with `state` = `running` and no `run_jira` row
@@ -447,15 +499,22 @@ Then the Jira stub records zero `GET /rest/api/2/issue/` requests
 And `SELECT count(*) FROM run_jira WHERE run_id = 1` returns `0`
 And `SELECT state FROM runs WHERE id = 1` returns `completed`
 
-#### Scenario: A failed read leaves the state unrecorded and cleanup still runs
+#### Scenario: A failed read leaves the state unrecorded
 Given run `1` exists with `state` = `running` and a `run_jira` row whose `aliases` = `{"bug":"OLD-101","task":"OLD-102"}` and `state_after` = `NULL`
 And the Jira stub serves `OLD-101` normally and returns `500` for the read of `OLD-102`
 And the runtime has exited with a classifiable `completed` result
-When the executor writes `runs.state` = `completed`
+When the executor writes the terminal state `runs.state` = `completed` and the finalizer runs
 Then `SELECT state_after FROM run_jira WHERE run_id = 1` is `NULL`
-And the Jira stub records `DELETE /rest/api/2/issue/OLD-101` and `DELETE /rest/api/2/issue/OLD-102`
-And `SELECT cleaned_at FROM run_jira WHERE run_id = 1` equals the timestamptz `2026-11-15T10:05:01Z`
 And the stored run log contains the exact line `[skill-builder] jira state capture failed: GET /rest/api/2/issue/OLD-102?fields=summary,status returned HTTP 500`
+And `SELECT state FROM runs WHERE id = 1` returns `completed`
+
+#### Scenario: A restarted executor finalizes a terminal run left uncleaned
+Given run `1` exists with `state` = `completed` and a `run_jira` row whose `aliases` = `{"bug":"OLD-101","task":"OLD-102"}` and `state_after` = `NULL` and `cleaned_at` = `NULL`
+And the executor that wrote the terminal state stopped before running the finalizer
+And the Jira stub serves `OLD-101` with `status` = `In Progress` and `OLD-102` with `status` = `Done`
+When a new executor starts and its recovery pass finds run `1`
+Then the Jira stub records `GET /rest/api/2/issue/OLD-101?fields=summary,status` and then `GET /rest/api/2/issue/OLD-102?fields=summary,status`
+And `SELECT state_after FROM run_jira WHERE run_id = 1` equals the JSON value `{"issues":[{"alias":"bug","key":"OLD-101","status":"In Progress","summary":"Checkout fails when the cart is empty"},{"alias":"task","key":"OLD-102","status":"Done","summary":"Investigate empty-cart checkout failure"}]}`
 And `SELECT state FROM runs WHERE id = 1` returns `completed`
 
 ### Covered requirements (traceability)
@@ -471,10 +530,19 @@ the skill did not make through the seeded issues.
 - Depends on BSB-28-PENDING-1 and BSB-28-PENDING-2 for the `run_jira` row, its `aliases` mapping
   and the seeded issues; on BSB-26 for the terminal-write rule and the run log; and on BSB-27 for
   the sibling terminal states that also trigger the finalizer.
-- The finalizer runs once after the terminal state is written and before epic BSB-29 verifies the
-  run, so verification never sees the disposable issues and never depends on them.
-- A capture failure is recorded, not raised: it never changes `runs.state` and never blocks
-  cleanup. `state_after` staying `NULL` tells a later reader that no post-run state was captured.
+- This story owns the finalizer hook: it runs once after every terminal write, whichever writer
+  made it (the executor's reconcile path, BSB-26's restart reconciliation, or BSB-27's deadline and
+  cap stops), and on executor startup for every terminal run whose `run_jira.cleaned_at` is `NULL`.
+  It captures first and then invokes cleanup (BSB-28-PENDING-4). The finalizer runs before epic
+  BSB-29 verifies the run, so verification never sees the disposable issues and never depends on
+  them.
+- The finalizer holds the run's `run_jira` row lock from the start of capture until cleanup
+  completes; the nightly sweep serialises on the same lock (BSB-28-PENDING-5).
+- A capture failure is recorded, not raised: it never changes `runs.state` and never blocks the
+  cleanup step. `state_after` staying `NULL` tells a later reader that no post-run state was
+  captured.
+- The `run_jira` row, including `state_after`, is part of the run's results under NFR-013 and
+  NFR-014 and is removed with the run by BSB-34's retention and purge.
 
 ## STORY: BSB-28-PENDING-4
 
@@ -495,9 +563,31 @@ Then the Jira stub records exactly two `DELETE` requests, in this order: `DELETE
 And the stub's project `OLD` contains exactly one issue: `OLD-100` with `labels` = `[]`
 And `SELECT cleaned_at FROM run_jira WHERE run_id = 1` equals the timestamptz `2026-11-15T10:05:01Z`
 
+#### Scenario: Cleanup runs after the post-run state is captured
+Given run `1` exists with `state` = `running` and a `run_jira` row whose `aliases` = `{"bug":"OLD-101","task":"OLD-102"}` and `state_after` = `NULL` and `cleaned_at` = `NULL`
+And the Jira stub's project `OLD` contains `OLD-101` with `summary` = `Checkout fails when the cart is empty` and `status` = `In Progress`, and `OLD-102` with `summary` = `Investigate empty-cart checkout failure` and `status` = `Done`, each with `labels` = `["skilltest-1"]`
+And the runtime has exited with a classifiable `completed` result
+And the builder clock reads `2026-11-15T10:05:01Z` when cleanup completes
+When the executor writes the terminal state `runs.state` = `completed` and the finalizer runs
+Then the stub's request log contains the two `GET` reads of `fields=summary,status` before the first `DELETE`
+And `SELECT state_after IS NOT NULL, cleaned_at FROM run_jira WHERE run_id = 1` returns exactly `true | 2026-11-15T10:05:01Z`
+And the Jira stub records `DELETE /rest/api/2/issue/OLD-101` and `DELETE /rest/api/2/issue/OLD-102`
+
+#### Scenario: Cleanup runs after a failed state capture
+Given run `1` exists with `state` = `running` and a `run_jira` row whose `aliases` = `{"bug":"OLD-101","task":"OLD-102"}` and `state_after` = `NULL` and `cleaned_at` = `NULL`
+And the Jira stub serves `OLD-101` with `labels` = `["skilltest-1"]` and returns `500` for the `fields=summary,status` read of `OLD-102`
+And the Jira stub serves `OLD-102` with `labels` = `["skilltest-1"]`
+And the runtime has exited with a classifiable `completed` result
+When the executor writes the terminal state `runs.state` = `completed` and the finalizer runs
+Then `SELECT state_after FROM run_jira WHERE run_id = 1` is `NULL`
+And the Jira stub records `DELETE /rest/api/2/issue/OLD-101` and `DELETE /rest/api/2/issue/OLD-102`
+And `SELECT cleaned_at FROM run_jira WHERE run_id = 1` equals the timestamptz `2026-11-15T10:05:01Z`
+And the stored run log contains the exact line `[skill-builder] jira state capture failed: GET /rest/api/2/issue/OLD-102?fields=summary,status returned HTTP 500`
+And `SELECT state FROM runs WHERE id = 1` returns `completed`
+
 #### Scenario: An unmarked issue is never deleted
-Given run `1` exists with `state` = `completed` and the `run_jira` row above
-And the Jira stub's project `OLD` contains `OLD-100` with `summary` = `Checkout fails when the cart is empty`, `labels` = `[]` and `OLD-101` and `OLD-102` as above
+Given run `1` exists with `state` = `completed` and a `run_jira` row whose `aliases` = `{"bug":"OLD-101","task":"OLD-102"}`, `state_after` is recorded and `cleaned_at` = `NULL`
+And the Jira stub's project `OLD` contains `OLD-100` with `summary` = `Checkout fails when the cart is empty` and `labels` = `[]`, `OLD-101` and `OLD-102` with `labels` = `["skilltest-1"]`
 When the Jira finalizer runs for run `1`
 Then the Jira stub records no `DELETE /rest/api/2/issue/OLD-100`
 And issue `OLD-100` still exists with `summary` = `Checkout fails when the cart is empty` and `labels` = `[]`
@@ -522,6 +612,7 @@ And the run log gains no new cleanup failure line
 
 #### Scenario: An issue that is already gone counts as cleaned
 Given run `1` exists with `state` = `completed` and a `run_jira` row whose `aliases` = `{"bug":"OLD-101","task":"OLD-102"}` and `cleaned_at` = `NULL`
+And the skill deleted `OLD-101` during the run
 And the Jira stub returns `404` for any read of `OLD-101`
 And the Jira stub serves `OLD-102` with `labels` = `["skilltest-1"]`
 When the Jira finalizer runs for run `1`
@@ -540,6 +631,17 @@ And `SELECT cleaned_at FROM run_jira WHERE run_id = 1` is `NULL`
 And the stored run log contains the exact line `[skill-builder] jira cleanup failed: DELETE /rest/api/2/issue/OLD-102 returned HTTP 500`
 And `SELECT state FROM runs WHERE id = 1` still returns `completed`
 
+#### Scenario: A deletion failure on the first key still attempts the rest
+Given run `1` exists with `state` = `completed` and a `run_jira` row whose `aliases` = `{"bug":"OLD-101","task":"OLD-102"}` and `cleaned_at` = `NULL`
+And the Jira stub returns `500` for `DELETE /rest/api/2/issue/OLD-101`
+And the Jira stub accepts `DELETE /rest/api/2/issue/OLD-102` with `204`
+When the Jira finalizer runs for run `1`
+Then issue `OLD-101` still exists with `labels` = `["skilltest-1"]`
+And issue `OLD-102` is gone from the stub
+And `SELECT cleaned_at FROM run_jira WHERE run_id = 1` is `NULL`
+And the stored run log contains the exact line `[skill-builder] jira cleanup failed: DELETE /rest/api/2/issue/OLD-101 returned HTTP 500`
+And `SELECT state FROM runs WHERE id = 1` still returns `completed`
+
 ### Covered requirements (traceability)
 - FR-061
 
@@ -550,13 +652,18 @@ cleanup leaves behind (BSB-28-PENDING-5). Deleting any issue that is not recorde
 for a run that never seeded a fixture, and any UI for cleanup.
 
 ### Notes / dependencies
-- Depends on BSB-28-PENDING-1 for the seeded issues and the `run_jira` row, on BSB-28-PENDING-3
-  for the capture-before-cleanup order, and on BSB-26 and BSB-27 for the terminal states that
-  invoke the finalizer.
+- Depends on BSB-28-PENDING-1 for the seeded issues and the `run_jira` row (PENDING-1 writes
+  `aliases`), and on BSB-28-PENDING-3 for the capture-before-cleanup order and the finalizer hook.
+  The hook is invoked by the terminal-write trigger PENDING-3 owns: it runs after every terminal
+  write, whichever writer made it, and on executor startup for terminal runs whose `cleaned_at` is
+  `NULL`.
 - The marker check is defensive: the recorded key is deleted only while its issue still carries
   `skilltest-1`, so a key that came back without the marker is never treated as disposable.
-- The cleanup is best-effort by design: a failed delete leaves `cleaned_at` `NULL` and the issue
-  in place for BSB-28-PENDING-5. A retry or the sweep completes it.
+- The cleanup is best-effort per key by design: an unexpected error on one key does not stop the
+  rest, leaves `cleaned_at` `NULL`, and leaves the surviving issue for BSB-28-PENDING-5. A retry or
+  the sweep completes it.
+- Cleanup holds the run's `run_jira` row lock until it completes, so the nightly sweep serialises
+  on the same lock and never overlaps an in-progress finalizer.
 
 ## STORY: BSB-28-PENDING-5
 
@@ -605,6 +712,32 @@ Then the Jira stub records zero `DELETE` requests
 And issue `OLD-100` still exists with `labels` = `["onboarding"]`
 And the sweep exits successfully
 
+#### Scenario: The sweep marks a run cleaned when nothing of its own remains
+Given project `7` has the `jira` integration row `5` with `project_key` = `OLD`
+And run `1` exists with `state` = `completed` and a `run_jira` row whose `aliases` = `{"bug":"OLD-101","task":"OLD-102"}` and `cleaned_at` = `NULL`
+And the Jira stub's project `OLD` contains only `OLD-100` with `labels` = `["onboarding"]`
+And the sweep runs at `2026-11-16T02:00:00Z`
+When the nightly sweep runs
+Then the Jira stub records zero `DELETE` requests
+And `SELECT cleaned_at FROM run_jira WHERE run_id = 1` equals the timestamptz `2026-11-16T02:00:00Z`
+
+#### Scenario: The sweep skips a run whose finalizer is in progress
+Given project `7` has the `jira` integration row `5` with `project_key` = `OLD`
+And run `1` exists with `state` = `completed` and a `run_jira` row whose `aliases` = `{"bug":"OLD-101","task":"OLD-102"}`, `state_after` = `NULL` and `cleaned_at` = `NULL`
+And run `1`'s finalizer holds the `run_jira` row lock while it captures the post-run state
+And the Jira stub's project `OLD` contains `OLD-101` and `OLD-102`, each with `labels` = `["skilltest-1"]`
+When the nightly sweep runs
+Then the Jira stub records zero `DELETE` requests
+And both `OLD-101` and `OLD-102` still exist with `labels` = `["skilltest-1"]`
+And `SELECT cleaned_at FROM run_jira WHERE run_id = 1` is `NULL`
+
+#### Scenario: The sweep is scheduled daily at 02:00 UTC
+Given the installation's scheduler has no other job configured
+And the builder clock reads `2026-11-16T01:59:59Z`
+When the clock reaches `2026-11-16T02:00:00Z`
+Then exactly one nightly sweep starts
+And no second nightly sweep starts before `2026-11-17T02:00:00Z`
+
 #### Scenario: A second sweep in the same night deletes nothing
 Given the sweep has just deleted every marked issue of run `1` and set its `cleaned_at`
 And the Jira stub's project `OLD` contains only unmarked issues
@@ -623,8 +756,15 @@ the sweep.
 
 ### Notes / dependencies
 - Depends on BSB-28-PENDING-1 for the marker and on BSB-28-PENDING-4 for the `cleaned_at` record;
-  on BSB-23 for the project's `jira` integration; and on the installation's scheduler (the epic's
-  dependency note names a scheduler for this job).
+  on BSB-23 for the project's `jira` integration; and on BSB-28-PENDING-3 for the finalizer's
+  `run_jira` row lock. This story delivers its own installation-level daily trigger at `02:00` UTC;
+  BSB-37's suite scheduler may later reuse it.
+- `cleaned_at` has the same meaning as in BSB-28-PENDING-4: a run is cleaned only when no issue
+  carrying its marker remains, including when there was nothing left to delete.
+- The sweep and the finalizer serialise on the run's `run_jira` row lock, so a terminal run whose
+  finalizer is in progress is skipped rather than having its issues deleted mid-capture.
+- This is the last-resort fallback when the finalizer recovery in BSB-28-PENDING-3 also fails; in
+  that case `state_after` may stay `NULL`.
 - A `runs` row is active exactly while its `state` is `queued` or `running`; every other value is
   terminal, including values owned by sibling epics. The sweep therefore needs no fixed list of
   terminal state names.
