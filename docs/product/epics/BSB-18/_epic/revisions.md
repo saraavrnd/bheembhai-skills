@@ -462,3 +462,94 @@ None. The report's Open questions section lists no question, and every proposed 
 - **Stale PRD wording, no story change.** `PRD.md` section 8 still says FR-165 "will be mapped on
   the next epics pass" although `epic-map.json` already maps it and PENDING-2 covers it; that is a
   PRD wording issue outside this skill's write scope.
+
+## Pass 8 — 2026-11-16 (epic-review returned changes_requested)
+
+**Report applied:** `docs/product/epics/BSB-18/_epic/epic-review.md`, verdict CHANGES REQUESTED
+(2026-11-16), handed back from the `sdlc-plan-epic-review` step of run
+`52717f19-2c6f-4089-9591-c387f75fc2d4` (upstream commit `3ed71bf`). The report's **Open questions**
+section is empty, so every proposed change was applicable without guessing a product decision.
+
+**Work item `SkillBuilder-2`.** The Atlassian MCP server is configured in `.mcp.json`, but its tools
+were not exposed in this session, so the configured site was queried read-only over its REST API
+(`GET` only; no Jira write). `GET /rest/api/3/issue/SkillBuilder-2` returned HTTP 404 "Issue does
+not exist or you do not have permission to see it." The epic `BSB-18` was fetched successfully from
+the same site (HTTP 200, summary "Access, identity & the authoring gate", status To Do, labels
+`FA-1`/`MVP`), matching `epics.md`, `epic-map.json` and `PRD.md` section 8. No Jira write was
+attempted and no issue-content assumption is made from the lookup.
+
+### Findings applied
+
+- **Finding 1 — callback hand-off: `users` upsert, required `sub`/`email`, missing-`sub` refusal
+  (Blocking; PENDING-1 and PENDING-2).** Applied as proposed:
+  - **BSB-18-PENDING-1**, Notes: states that the callback's success path requires the verified ID
+    token's `sub` claim (and the `email` claim the page renders), calls BSB-18-PENDING-2's
+    create-or-reuse `users` upsert before setting the `sb_session` cookie, and refuses a missing-`sub`
+    token with the same `sign_in_incomplete` redirect, no session and no `users` row as its other
+    callback failures.
+  - **BSB-18-PENDING-1**, "Current group member signs in and opens the builds page": the Given now
+    names the `sub` claim `c0ffee00-1234-4abc-9def-000000000001` and the `email` claim
+    `ada@example.com`, and the When states the verified ID token carries both, matching the claims
+    the `/builds` page renders and PENDING-2's fixture.
+  - **BSB-18-PENDING-2**, Notes: states that it supplies the create-or-reuse `users` upsert and the
+    missing-`sub` refusal invoked by PENDING-1's `/auth/callback`, with the row written before the
+    session is issued, and that both stories share one callback sequence and one required claim set.
+  - No acceptance-criteria change in PENDING-2; its existing scenarios already assert those outcomes.
+- **Finding 2 — `GET /sign-in` is a rendered HTTP 200 page, not a redirect to Cognito (Blocking;
+  PENDING-1 and PENDING-3).** Applied as proposed:
+  - **BSB-18-PENDING-1**, Notes: the redirect-to-Cognito wording is replaced — `GET /sign-in` renders
+    HTTP 200 in every case, including the `?error=…` render, and presents a "Sign in" control that
+    sends the browser to the app client's Cognito sign-in URL; Cognito then redirects back to
+    `GET /auth/callback`. No acceptance-criteria change.
+  - **BSB-18-PENDING-3**, no acceptance-criteria change: its "Public sign-in page is not gated by the
+    middleware" scenario (HTTP 200) is the contract PENDING-1 now meets.
+- **Finding 3 — an expired, unrefreshable session is distinct from an anonymous request (Blocking;
+  PENDING-1 and PENDING-3).** Applied as proposed:
+  - **BSB-18-PENDING-1**, Notes: "treated as anonymous" is replaced by an explicit distinction — a
+    request with no `sb_session` session is anonymous; a request whose session exists but whose ID
+    token expired and whose refresh exchange failed is unauthenticated but remains identifiable as
+    an expired session, with the session state retained until the denial redirect is issued, and
+    PENDING-3's middleware reports it as `session_expired`, not `session_required`.
+  - **BSB-18-PENDING-3**, Notes: states that `session_expired` is used exactly for the
+    expired/unrefreshable session case and `session_required` only for a request with no session, and
+    that the middleware reads the distinction from the session state PENDING-1 retains. No
+    acceptance-criteria change; both denial codes and messages were already correct.
+- **Finding 4 — `/account` is in the protected-surface inventory (Advisory; PENDING-2 and
+  PENDING-3).** Applied as proposed:
+  - **BSB-18-PENDING-2**, Notes: states that `GET /account` is a protected authoring page gated by
+    BSB-18-PENDING-3's per-request middleware, and that an anonymous or removed-member request is
+    denied before any handler runs and receives no email or account data.
+  - **BSB-18-PENDING-3**, Notes: names `/builds`, `GET /api/builds` and PENDING-2's `/account` as the
+    representative protected surfaces, with `/account` gated by the same middleware. The middleware
+    rule itself and every acceptance criterion are unchanged.
+
+### Other changes
+
+- **`story-map.json` — three summaries.** Rewritten to state the contracts this pass settled:
+  PENDING-1's rendered `/sign-in` page, required `sub`/`email` claims, pre-session upsert,
+  missing-`sub` refusal and anonymous-versus-expired distinction; PENDING-2 supplying that upsert and
+  refusal and `/account` being middleware-protected; PENDING-3's protected-surface inventory and its
+  `session_required` versus `session_expired` distinction. Story keys and `requirement_ids` are
+  unchanged; no requirement mapping moved.
+
+### Coverage re-check
+
+Every requirement mapped to BSB-18 in `epic-map.json` — FR-001, FR-002, FR-003, FR-004, FR-005,
+FR-138, FR-141, FR-142, FR-165, NFR-002, NFR-003 — still appears in exactly one story's
+`requirement_ids`, and no story claims a requirement outside the epic. 3 stories, 11 requirements,
+no gap and no foreign requirement.
+
+### Still open
+
+None. The report's Open questions section lists no question, and every proposed change is applied as
+written.
+
+### Notes for the next review
+
+- **Scenario count, titles, keys, estimates and requirement IDs are unchanged.** PENDING-1 has 7
+  Gherkin scenarios, PENDING-2 has 6 and PENDING-3 has 7; no scenario was added or removed. The only
+  acceptance-criteria edit is PENDING-1's successful-sign-in Given/When gaining the concrete `sub`
+  and `email` claims; the remaining changes are Notes and `story-map.json` summaries.
+- **Stale PRD wording, no story change.** `PRD.md` section 8 still says FR-165 "will be mapped on the
+  next epics pass" although `epic-map.json` already maps it and PENDING-2 covers it; that is a PRD
+  wording issue outside this skill's write scope.

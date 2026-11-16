@@ -25,8 +25,8 @@ As a **skill author**, I want **to sign in with my existing platform account and
 ### Acceptance Criteria
 
 Scenario: Current group member signs in and opens the builds page
-Given a Cognito user "ada@example.com" with the password "Correct-Horse-Battery-1" who is a member of the "skill-builders" group and has no "sb_session" cookie
-When ada selects "Sign in" at "/sign-in", completes the Cognito hosted sign-in page as "ada@example.com" with "Correct-Horse-Battery-1", and Cognito redirects to GET "/auth/callback?code=valid-code-ada" with a verified ID token whose "cognito:groups" claim carries "skill-builders"
+Given a Cognito user "ada@example.com" with the password "Correct-Horse-Battery-1", the "sub" claim "c0ffee00-1234-4abc-9def-000000000001" and the "email" claim "ada@example.com", who is a member of the "skill-builders" group and has no "sb_session" cookie
+When ada selects "Sign in" at "/sign-in", completes the Cognito hosted sign-in page as "ada@example.com" with "Correct-Horse-Battery-1", and Cognito redirects to GET "/auth/callback?code=valid-code-ada" with a verified ID token whose "sub" claim is "c0ffee00-1234-4abc-9def-000000000001", whose "email" claim is "ada@example.com" and whose "cognito:groups" claim carries "skill-builders"
 Then the builder sets one "sb_session" cookie with "HttpOnly", "Secure" and "SameSite=Lax", responds with HTTP 302 and a Location header of "/builds", and a follow-up GET "/builds" returns HTTP 200 rendering the heading "Your builds", the text "ada@example.com" and the empty-state text "You have no builds yet."
 
 Scenario: Non-member sign-in is refused
@@ -72,15 +72,27 @@ account continuity and account page of BSB-18-PENDING-2.
 ### Notes / dependencies
 Depends on the external Cognito User Pool and the externally managed "skill-builders" group
 (ADR SK-001 section 3). Sign-in is the authorization-code flow with Cognito's hosted sign-in page:
-"/sign-in" redirects to the app client's Cognito sign-in URL, Cognito redirects back to the
-builder's own callback URL "/auth/callback", and the builder exchanges the "code" at the token
-endpoint. It never receives or stores the user's password.
+`GET /sign-in` renders HTTP 200 in every case, including the `?error=…` render, and presents a
+"Sign in" control that sends the browser to the app client's Cognito sign-in URL; Cognito then
+redirects back to `GET /auth/callback` with the authorization code, and the builder exchanges the
+"code" at the token endpoint. It never receives or stores the user's password.
+
+The callback's success path requires the verified ID token's "sub" claim (and the "email" claim
+this story renders on "/builds"); it calls BSB-18-PENDING-2's create-or-reuse "users" upsert
+before setting the "sb_session" cookie, so the local row is written before any session is issued.
+A verified token missing "sub" is refused with the same "/sign-in?error=sign_in_incomplete"
+redirect as this story's other callback failures, sets no "sb_session" cookie and creates no
+"users" row. The callback never issues a session for a subject that has no local account.
 
 The session contract that BSB-18-PENDING-2 and BSB-18-PENDING-3 consume is defined here: the
 "sb_session" cookie carries only a server-side session id; the server-side session stores the
 verified ID token and the Cognito refresh token; the ID token lifetime is 60 minutes and the
-builder refreshes it with the refresh token before expiry; a session whose ID token has expired and
-whose refresh exchange fails is treated as anonymous. A rejected sign-in sets no session.
+builder refreshes it with the refresh token before expiry. A request that carries no "sb_session"
+session is anonymous, while a request whose session exists but whose ID token has expired and whose
+refresh exchange fails is unauthenticated but remains identifiable as an expired session: the
+server-side session state needed to make that distinction is retained until the denial redirect is
+issued, and BSB-18-PENDING-3's middleware reports it as "session_expired", not "session_required".
+A rejected sign-in sets no session.
 
 This story delivers BSB-18's minimal authenticated "/builds" page and GET "/api/builds" returning
 the empty list; they are the representative protected surfaces for this epic, not a build-list
@@ -160,10 +172,19 @@ the durable system of record named in ADR SK-001 section 9: the builder's own "u
 references. The uniqueness constraint, not application-level counting, must make the reuse case
 pass.
 
+This story supplies the create-or-reuse "users" upsert and the missing-"sub" refusal that
+BSB-18-PENDING-1's "/auth/callback" invokes: on a successful callback the row is written or reused
+before the "sb_session" cookie is set, and a verified token without "sub" is refused before any row
+is written or session issued. The two stories share one documented callback sequence and one
+required claim set ("sub" and "email"); the scenarios here assert those outcomes from the
+callback's side.
+
 GET "/account" is BSB-18's minimal account page, delivered by this story. It renders the email and
 the local "users.id" from that row, which is the user-visible face of the stable local identity;
-the id is a reference, not a permission, and the "users" table carries no role column. Later epics
-may extend the page, but no later epic manages users.
+the id is a reference, not a permission, and the "users" table carries no role column. It is a
+protected authoring page gated by BSB-18-PENDING-3's per-request authorization middleware: an
+anonymous or removed-member request is denied before any handler runs and receives no email or
+account data. Later epics may extend the page, but no later epic manages users.
 
 FR-165 is a negative requirement: the proof is the absence of a client, credential and connection —
 observed at runtime, in the image, and by the startup refusal — rather than a positive query. The
@@ -241,15 +262,22 @@ and current skill-builders membership on protected authoring pages and APIs befo
 owned by BSB-18-PENDING-1 and are exempt from this middleware; every other page and API route is
 gated. The two stories are not two gates, and BSB-18-PENDING-1's sign-in is the only other auth
 path. "Public sign-in page is not gated by the middleware" is the executable proof of that
-exemption. Both denial contracts stated in the scenarios are this middleware's contract.
+exemption. Both denial contracts stated in the scenarios are this middleware's contract. The
+representative protected surfaces in this epic are the "/builds" page, GET "/api/builds" and
+BSB-18-PENDING-2's "/account" page; "/account" is gated here too, and an anonymous or
+removed-member request for it receives no email or account data.
 
 The two page-denial redirects use the `/sign-in` error-query contract owned by BSB-18-PENDING-1
 rather than a vocabulary defined here: `session_required` and `session_expired` are two of the
 three error values that page specifies, and the redirect targets, codes and messages in the
-scenarios above are exactly that contract. This story neither adds nor renames an error value, so
-there is one code-to-message mapping, owned by the story that owns `/sign-in`. BSB-37's
-command-line entry point must authenticate against this same gate rather than re-implement it;
-command-line authentication is out of scope here.
+scenarios above are exactly that contract. `session_expired` is used exactly for the expired,
+unrefreshable session case — a request whose "sb_session" session exists but whose stored ID token
+expired and whose refresh-token exchange failed — and `session_required` only for a request that
+carries no session; the middleware reads that distinction from the session state
+BSB-18-PENDING-1 retains until the denial redirect is issued. This story neither adds nor renames
+an error value, so there is one code-to-message mapping, owned by the story that owns `/sign-in`.
+BSB-37's command-line entry point must authenticate against this same gate rather than re-implement
+it; command-line authentication is out of scope here.
 
 The check reads the verified token's "cognito:groups" claim on every request and must not memoise a
 positive membership result past the token's lifetime; the one-hour boundary is the acceptance limit,
