@@ -154,3 +154,71 @@ such split. The `jira` `mcp` definition shape, the `[REDACTED]` mask, the `BB_RE
 `BB_BASE_BRANCH` / PUT URL variable names and the `ai_model` secret fixture are contract constants
 this pass pinned because no BSB-23 or step-kit story fixes them yet; reconcile them with BSB-23's
 schema when that epic decomposes.
+
+## Pass 2 — 2026-11-16 — `epic-review.md` (same report, re-supplied by the changes_requested route)
+
+**Report applied:** the same `docs/product/epics/BSB-26/_epic/epic-review.md` (commit `c25ba32`),
+verdict CHANGES REQUESTED — findings 1–9 and open questions 1–3. Its advertised split is five
+Blocking findings (1–5), four Advisory (6–9) and three open questions, which matches the file.
+
+**Target resolution (repeated, read-only).** The run's target `SkillBuilder` is the product title of
+`docs/product/PRD.md` §8, not a Jira issue: a JQL search of project `BSB` for an issue whose summary
+contains `SkillBuilder` returned no issues. The Atlassian MCP server was again not connected in this
+session (its `.mcp.json` declares `args` as a string rather than an array, so no Atlassian tools were
+offered). **BSB-26** was fetched read-only through the Atlassian REST API instead: summary *Run
+execution & outcome capture*, type Epic, status *To Do*, labels `FA-7` and `MVP`; its description,
+functional scope and covered requirements match the BSB-26 section of `docs/product/epics.md`. Jira
+issues have no acceptance criteria for this item; the epic's eight requirements are the ones
+decomposed here. Nothing was written to Jira.
+
+**What this pass changed:** no story content. Every answer-independent proposed change in the
+report was already applied by Pass 1 (commit `b0cdc3a`) and is still in `stories.md`; re-checking the
+file against the report found no outstanding item that does not depend on an unanswered question.
+The applied set remains:
+
+- Finding 1 (answer-independent part): run `3` fixture, the reviewer-feedback/upstream-handoff
+  `BB_CONTEXT` scenario in PENDING-1, and the open-question record in the preamble and PENDING-3.
+- Finding 2: the `github`/`jira` fixture rows, `BB_REPO_URL` / `BB_BASE_BRANCH` / `BB_MCP_CONFIG`,
+  the PENDING-1 environment scenario, and the BSB-23 dependency split between PENDING-1 and
+  PENDING-4.
+- Finding 3 (answer-independent part): `BB_PROGRESS_PUT_URL` / `BB_RESULT_PUT_URL`, the PENDING-1
+  assertions on their paths, and PENDING-3's result-key note.
+- Finding 4 (answer-independent part): the terminal-write rule and the PENDING-3
+  already-`failed_timeout` scenario.
+- Finding 5: `state` mirrors `runs.state`, the progress region is absent for terminal runs, the log
+  stays readable, and the `failed_infra` and `completed` assertions.
+- Finding 6: the executor-restart reconciliation scenario and the `bb.run_id` recovery notes.
+- Finding 7: the NFR-004 redaction contract and scenario, and the NFR-011 tracing note and Out of
+  scope entry.
+- Finding 8: the check order and path/run mismatch row, plus PENDING-2's 404, mismatch and page-403
+  scenarios.
+- Finding 9: both stories now name the installation-provisioned `skill-builder-runs` bucket, and
+  PENDING-2's BSB-23 bucket reference is gone.
+
+**Still open — not applied, because this run's hand-off carried no gate answers:**
+
+- **Finding 1 / Open question 1 (Blocking).** Does run start resolve the default workflow and step
+  (a workflow on the chosen skills branch that uses the skill) and store them in `runs.context`, or
+  does BSB-26 resolve them at claim from the pinned skills commit? What happens when no workflow, or
+  more than one, uses the skill? Still unanswered, and identical to BSB-24 Open question 4. The
+  conditional PENDING-1 scenarios for `context` = `{}`, the "run start owns the default" and
+  "BSB-26 owns the default" Notes, PENDING-3's source of `allowed_result_statuses` for an omitted
+  context, and the preamble's owner statement are therefore not written.
+- **Finding 3 / Open question 2 (Blocking).** Is `runs/<id>/agent.log` the builder's capture of the
+  container's stdout/stderr, so the builder is its only writer and enforces the cap and marker, or an
+  upload by the image through a presigned PUT? Still unanswered. PENDING-2's Notes still describe
+  only `progress.json` as the image's dependency, and the preamble log contract still records the
+  writer as open; no `/runs/1/agent.log` PUT URL is asserted.
+- **Finding 4 / Open question 3 (Blocking).** The `runs.state` values owned by BSB-27 (a run stopped
+  at its turn or spend cap, FR-051 and FR-053) and by BSB-25 (a run whose preparation fails) are
+  still unnamed in `epics.md`, the PRD and this epic. No value was invented; the state-vocabulary
+  paragraph records both as sibling-owned and open, and no scenario asserts either.
+
+**Coverage:** unchanged. All eight requirements mapped to BSB-26 (FR-044 to FR-049, FR-151 and
+FR-152) are still covered by the same four stories, no requirement is claimed twice, and
+`story-map.json` is unchanged — no story key, summary or requirement mapping changed.
+
+**Hand-off:** the revised set is unchanged, so a further revise pass cannot make it cleaner without
+the three decisions above. The reviewer should run again once a person answers Open questions 1–3 at
+the gate (the same answer to Open question 1 also closes BSB-24 Open question 4); until then the
+review's Blocking findings 1, 3 and 4 stand.
