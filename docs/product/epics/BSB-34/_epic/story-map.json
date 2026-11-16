@@ -4,27 +4,22 @@
   "stories": [
     {
       "story_key": "BSB-34-PENDING-1",
-      "summary": "Record each run's token usage, cost and turn count from terminal execution telemetry, with zero, absent and invalid telemetry handled and no credential values stored",
-      "requirement_ids": ["NFR-015", "NFR-016", "NFR-017"]
+      "summary": "Show the token usage, cost and turn count recorded when a run finished on its report, with zero, absent and invalid telemetry shown as not recorded or zero and no credential values stored or shown",
+      "requirement_ids": ["FR-159", "FR-160", "NFR-015", "NFR-016", "NFR-017"]
     },
     {
       "story_key": "BSB-34-PENDING-2",
-      "summary": "Show the recorded token usage and cost on the run report, distinguishing not-recorded from zero and enforcing project membership",
-      "requirement_ids": ["FR-159", "FR-160"]
-    },
-    {
-      "story_key": "BSB-34-PENDING-3",
-      "summary": "Register each run's trace with the installation's test-environment identity and record its trace identifier, tolerating disabled tracing and an unavailable trace store",
+      "summary": "Open a run's trace from its report and see it marked with the installation's test-environment identity, with tracing disabled and an unavailable trace store shown on the report without failing the run",
       "requirement_ids": ["NFR-011"]
     },
     {
-      "story_key": "BSB-34-PENDING-4",
-      "summary": "Expire run transcripts, logs and results under the installation retention period (three months by default), keeping audit-critical run metadata and shared bundles",
+      "story_key": "BSB-34-PENDING-3",
+      "summary": "See on the run report whether a run's transcript, logs and results are retained, expired under the three-month default or a configured period, or pending deletion, while audit-critical run metadata and shared bundles remain",
       "requirement_ids": ["NFR-013", "NFR-018"]
     },
     {
-      "story_key": "BSB-34-PENDING-5",
-      "summary": "Purge a run's transcripts, logs and results on project-owner request, with authorization, idempotence, an auditable result and a retryable failure",
+      "story_key": "BSB-34-PENDING-4",
+      "summary": "Purge a run's transcripts, logs and results on project-owner request and see the purged state on the report, with authorization, idempotence, a reported failure and a retryable failure",
       "requirement_ids": ["NFR-014"]
     }
   ]
