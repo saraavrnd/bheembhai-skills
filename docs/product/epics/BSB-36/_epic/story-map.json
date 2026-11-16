@@ -1,0 +1,36 @@
+{
+  "epic_key": "BSB-36",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-36-PENDING-1",
+      "summary": "Enable Submit to catalog only for a build Ready at its head SHA",
+      "requirement_ids": ["FR-107"]
+    },
+    {
+      "story_key": "BSB-36-PENDING-2",
+      "summary": "Open a catalog pull request under the author's own source-control identity and record it on the build",
+      "requirement_ids": ["FR-108", "FR-112"]
+    },
+    {
+      "story_key": "BSB-36-PENDING-3",
+      "summary": "Put the head-SHA readiness checks and the run and scan report links in the pull-request description",
+      "requirement_ids": ["FR-109", "FR-110", "FR-111"]
+    },
+    {
+      "story_key": "BSB-36-PENDING-4",
+      "summary": "Track the pull request and build through open, submitted, merged and abandoned",
+      "requirement_ids": ["FR-113", "FR-161"]
+    },
+    {
+      "story_key": "BSB-36-PENDING-5",
+      "summary": "Clear readiness when a submitted build is saved without closing its pull request",
+      "requirement_ids": ["FR-114"]
+    },
+    {
+      "story_key": "BSB-36-PENDING-6",
+      "summary": "Never write directly to the catalog or the platform outside the catalog pull request",
+      "requirement_ids": ["FR-115"]
+    }
+  ]
+}
