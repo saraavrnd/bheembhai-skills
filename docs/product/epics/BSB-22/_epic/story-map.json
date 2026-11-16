@@ -1,0 +1,26 @@
+{
+  "epic_key": "BSB-22",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-22-PENDING-1",
+      "summary": "Create a test project in one transaction with the authenticated author recorded as owner_id and as the only owner member, and open the members-only project page from the author's projects list",
+      "requirement_ids": ["FR-023", "FR-024"]
+    },
+    {
+      "story_key": "BSB-22-PENDING-2",
+      "summary": "Owner-only member management: add a known skill-builders user by email, remove a member who then loses project access, and refuse unknown emails, duplicate members, non-owner changes and removal of the owner",
+      "requirement_ids": ["FR-025", "FR-026"]
+    },
+    {
+      "story_key": "BSB-22-PENDING-3",
+      "summary": "Members and the owner open the project's run-start page while signed-in non-members and removed members are refused with 403 before any project or run data is returned",
+      "requirement_ids": ["FR-027"]
+    },
+    {
+      "story_key": "BSB-22-PENDING-4",
+      "summary": "Project settings show the owner the integration management controls while a non-owner member is read-only and refused changes and a non-member is refused the page, all through the shared owner-only integration guard",
+      "requirement_ids": ["FR-028"]
+    }
+  ]
+}
