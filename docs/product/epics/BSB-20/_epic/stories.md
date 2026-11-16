@@ -10,8 +10,8 @@ covered by at least one story and no story claims a requirement outside this epi
 
 The run labelled the target `SkillBuilder`, which is the product title in `docs/product/PRD.md`,
 not a Jira issue. The Atlassian project `bheembhai-skill-builder` contains only the epic issues
-BSB-18 to BSB-38; this run's item is epic **BSB-20**, fetched read-only through the Atlassian API,
-and its seven requirements are the ones decomposed here.
+BSB-18 to BSB-38; this run's item is epic **BSB-20**, fetched read-only through the Atlassian MCP
+(`jira_get_issue`), and its seven requirements are the ones decomposed here.
 
 ## Coverage summary
 
@@ -26,8 +26,10 @@ and its seven requirements are the ones decomposed here.
 | FR-126 | BSB-20-PENDING-2 |
 
 The clone name-rule rejections in BSB-20-PENDING-1 are the epic's stated edge case ("the clone
-target name must pass the same name rules as a new build"). The rules themselves are FR-015,
-FR-016 and FR-017, owned by epic BSB-19, so they are exercised but not claimed here.
+target name must pass the same name rules as a new build"). The rules they exercise are FR-015 and
+FR-017, owned by epic BSB-19, so they are exercised but not claimed here. FR-016 (a name used by
+another open build) is not decided by this epic: its scope for clone and edit builds is Open
+question 1(a) in `epic-review.md`.
 
 ## Build and catalog contract (test fixture constants)
 
@@ -89,9 +91,11 @@ On a successful clone or edit-build open, `head_sha` is the SHA of the single co
 creates on the build branch. A test reads it with `git rev-parse origin/build/sdlc-fix-bug-recheck`
 for the clone and `git rev-parse origin/build/sdlc-fix-bug-triage` for the edit build.
 
-The rejection responses used below are fixed. The two name-rule rows are owned by epic BSB-19:
-BSB-20 asserts the same response the create path returns for the same name. The `skill_not_found`
-and `file_outside_skill_folder` rows are BSB-20's own.
+The rejection responses used below are fixed. The two name-rule rows (FR-015 and FR-017) are owned
+by epic BSB-19: BSB-20 asserts the same response the create path returns for the same name. The
+`skill_not_found` and `file_outside_skill_folder` rows are BSB-20's own. FR-016 (another open
+build) has no row here because its scope for clone and edit builds is Open question 1(a) in
+`epic-review.md`.
 
 **BSB-19-owned name-rule responses**
 
@@ -205,14 +209,16 @@ And `SELECT count(*) FROM builds WHERE skill = 'BugTriage'` returns `0`
 Editing the cloned skill's files after the clone completes (epic BSB-21, FR-127 and FR-162);
 creating a build from a new name and scaffolding it (epic BSB-19, FR-006 to FR-010); defining or
 changing the catalog name rules themselves — the clone path calls the name validator that create
-builds use, and epic BSB-19 owns FR-015, FR-016 and FR-017; deleting or renaming catalog skills;
-opening the catalog pull request (epic BSB-36).
+builds use, and epic BSB-19 owns the shared name validator (FR-015, FR-016 and FR-017); whether
+FR-016 also governs clone builds is Open question 1(a) in `epic-review.md` and is not decided
+here; deleting or renaming catalog skills; opening the catalog pull request (epic BSB-36).
 
 ### Notes / dependencies
 - Depends on epic BSB-18 for the member session and the local `users.id` = `42`, and on epic BSB-19
   for the `builds` record shape and build-branch creation (FR-006, FR-007) and for the shared name
-  validator (FR-015, FR-016, FR-017). The catalog repository `saraavrnd/bheembhai-skills` and its
-  `main` branch are external prerequisites.
+  validator (FR-015 and FR-017). FR-016's scope for the `clone` kind is unresolved: epic BSB-19
+  scopes the rule to create builds, and this epic defines no separate concurrency rule. The catalog
+  repository `saraavrnd/bheembhai-skills` and its `main` branch are external prerequisites.
 - The `POST /api/builds` route and its `create` kind are epic BSB-19's (FR-006); this epic adds the
   `clone` and `edit` kinds to the same request contract.
 - The clone is a one-shot copy. `builds.cloned_from` records provenance only; there is no live link,
@@ -226,8 +232,8 @@ opening the catalog pull request (epic BSB-36).
   is created, the same as BSB-20-PENDING-2. A stale listing is never used, so a source renamed or
   deleted on `main` is caught before any branch exists (see the `skill_not_found` scenario).
 - The two name-rule rejection responses in the contract table belong to epic BSB-19's name
-  validator (FR-015, FR-016, FR-017); this story asserts the same responses the create path
-  returns for the same name.
+  validator (FR-015 and FR-017); this story asserts the same responses the create path returns for
+  the same name. FR-016's open-build collision rule is not asserted here (Open question 1(a)).
 - Saves on a clone build are confined to `skills/sdlc-fix-bug-recheck/` by the same save-path
   rule; the save endpoint and its contract are epic BSB-21's (FR-127 and FR-162).
 - The *Clone leaves the source skill unchanged* scenario makes its commit directly with git as the
@@ -237,7 +243,7 @@ opening the catalog pull request (epic BSB-36).
 
 ## STORY: BSB-20-PENDING-2
 
-**Summary:** Open an existing catalog skill in an edit build cut from main
+**Summary:** Open an existing catalog skill in an edit build cut from the current main head and reject a missing skill
 **Epic:** BSB-20 · **Release:** MVP · **Estimate:** 3 · **Labels:** FA-2, MVP
 
 ### Story
@@ -322,8 +328,10 @@ later saves are epic BSB-21's concern; opening the catalog pull request (epic BS
 - The target folder recorded at open (`skills/sdlc-fix-bug-triage/`) is the folder the save-path
   confinement rule uses; the save endpoint and its contract are epic BSB-21's (FR-127 and FR-162).
 - Prerequisite for BSB-20-PENDING-3.
-- A second open build for the same skill name is refused by the FR-016 rule owned by epic BSB-19;
-  this story does not add a separate concurrency rule. The fixtures start with no open
+- A second open build for the same skill name falls under FR-016, but epic BSB-19 scopes that rule
+  to create builds and this epic defines no separate concurrency rule for the `edit` kind.
+  Whether FR-016 covers edit builds and which epic owns it is Open question 1(a) in
+  `epic-review.md`; this story adds no separate concurrency rule. The fixtures start with no open
   `build/sdlc-fix-bug-triage` branch.
 
 ---
