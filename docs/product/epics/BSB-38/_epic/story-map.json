@@ -1,0 +1,41 @@
+{
+  "epic_key": "BSB-38",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-38-PENDING-1",
+      "summary": "Reach and operate every control on the audited builder surfaces with the keyboard alone, with a visible focus indicator at the measured bar and no keyboard trap",
+      "requirement_ids": ["FR-130", "FR-131"]
+    },
+    {
+      "story_key": "BSB-38-PENDING-2",
+      "summary": "Expose every builder status component with a programmatic name, role and state and a visible text label, so readiness, run progress, verdicts, scan results, build state and credential verification are readable without sight or colour",
+      "requirement_ids": ["FR-132", "FR-135"]
+    },
+    {
+      "story_key": "BSB-38-PENDING-3",
+      "summary": "Expose every field on the builder forms with its label, instructions, required state and associated error message, including form-level alerts and focus to the first invalid field",
+      "requirement_ids": ["FR-133"]
+    },
+    {
+      "story_key": "BSB-38-PENDING-4",
+      "summary": "Announce run progress, failure and build readiness changes once each through a single polite live region fed by read-only live projections, without repeating unchanged values or exposing credentials",
+      "requirement_ids": ["FR-134"]
+    },
+    {
+      "story_key": "BSB-38-PENDING-5",
+      "summary": "Meet WCAG 2.1 AA contrast for all builder text and status colours in normal and hover or focus states, measured against rendered pixels, with sub-threshold pairs rejected at their measured ratio",
+      "requirement_ids": ["FR-136"]
+    },
+    {
+      "story_key": "BSB-38-PENDING-6",
+      "summary": "Reflow every audited builder surface to a 320 by 640 CSS-pixel viewport with no horizontal overflow, wrapping long values, logs and diffs and keeping every primary action reachable",
+      "requirement_ids": ["NFR-012"]
+    },
+    {
+      "story_key": "BSB-38-PENDING-7",
+      "summary": "Run a pinned axe-core WCAG 2.1 A and AA check for every audited surface on pull requests and pushes to main, block on critical or serious findings, report moderate and minor findings, and fail closed on an incomplete run",
+      "requirement_ids": ["FR-137"]
+    }
+  ]
+}
