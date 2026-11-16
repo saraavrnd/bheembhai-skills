@@ -13,284 +13,251 @@
 - **Work item / source.** `SkillBuilder-2` has no Jira issue on the configured site. The Atlassian
   MCP tools are not exposed in this session, so the site was queried read-only over its REST API
   (GET only; no Jira write). `GET /rest/api/3/issue/SkillBuilder-2` returned HTTP 404 ("Issue does
-  not exist or you do not have permission to see it"), matching `PRD.md` §8 and the earlier
-  BSB-20 report. No issue content is assumed from the lookup.
-- **The epic in this run is BSB-20.** The immediately preceding steps of run
-  `92173662-ad00-4424-9af4-41e038113d7e` wrote and revised BSB-20's stories, and
-  `_epic/revisions.md` records that this review is the next step. `GET /rest/api/3/issue/BSB-20`
-  returned HTTP 200: Epic "Skill cloning & edit builds", status To Do, labels `FA-2`/`MVP`, no
-  sub-tasks, and a description matching `epics.md`'s BSB-20 section (including "rewrites only the
-  skill name in the copied frontmatter" and "add a build mode that distinguishes clone, edit and
-  new builds").
+  not exist or you do not have permission to see it"), and the visible projects are BEEM, BSB, EX,
+  GRAP and LNPRTL — no `SkillBuilder` project. This matches `PRD.md` §8 and `epics.md`'s source
+  note; no issue content is assumed from the lookup.
+- **The epic in this run is BSB-20.** The run context's work item is `SkillBuilder-2` (the PRD's
+  parent), and its `ITEM` is BSB-20; the immediately preceding step wrote BSB-20's stories
+  (`sdlc-plan-stories-write`, commit `9b8e989`). Read-only `GET /rest/api/3/issue/BSB-20` returned
+  HTTP 200: Epic "Skill cloning & edit builds", status To Do, labels `FA-2`/`MVP`, no parent and no
+  sub-tasks, with a description matching `epics.md`'s BSB-20 section.
 - **All 2 stories in BSB-20**, from `stories.md` and `story-map.json` in one read each —
-  BSB-20-PENDING-1 and BSB-20-PENDING-2 (the full set, not a sample). `story-map.json` maps
-  exactly these two keys with the same requirement IDs.
-- **`epic-map.json`** — BSB-20 maps FR-011, FR-012, FR-013, FR-014, FR-124, FR-125 and FR-126;
-  no NFR is mapped to this epic (NFR-012 belongs to BSB-38).
+  BSB-20-PENDING-1 (FR-011, FR-012, FR-013, FR-014) and BSB-20-PENDING-2 (FR-124, FR-125, FR-126).
+  `story-map.json` maps exactly these two keys with the same requirement IDs.
+- **`epic-map.json`** — BSB-20 maps FR-011, FR-012, FR-013, FR-014, FR-124, FR-125 and FR-126; no
+  NFR is mapped to this epic (NFR-012 belongs to BSB-38).
 - **`PRD.md`** — §5 FA-2, the §6 rows for the seven mapped FRs, §7's NFR table (to confirm no
-  BSB-20 NFR), and §8's source note, external catalog prerequisite and edit-build vocabulary.
-- **`epics.md`** — BSB-20's description, functional scope, implementation guidance and Definition
-  of Done (lines 268–310); BSB-19's section and Notes (shared build record, name validator);
-  BSB-18's Notes (signed-in author and local `users` row); BSB-21's section (save-to-commit and
-  build head); and BSB-36's description and functional scope (lines 1270–1296), to test the
-  branch-lifecycle assignment.
+  BSB-20 NFR), and §8's source note, external prerequisites and no-platform-writes constraint.
+- **`epics.md`** — BSB-20's Description, Functional scope, Implementation guidance, Definition of
+  Done, Covered requirements and Notes (lines 268–325); BSB-19's section and Notes (shared build
+  record, name validator); BSB-18's Notes (signed-in author, local `users` row and the per-request
+  gate); BSB-21's section and Notes (save-to-commit, build head and readiness); and BSB-36's
+  Description/Functional scope (lines 1270–1296), to test the branch-lifecycle assignment.
 - **BSB-19's 3 stories and `story-map.json`**, because both BSB-20 stories depend on
   BSB-19-PENDING-1 for the shared `GET /builds/new` + `POST /builds` handler and on
   BSB-19-PENDING-3 for the shared name validator and open-build collision check.
 - **`docs/adr/SK-001-skill-builder.md`** — §1a (build and fixed `build/<skill-name>` branch,
-  whole-folder clone, "rewrites `name:` in the frontmatter", create scaffold), §1b (the four Ready
-  checks, including "Manifest valid: Tier 1: `bheembhai-verify` on the skill's `verify.yaml`, and
-  `tools/check.py`"), §8 (edit branch and submission) and §9 (`builds` columns: `kind`,
-  `cloned_from`, `branch`, `head_sha`, `ready_sha`, `state`).
-- **The catalog's static checks** — `README.md` lines 20–39 ("Changing a skill"; `python
-  tools/check.py` is tier 1, `bheembhai-verify lint` is tier 2) and `tools/check.py` lines 85–86
-  (`SKILL.md` frontmatter `name` must equal the folder) and 105–106 (`verify.yaml` `skill` must
-  equal the folder). The live skill folders under `skills/` confirm both name-bearing fields exist.
-- **Prior review state — verified applied, not assumed.** The previous `epic-review.md`
-  (CHANGES REQUESTED, six findings) was re-checked line by line against the current text:
-
-  | Prior finding | Severity | State in the current stories |
-  |---|---|---|
-  | 1 — catalog-manifest consistency | Blocking | Applied on the BSB-20 side: PENDING-1 AC 2 rewrites both name-bearing fields, AC 4 runs `tools/check.py`, Notes and the `story-map.json` summary match. Residual epic/PRD/ADR wording under Finding 3; residual verifier proof under Finding 4. |
-  | 2 — shared endpoint and mode | Blocking | Partly applied: both stories now name the `mode` carrier, values `create`/`clone`/`edit` and the request fields. The ownership split between BSB-19's handler and BSB-20's modes is still contradictory — Finding 1. |
-  | 3 — build-record contract | Blocking | Applied: PENDING-1 AC 1 sets `head_sha` to the clone commit (parent `base_sha`, source read at `base_sha`); PENDING-2 AC 1 sets `head_sha` = `base_sha`; both Notes state the rule. |
-  | 4 — branch lifecycle | Blocking | Applied in this epic: both Notes reset the fixed `build/<skill-name>` branch to the new `base_sha`, create no second branch, and assign cleanup to BSB-36. BSB-36 does not yet claim that scope — Finding 2. |
-  | 5 — FR-125 proof location | Advisory | Applied as proposed: PENDING-2 AC 2 asserts the resolved existing folder, the exact `git ls-tree` result and no copy path; Notes hand the save-time proof to BSB-21. |
-  | 6 — reciprocal BSB-19 notes | Advisory | Partly applied: PENDING-2 Notes name BSB-19-PENDING-1/-3 as owners for both flows and record the validator `mode` parameter. The BSB-19 stories still name only clone — Finding 1. |
-
+  whole-folder clone, frontmatter rewrite, create scaffold), §1b (Ready "Manifest valid" check),
+  §8 (edit branch and submission) and §9 (`builds` columns: `kind`, `cloned_from`, `branch`,
+  `head_sha`, `ready_sha`, `state`). `tools/check.py:86` and `:105-106` enforce the two
+  name-bearing fields; `README.md:38-39` labels `python tools/check.py` tier 1 and
+  `bheembhai-verify lint` tier 2.
+- **`_epic/epic-sequence.md` / `.json`** — exists for BSB-20 (AWAITING APPROVAL): both stories are
+  Wave 1 with no intra-epic edge, and cross-epic prerequisites BSB-18, BSB-19-PENDING-1 and
+  BSB-19-PENDING-3 are recorded. Checked only for dependency consistency; the order was not
+  recomputed here.
+- **Prior review state — verified applied, not assumed.** The previous `epic-review.md` (CHANGES
+  REQUESTED, one Blocking finding) was re-checked line by line against the current text. Its
+  BSB-20-side remedies are present: both Out-of-scope entries now say BSB-19-PENDING-1 owns the base
+  create route and create mode of the single handler and that each story adds only its own mode to
+  that same handler (Finding 1 of that pass); PENDING-1 asserts both static manifest checks
+  (Finding 4); PENDING-2 has the resolved-existing-folder AC and the reset-after-merge AC
+  (Findings 2 and 5). The residual cross-story/cross-epic gaps that survive are Findings 1–3 below.
 - **Not present:** `architecture.md`, `data-model.md`, `api-contracts/` and `ui-conventions.md` are
   not committed; the PDLC design stage runs after planning, so ADR SK-001 is the design authority
-  this pass can use. No `epic-sequence.md`/`.json` exists for BSB-20; ordering is not computed here.
+  this pass can use.
 
 ## Findings
 
-### Finding 1 — Shared handler and mode ownership: the clone/edit ACs exercise `POST /builds` while both stories put the shared handler out of scope
+### Finding 1 — Cross-epic shared-validator contract: PENDING-2 requires a `mode` parameter that BSB-19-PENDING-3 says does not exist
+
 - **Severity:** Blocking
-- **Stories touched:** BSB-20-PENDING-1, BSB-20-PENDING-2 (cross-epic: BSB-19-PENDING-1,
-  BSB-19-PENDING-3)
+- **Stories touched:** BSB-20-PENDING-2 (cross-epic: BSB-19-PENDING-3 and BSB-19-PENDING-1);
+  BSB-20-PENDING-1 is a consistent user of the same validator and needs no change.
 - **Evidence:**
-  - BSB-20-PENDING-1 Out of scope (`stories.md:67-73`): "the shared create form and `POST
-    /builds` handler (BSB-19-PENDING-1)".
-  - BSB-20-PENDING-1 Notes (`stories.md:91-95`): "The clone form extends BSB-19-PENDING-1's single
-    `GET /builds/new` + `POST /builds` handler and adds no second handler at that route. The build
-    mode is carried as the `mode` query parameter ... allowed values are `create` (the default
-    when the parameter is absent), `clone` and `edit` ... In `clone` mode the request fields are
-    the source skill name and the new skill name." Its clone ACs submit at
-    `/builds/new?mode=clone`.
-  - BSB-20-PENDING-2 Out of scope (`stories.md:146-151`): the same "shared create form and `POST
-    /builds` handler (BSB-19-PENDING-1)" entry. Its Notes (`stories.md:153-165`) say "BSB-19-PENDING-1
-    and BSB-19-PENDING-3 own those shared pieces for both the clone flow and this edit flow; this
-    story adds only the edit mode" and that the shared validator takes a `mode` parameter. Its
-    edit ACs submit at `/builds/new?mode=edit`.
+  - BSB-20-PENDING-2 Notes (`stories.md:169-177`): "BSB-19-PENDING-3 owns the skill-name pattern
+    validator and open-build collision check for both the clone flow and this edit flow; this story
+    owns the `edit`-mode dispatch on the same handler and the inverted existence rule. … Because of
+    that inversion, the shared validator takes a `mode` parameter (`create`/`clone` versus `edit`)
+    that selects the existence rule, while the pattern and open-build collision parts are reused
+    unchanged."
+  - BSB-19-PENDING-3 Notes (`BSB-19/_epic/stories.md:197-199`): "The validator and collision check
+    are reused unchanged by the clone flow in BSB-20 (FR-015 covers create or clone)." Its Out of
+    scope (`:184-188`) names only "clone-build creation (BSB-20)", not edit-build creation, and
+    defines no `mode` parameter.
   - BSB-19-PENDING-1 Notes (`BSB-19/_epic/stories.md:59-63`): "The create form is served at GET
     `/builds/new` and POST `/builds` returns the confirmation body; these routes are owned by this
-    epic". The story defines no `mode` parameter and no clone/edit mode; its ACs submit at
-    `/builds/new` with a skill name and description only.
-  - BSB-19-PENDING-3 Notes (`BSB-19/_epic/stories.md:198-199`): "The validator and collision check
-    are reused unchanged by the clone flow in BSB-20"; its Out of scope names clone-build creation
-    only, not edit-build creation or a `mode` parameter.
-  - `epics.md:294-295` implementation guidance: "add a build mode that distinguishes clone, edit
-    and new builds"; ADR SK-001 §9 defines `builds.kind` as `(create, clone, edit)`.
-- **What is missing/ambiguous/contradictory:** Each BSB-20 AC requires the shared `POST /builds`
-  route to dispatch to clone or edit mode, but the same story's Out-of-scope section says that
-  handler belongs to BSB-19-PENDING-1. BSB-19-PENDING-1's story owns the route but defines no
-  mode, and BSB-19-PENDING-3's validator is "reused unchanged" for clone only. No story says who
-  adds the `mode` parameter and the edit-mode existence inversion: if BSB-20 does not touch the
-  handler (as its Out of scope says), the mode is never built; if BSB-20 does extend it (as its
-  Notes say), it is modifying a route it just declared out of scope. Two implementers can build a
-  second handler at the same route or a create-only handler, and one of the two stories' own
-  statements is then false. This is the same shared-endpoint gap the previous pass flagged; the
-  mode values and request fields are now specified, but the single owner is not.
-- **Question (if a person must decide):** None assuming the split already stated in
-  BSB-20-PENDING-2's Notes is confirmed: BSB-19-PENDING-1 owns the base create route and
-  BSB-19-PENDING-3 owns the pattern/collision validator, while BSB-20 adds the clone and edit modes
-  to that same handler and passes the validator a `mode` value. The finding is the Out-of-scope
-  wording that denies that split, not an unresolved product choice. (If the team instead wants
-  BSB-19 to own the mode parameter too, that is a cross-epic revision; the proposed change below
-  assumes the Notes' split.)
+    epic". It defines no `mode` parameter and no edit mode; its Out of scope (`:45-49`) names
+    "cloning (BSB-20)" but not BSB-20's edit mode.
+  - BSB-20-PENDING-1 Notes (`stories.md:78-81`) says it reuses the same validator "unchanged",
+    which agrees with BSB-19-PENDING-3 for the clone flow — the contradiction is specific to the
+    edit flow.
+- **What is missing/ambiguous/contradictory:** The two epics describe the same shared component
+  with opposite interfaces. BSB-19 is sequenced first and its story promises the validator and
+  collision check are "reused unchanged" for clone only; BSB-20-PENDING-2 expects that validator to
+  accept a `mode` parameter and to serve the edit flow, whose existence rule is the inverse. If
+  BSB-19-PENDING-3 is built as written, BSB-20-PENDING-2 cannot reuse it unchanged — it must modify
+  a component the earlier epic declared frozen — and the edit flow's inverted existence rule has no
+  agreed home. Two implementers can therefore build two different validators, or one can build the
+  wrong one. The BSB-20-side Out-of-scope/handler ownership is now correct; the remaining defect is
+  the validator's cross-epic contract.
+- **Question (if a person must decide):** Should the shared validator take a `mode` parameter
+  (which requires revising BSB-19-PENDING-3 to define it and name the edit flow), or should
+  BSB-20-PENDING-2 own the inverted existing-on-main predicate and reuse BSB-19-PENDING-3's
+  pattern and open-build collision checks unchanged? The report recommends the second option
+  because BSB-19 is built first and its Notes already promise "reused unchanged"; that option is
+  applyable inside BSB-20 without a BSB-19 revision. (Also listed under Open questions.)
 - **Proposed change:**
-  - **BSB-20-PENDING-1:** Replace the Out-of-scope entry "the shared create form and `POST
-    /builds` handler (BSB-19-PENDING-1)" with "the base create route and create mode of the shared
-    `GET /builds/new` + `POST /builds` handler (BSB-19-PENDING-1); this story adds the clone mode
-    to that same handler, not a second handler". Keep the Notes' mode carrier, values, default and
-    clone request fields unchanged.
-  - **BSB-20-PENDING-2:** Make the same Out-of-scope rewording for the edit mode: "the base create
-    route and create mode of the shared handler (BSB-19-PENDING-1); this story adds the edit mode
-    to that same handler". Keep the Notes' statement that BSB-19-PENDING-1/-3 own the shared pieces
-    and that the validator takes a `mode` parameter.
-  - **Same change for both stories:** one owner per layer — BSB-19 owns the base handler and the
-    pattern/collision validator; BSB-20 owns the clone/edit mode dispatch and the inverted edit
-    existence rule. Neither story creates a second handler at `/builds`.
-  - **Cross-epic follow-up (not applied here):** BSB-19-PENDING-1's Notes should add that the
-    handler is extended by BSB-20's clone/edit modes through the `mode` parameter, and
-    BSB-19-PENDING-3 should name the edit flow and its inverted existence rule alongside the clone
-    flow. These belong to BSB-19's next revision, not this story pass.
+  - **BSB-20-PENDING-2:** Replace the `mode`-parameter sentence in Notes with: "This story reuses
+    BSB-19-PENDING-3's skill-name pattern validator and open-build collision check unchanged; the
+    edit mode's existence rule is inverted, so this story owns the existing-on-main predicate
+    (reject when the name is absent) and does not parameterise BSB-19's validator." Keep the rest
+    of the Notes and every acceptance criterion unchanged.
+  - **BSB-20-PENDING-1:** No change. Its clone mode needs no `mode` parameter because its
+    existence rule matches create's (reject a name already on `main`), so it can call
+    BSB-19-PENDING-3's validator unchanged; only PENDING-2 needs the inversion. Its "reused
+    unchanged" statement therefore already matches BSB-19-PENDING-3.
+  - **Cross-epic follow-up (not applied here), only if the second option is rejected:** revise
+    BSB-19-PENDING-3 to define the `mode` parameter and name the edit flow and its inverted
+    existence rule, and add to BSB-19-PENDING-1's Notes that its handler is extended by BSB-20's
+    clone/edit modes. That is a BSB-19 revision, outside this epic's story pass.
 
-### Finding 2 — Epic-wide scope boundary: branch cleanup is assigned to BSB-36, whose scope does not include it
+### Finding 2 — Fixed-branch lifecycle: PENDING-1 hands "reusing" to BSB-36 while PENDING-2 puts the reset in scope and asserts it
+
 - **Severity:** Advisory
 - **Stories touched:** BSB-20-PENDING-1, BSB-20-PENDING-2 (cross-epic: BSB-36)
 - **Evidence:**
-  - Both stories' Out of scope (`stories.md:71-72` and `:149-151`): "deleting or reusing
-    `build/<skill-name>` after a build is merged or abandoned (BSB-36)".
-  - Both stories' Notes (`stories.md:99-102` and `:181-183`): "When a prior build for the same
-    skill was merged or abandoned, a new build resets that branch to the new `base_sha` and
-    creates no second branch; deleting or finalising the branch on merge or abandonment belongs to
-    BSB-36 (submission and build lifecycle), not this epic."
-  - `epics.md:1284-1296` (BSB-36 functional scope) lists readiness gating, opening the pull
-    request, the description, recording the pull-request URL/state, moving the build through
-    open/submitted/merged/abandoned, clearing readiness on a save and the no-direct-write rule. It
-    does not mention deleting, reusing or finalising the `build/<skill-name>` branch.
-  - ADR SK-001 §1a says an enhancement is a new build (a clone or an edit branch) on the same
-    fixed `build/<skill-name>` branch, which is why the reset rule matters.
-- **What is missing/ambiguous/contradictory:** The in-epic behaviour is defined and consistent:
-  BSB-20 resets the fixed branch to the new `base_sha` and creates no second branch, so a second
-  build of the same skill is buildable. But the stories hand the post-merge/post-abandonment
-  cleanup to an epic whose own functional scope does not admit it. A BSB-36 implementer reading
-  only BSB-36 will not build branch cleanup; the capability is then unowned even though BSB-20's
-  Out of scope says it is owned. No BSB-20 acceptance criterion exercises the reset-after-merge
-  case either, so the rule lives only in Notes.
-- **Question (if a person must decide):** None is needed to build BSB-20 as written — the reset
-  rule is explicit. The decision belongs to BSB-36's epic revision: does BSB-36 delete or finalise
-  the branch on merge/abandonment, or is the branch left in place for the next build's reset?
+  - BSB-20-PENDING-1 Out of scope (`stories.md:72-74`): "deleting or reusing `build/<skill-name>`
+    after a build is merged or abandoned (BSB-36)".
+  - BSB-20-PENDING-1 Notes (`stories.md:104-107`): "When a prior build for the same skill was
+    merged or abandoned, a new build resets that branch to the new `base_sha` and creates no second
+    branch; deleting or finalising the branch on merge or abandonment belongs to BSB-36".
+  - BSB-20-PENDING-2 Out of scope (`stories.md:160-162`): "deleting or finalising
+    `build/<skill-name>` after a build is merged or abandoned (BSB-36) — the reset of that fixed
+    branch when a new build starts is in scope and asserted above"; and its AC 2
+    (`stories.md:126-129`) asserts the reset after a merged build.
+  - BSB-36 Functional scope (`epics.md:1284-1295`) covers readiness gating, opening the pull
+    request, recording its URL/state, the open/submitted/merged/abandoned transitions, clearing
+    readiness on save and the no-direct-write rule; it never mentions deleting, finalising or
+    reusing the fixed build branch.
+- **What is missing/ambiguous/contradictory:** The two sibling stories now describe the same fixed
+  branch rule differently. PENDING-2 says the reset is in scope and proves it with an AC;
+  PENDING-1's Out of scope still says "reusing" belongs to BSB-36, which contradicts PENDING-1's
+  own Notes (which state the reset) and PENDING-2's wording. PENDING-1 also has no acceptance
+  criterion for the clone flow's equivalent case — a prior *abandoned* build for the same new name.
+  (The *merged* case cannot reach clone: the merged name is then on `main`, so the clone's
+  "already exists on main" rule rejects it; the abandoned case can reach it.) Meanwhile the
+  cleanup owner named by both stories, BSB-36, does not claim the post-merge/post-abandonment
+  branch lifecycle at all. The intended rule is clear from the Notes, so the stories are safe to
+  build as written, but the scope wording and the proof are inconsistent across the siblings.
+- **Question (if a person must decide):** None for BSB-20 — the reset rule is already stated in
+  both Notes. The ownership question is BSB-36's: does BSB-36 delete or finalise the fixed branch
+  after a merge/abandonment, or leave it for the next build's reset? That is a cross-epic follow-up,
+  not a BSB-20 product decision.
 - **Proposed change:**
-  - **BSB-20-PENDING-1** and **BSB-20-PENDING-2:** No change required to the stories' statements or
-    acceptance criteria; the Notes already state the reset rule and the Out of scope already names
-    BSB-36. Optional only: add one acceptance criterion for a prior merged/abandoned build if the
-    team wants the reset rule proven in this epic rather than in BSB-36.
-  - **Cross-epic follow-up (not applied here):** BSB-36's functional scope or Notes should state
+  - **BSB-20-PENDING-1:** Replace the Out-of-scope entry "deleting or reusing
+    `build/<skill-name>` after a build is merged or abandoned (BSB-36)" with PENDING-2's wording:
+    "deleting or finalising `build/<skill-name>` after a build is merged or abandoned (BSB-36) — the
+    reset of that fixed branch when a new build starts is in scope." Optionally add one acceptance
+    criterion for a prior abandoned build for the same new name, asserting the branch resets to the
+    new `base_sha`, the clone commit's parent is that `base_sha`, and no second branch is created
+    (the clone analogue of PENDING-2's AC 2).
+  - **BSB-20-PENDING-2:** No change; its Out of scope and AC 2 already state the intended rule.
+  - **Cross-epic follow-up (not applied here):** BSB-36's Functional scope or Notes should state
     what happens to the fixed `build/<skill-name>` branch after a merge or abandonment, so the
-    owner BSB-20 names actually owns it. No BSB-20 story key, requirement or acceptance criterion
-    needs to change for this.
+    owner both BSB-20 stories name actually owns it. No BSB-20 story key, requirement or AC needs
+    to change for that.
 
-### Finding 3 — Epic-boundary traceability: the BSB-20 description and guidance still describe a narrower manifest rewrite and a different mode vocabulary than the stories
+### Finding 3 — Epic-boundary traceability: the epic Description/DoD, FR-013 and ADR §1a still describe a narrower frontmatter-only rewrite and the "new" mode vocabulary
+
 - **Severity:** Advisory
-- **Stories touched:** BSB-20-PENDING-1 (epic boundary; cross-document: `epics.md`, `PRD.md`,
-  ADR SK-001 §1a)
+- **Stories touched:** BSB-20-PENDING-1 (epic boundary; cross-document: `epics.md` BSB-20,
+  `PRD.md` FR-013, ADR SK-001 §1a; the Jira epic description carries the same stale sentence)
 - **Evidence:**
-  - BSB-20-PENDING-1 AC 2 (`stories.md:26-29`): `verify.yaml` "has skill `sdlc-plan-workshop` and
-    every other byte identical to its source", and "`SKILL.md` and `verify.yaml` are the only
-    copied files whose bytes differ". Its Notes (`stories.md:85-89`) say `SKILL.md`'s frontmatter
-    `name` and `verify.yaml`'s top-level `skill` both become the new name.
-  - `epics.md:274-276` description: "Cloning copies the whole skill folder, rewrites **only the
-    skill name in the copied frontmatter**, and leaves the source skill untouched." The Jira
-    BSB-20 description contains the same sentence. `PRD.md:87` FR-013 says "Cloning rewrites the
-    skill name in the copied frontmatter." ADR SK-001 §1a line 84 says the clone "rewrites
-    `name:` in the frontmatter."
-  - `tools/check.py:105-106` rejects a `verify.yaml` whose `skill` value does not equal its folder
-    name, and `tools/check.py:85-86` does the same for `SKILL.md`'s frontmatter `name`; `README.md`
-    says CI runs `python tools/check.py`. The story's extra rewrite is therefore required for
-    catalog validity, not optional.
-  - `epics.md:294-295` implementation guidance says "add a build mode that distinguishes clone,
-    edit and **new** builds", while the stories, ADR SK-001 §9 and BSB-19-PENDING-1 all use the
+  - BSB-20-PENDING-1 AC 2 and AC 3 (`stories.md:26-34`) and Notes (`:85-92`) require both
+    name-bearing fields to be rewritten: `SKILL.md` frontmatter `name` and `verify.yaml` top-level
+    `skill`, with every other byte identical.
+  - `epics.md:274-276` (BSB-20 Description): "Cloning copies the whole skill folder, rewrites
+    **only the skill name in the copied frontmatter**, and leaves the source skill untouched."
+    `epics.md:305-310` (Definition of Done): "whose frontmatter name matches the new skill".
+    `PRD.md:87` FR-013: "Cloning rewrites the skill name in the copied frontmatter." ADR SK-001
+    §1a: the clone "rewrites `name:` in the frontmatter."
+  - `tools/check.py:86` rejects a `SKILL.md` frontmatter `name` that differs from the folder, and
+    `:105-106` rejects a `verify.yaml` whose `skill` value differs from the folder; `README.md:38`
+    records `python tools/check.py` as a CI check. The `verify.yaml` rewrite is therefore required
+    for a catalog-valid clone, not optional.
+  - `epics.md:294-295` (Implementation guidance): "add a build mode that distinguishes clone, edit
+    and **new** builds", while the stories, ADR SK-001 §9 and BSB-19-PENDING-1 all use the
     `builds.kind` value `create` (the default `mode` value in BSB-20).
 - **What is missing/ambiguous/contradictory:** The story is correct against the catalog check, but
-  the epic description, the PRD's FR-013 and ADR §1a's prose now under-describe it: a reader
-  comparing the story to the epic sees a scope expansion ("frontmatter only") that the story
+  the epic's own Description, DoD and traceability text (and the FR/ADR prose) under-describe it: a
+  reader comparing the story to FR-013 sees a scope expansion ("frontmatter only") that the story
   deliberately exceeds to keep the clone catalog-valid. Separately, the epic guidance's "new"
-  vocabulary differs from the stories' `create` value. Neither is a build ambiguity — the stories
-  name the exact fields and values — but the epic's own boundary and its traceability text are
-  stale relative to the stories that were revised to satisfy `tools/check.py`. This is an
-  epic-boundary/documentation gap, not a missing entity or endpoint.
-- **Question (if a person must decide):** None needed before code is written; the catalog check
-  fixes the behaviour. If the team wants FR-013's "frontmatter" to remain literally limited to
-  `SKILL.md`, then the `verify.yaml` rewrite needs a separate requirement or an explicit note in
-  the epic; otherwise the epic/PRD wording should be clarified to cover both name-bearing fields.
+  vocabulary differs from the stories' `create` value. Neither is a build ambiguity — the story
+  names the exact fields and values — but the epic boundary and its traceability text are stale
+  relative to the stories revised to satisfy `tools/check.py`.
+- **Question (if a person must decide):** None required before code — the catalog check fixes the
+  behaviour. If the team wants FR-013's "frontmatter" to remain literally limited to `SKILL.md`,
+  the `verify.yaml` rewrite needs a separate requirement or an explicit note in the epic; otherwise
+  the epic/PRD/ADR wording should be clarified to cover both name-bearing fields.
 - **Proposed change:**
   - **BSB-20-PENDING-1:** No statement or acceptance-criterion change. The story already names the
-    two rewritten fields and the `create`/`clone`/`edit` mode values.
+    two rewritten fields and the `create`/`clone`/`edit` values.
   - **Cross-document follow-up (not applied here):** On the next `epics.md`/PRD revision, clarify
-    BSB-20's description and FR-013 so "the skill name in the copied frontmatter" also covers the
-    `verify.yaml` top-level `skill` value required by `tools/check.py`, and use the ADR's
-    `create`/`clone`/`edit` vocabulary rather than "new". Clarify ADR SK-001 §1a's clone sentence
-    the same way. No change to `epic-map.json` or the requirement IDs.
-
-### Finding 4 — Cross-story verification coverage: the clone proves only `tools/check.py`, while the scaffold and the epic's Definition of Done require the platform manifest gate too
-- **Severity:** Advisory
-- **Stories touched:** BSB-20-PENDING-1 (cross-epic: BSB-19-PENDING-2)
-- **Evidence:**
-  - BSB-20-PENDING-1 AC 4 (`stories.md:36-39`), titled "Clone passes the catalog's tier-1
-    check": it runs only `python tools/check.py` at the branch root and asserts exit code 0 and no
-    output line naming `skills/sdlc-plan-workshop`.
-  - BSB-19-PENDING-2 AC "Unedited scaffold passes the catalog's static manifest checks"
-    (`BSB-19/_epic/stories.md:97-100`): it runs both `python tools/check.py` and the tier-1
-    `bheembhai-verify`, asserting check.py exits 0 and tier-1 returns verdict `pass`.
-  - ADR SK-001 §1b: "Manifest valid | Tier 1: `bheembhai-verify` on the skill's `verify.yaml`, and
-    `tools/check.py`". BSB-20's Definition of Done (`epics.md:309-310`) says both flows "follow
-    the same edit, run, scan, Ready and submit path as a newly created build."
-  - `README.md:38-39` calls `python tools/check.py` tier 1 and `bheembhai-verify lint` tier 2, so
-    the phrase "tier-1 check" in BSB-20-PENDING-1 AC 4 and BSB-19-PENDING-2 does not name the same
-    checker consistently.
-- **What is missing/ambiguous/contradictory:** The same epic-level "Manifest valid" Ready check is
-  proven by two different sets of checks in the two sibling stories. A clone of an existing catalog
-  skill is likely to pass `bheembhai-verify` unchanged except for the renamed top-level `skill`,
-  but BSB-20-PENDING-1 never runs it, so an implementer can treat `tools/check.py` success as proof
-  that the clone is manifest-valid and discover the platform save gate's result only later. The
-  risk is low because the source is already a catalog skill and the story copies every other byte,
-  but the epic's DoD and BSB-19's standard set a higher bar than BSB-20's ACs.
-- **Question (if a person must decide):** None needed for a product decision; the fix is a
-  verification-scope choice in BSB-20-PENDING-1 (run the same platform gate as the scaffold, or
-  state why the source's existing result carries over).
-- **Proposed change:**
-  - **BSB-20-PENDING-1:** Either add to AC 4 (or a new AC) that the pinned `bheembhai-verify lint`
-    exits 0 on the clone after the two name rewrites, or add a Notes sentence that the source
-    skill's verifier result carries over unchanged except for the top-level `skill` value and that
-    only `tools/check.py` must be re-run. Rename the scenario so "tier-1" matches `README.md`'s
-    numbering (check.py) if the verifier is intentionally out of scope.
-  - **Cross-epic:** BSB-19-PENDING-2 needs no change; it already asserts both checks. If BSB-21's
-    future save story relies on the same manifest check, it should use the same pair of checks.
-    No BSB-19 or BSB-21 story is changed in this pass.
+    BSB-20's Description and Definition of Done and FR-013 so "the skill name in the copied
+    frontmatter" also covers the `verify.yaml` top-level `skill` value required by
+    `tools/check.py`, and use the ADR's `create`/`clone`/`edit` vocabulary rather than "new".
+    Clarify ADR SK-001 §1a's clone sentence the same way. No change to `epic-map.json` or the
+    requirement IDs.
 
 ## Open questions
 
-None. The six questions in the previous report have been resolved by the choices recorded in
-`_epic/revisions.md` Pass 2 and are embodied in the current stories; the choices are internally
-consistent and the remaining items above are either a wording correction with a stated intended
-split (Finding 1) or cross-epic/documentation follow-ups (Findings 2–4). No product answer is
-needed before `sdlc-plan-stories-write` applies Finding 1.
+1. **Shared-validator interface (Finding 1).** Does BSB-19-PENDING-3's validator take a `mode`
+   parameter (requiring a BSB-19 revision), or does BSB-20-PENDING-2 own the inverted
+   existing-on-main predicate and reuse BSB-19's pattern and open-collision checks unchanged?
+   Recommended default: the second option, which is applyable inside BSB-20 and keeps
+   BSB-19-PENDING-3's "reused unchanged" true. The first option is a cross-epic revision recorded
+   as a follow-up in Finding 1.
+
+No other product question is open. Finding 2's BSB-36 ownership question is cross-epic, and
+Finding 3's documentation clarification needs no gate answer before code.
 
 ## Proposed changes
 
 `docs/product/epics/BSB-20/_epic/stories.md` (proposed only; `sdlc-plan-stories-write` applies
 them):
 
-- **BSB-20-PENDING-1** — Out of scope: replace "the shared create form and `POST /builds` handler
-  (BSB-19-PENDING-1)" with a statement that BSB-19-PENDING-1 owns the base create route/create mode
-  of the single `GET /builds/new` + `POST /builds` handler and that this story adds the clone mode
-  to that same handler, not a second handler (Finding 1). Optional, advisory: add the
-  `bheembhai-verify lint` proof or the carry-over Notes sentence (Finding 4). No other statement,
-  acceptance criterion or requirement ID changes; the clone rewrite and `head_sha` rules stay as
-  written.
-- **BSB-20-PENDING-2** — Out of scope: make the same rewording for the edit mode — BSB-19 owns the
-  base create route/create mode, this story adds the edit mode to the same handler and keeps the
-  Notes' statement that BSB-19-PENDING-1/-3 own the shared pieces and the validator's `mode`
-  parameter (Finding 1). No other statement, acceptance criterion or requirement ID changes; the
-  FR-125 resolved-target AC and the BSB-21 forward note stay as written.
-- **`story-map.json`** — No change. The two story keys, summaries and requirement IDs already
-  match the current stories.
-- **Cross-epic follow-ups (not applied in this pass):**
-  - **BSB-19-PENDING-1** — add the reciprocal sentence that the shared handler is extended by
-    BSB-20's clone/edit modes through the `mode` parameter (Finding 1).
-  - **BSB-19-PENDING-3** — name the edit flow and its inverted existence rule alongside the clone
-    flow, matching BSB-20-PENDING-2's `mode`-parameter note (Finding 1).
+- **BSB-20-PENDING-1** — Out of scope: replace "deleting or reusing `build/<skill-name>` after a
+  build is merged or abandoned (BSB-36)" with PENDING-2's "deleting or finalising … — the reset of
+  that fixed branch when a new build starts is in scope" wording (Finding 2). Optional, advisory:
+  add the clone reset-after-abandoned-build acceptance criterion described in Finding 2. No change
+  for Finding 1 (its "reused unchanged" statement is already correct) or Finding 3.
+- **BSB-20-PENDING-2** — Notes: replace the sentence that says the shared validator takes a `mode`
+  parameter with a statement that this story reuses BSB-19-PENDING-3's pattern validator and
+  open-build collision check unchanged and owns the inverted existing-on-main predicate for the
+  edit mode (Finding 1, recommended option). No other statement, acceptance criterion or
+  requirement ID changes; the resolved-existing-folder AC and the reset-after-merge AC stay as
+  written. If the first option is chosen instead, leave PENDING-2 as written and revise
+  BSB-19-PENDING-3.
+- **`story-map.json`** — No change. The two summaries, keys and requirement IDs already match the
+  current stories; neither summary mentions the validator's `mode` parameter, so the Finding 1
+  rewording does not alter them.
+- **Cross-epic / cross-document follow-ups (not applied in this pass):**
+  - **BSB-19-PENDING-3** — define the `mode` parameter and name the edit flow and its inverted
+    existence rule, if the team rejects the recommended in-epic option (Finding 1).
+  - **BSB-19-PENDING-1** — add the reciprocal sentence that its handler is extended by BSB-20's
+    clone/edit modes through the `mode` parameter (Finding 1).
   - **BSB-36** — state what happens to the fixed `build/<skill-name>` branch after a build is
-    merged or abandoned, since BSB-20's Out of scope assigns that cleanup there (Finding 2).
-  - **`PRD.md` FR-013, `epics.md` BSB-20 description and ADR SK-001 §1a** — clarify the clone's
+    merged or abandoned, since both BSB-20 stories assign that cleanup there (Finding 2).
+  - **`PRD.md` FR-013, `epics.md` BSB-20 Description/DoD, ADR SK-001 §1a** — clarify the clone's
     `verify.yaml` `skill` rewrite and the `create`/`clone`/`edit` mode vocabulary (Finding 3).
-  - **BSB-21** — its save story must assert that a save on an edit build commits only to the
-    existing `skills/<skill-name>/` folder (the FR-125 proof already handed off in BSB-20-PENDING-2's
-    Notes). No BSB-21 story exists yet; this is a forward note.
+  - **BSB-21** — its future save story must assert that a save on an edit build commits only to
+    the existing `skills/<skill-name>/` folder (the FR-125 no-second-folder proof already handed
+    off in BSB-20-PENDING-2's Notes). BSB-21 has no decomposed stories yet; this is a forward note.
 
 No change is proposed to `epic-map.json`, the requirement IDs, the story set, the PRD's FR/NFR
 identifiers, or Jira. No Jira write was made; publication remains `sdlc-tracker-sync`'s job.
 
 ## Architecture impact
 
-None. The stories need no entity, field, endpoint or integration that ADR SK-001 lacks: `builds`
-with `kind`, `cloned_from`, `branch`, `head_sha` and `ready_sha` is §9; the fixed
+None. The visible risks are story wording and cross-epic ownership, not missing design. The
+cumulative epic needs no entity, field, endpoint or integration that ADR SK-001 does not provide:
+`builds` with `kind`, `cloned_from`, `branch`, `head_sha`, `ready_sha` and `state` is §9; the fixed
 `build/<skill-name>` branch, the whole-folder clone and the create scaffold are §1a; the Ready
-manifest check is §1b; and `base_sha` is the column BSB-19-PENDING-1 adds to the same record for
-the epic's base-SHA requirement. The catalog's folder-name rules are already enforced by
-`tools/check.py`. No design-stage pass is needed before sequencing.
+manifest check is §1b; and the external catalog repository is §8. `base_sha` is the column
+BSB-19-PENDING-1 (an earlier epic, sequenced before BSB-20) adds to the same record, and both
+BSB-20 stories' Notes name it, so it is a planned in-epic addition, not a missing design element.
+No design-stage pass is needed before sequencing.
 
 ## Requirement coverage check
 
@@ -309,39 +276,43 @@ Complete for BSB-20's seven mapped requirements, with no contradicting duplicate
 BSB-20-PENDING-1 also exercises the clone half of FR-015 (name already on `main`) and FR-016 (name
 used by an open build) in its duplicate-name and open-build scenarios, but correctly does not claim
 those IDs: `epic-map.json` assigns them to BSB-19, whose PENDING-3 exercises the create half and
-whose Out of scope and Notes hand the clone reuse to BSB-20. This is a deliberate, non-contradicting
-split, not a duplicate claim. No foreign requirement is claimed by either BSB-20 story. No FR/NFR
-wording drift was found in the IDs or their PRD rows; the remaining wording issue is the epic/PRD
-description of the clone rewrite in Finding 3, not a requirement-ID change. BSB-20 maps no NFR, and
-NFR-012 (accessibility) is assigned to BSB-38, so no epic-wide silent NFR is left unowned here.
+whose Out of scope and Notes hand the clone reuse to BSB-20. This is a deliberate,
+non-contradicting split, not a duplicate claim. No foreign requirement is claimed by either BSB-20
+story. No FR/NFR wording drift was found in the ID mapping itself; the remaining wording issue is
+the epic/PRD description of the clone rewrite in Finding 3, not a requirement-ID change. BSB-20
+maps no NFR, and NFR-012 (accessibility) is assigned to BSB-38, so no epic-wide silent NFR is left
+unowned here.
 
 ## Dependency-note sanity check
 
-Mostly consistent; two cross-epic mismatches remain (Findings 1 and 2).
+Mostly consistent; the two cross-epic mismatches are Findings 1 and 2.
 
 - **Real keys only.** Every referenced key exists: BSB-19-PENDING-1 and BSB-19-PENDING-3 are in
   BSB-19's `story-map.json`; BSB-18, BSB-21 and BSB-36 exist as epics; there is no dangling draft
   key.
 - **Reciprocated.** BSB-20-PENDING-1/-2 depend on BSB-18 for the signed-in author and the local
-  `users` row, and BSB-18's epic Notes say every other epic depends on that record and the
-  per-request gate. They depend on the external catalog repository `bheembhai-skills`, which
-  `PRD.md` §8 and ADR SK-001 §1a name as an external prerequisite. For the clone flow, BSB-19's
-  side is written: BSB-19-PENDING-1 Out of scope names "cloning (BSB-20)" and BSB-19-PENDING-3's
-  Out of scope and Notes say the clone flow reuses the validator and collision check.
-- **One-sided — Finding 1.** BSB-20-PENDING-2 depends on BSB-19-PENDING-1/-3 for the edit flow and
-  the shared validator's `mode` parameter, but BSB-19-PENDING-1/-3 name only the clone flow and
-  define no `mode` parameter. The BSB-20 side is written; the earlier-built BSB-19 side is not.
-  The same finding covers the contradictory Out-of-scope wording in both BSB-20 stories.
-- **One-sided — Finding 2.** BSB-20's Notes and Out of scope assign branch cleanup after a merge
-  or abandonment to BSB-36, but BSB-36's functional scope does not mention deleting, reusing or
-  finalising the `build/<skill-name>` branch.
+  `users` row, and BSB-18's Notes say every other epic depends on that record and the per-request
+  gate. Both stories depend on the external catalog repository `bheembhai-skills`, which `PRD.md`
+  §8 and ADR SK-001 §1a name as an external prerequisite. The two BSB-20 stories name each other in
+  Out of scope (PENDING-1: "opening an edit build (BSB-20-PENDING-2)"; PENDING-2: "creating a fresh
+  or cloned build (BSB-19 and BSB-20-PENDING-1)"). For the clone flow, BSB-19-PENDING-1's Out of
+  scope names "cloning (BSB-20)" and BSB-19-PENDING-3's Notes say the clone flow reuses the
+  validator and collision check.
+- **One-sided — Finding 1.** BSB-20-PENDING-2 says BSB-19-PENDING-3's validator serves the edit
+  flow and takes a `mode` parameter, while BSB-19-PENDING-3 says it is reused unchanged and names
+  only the clone flow; BSB-19-PENDING-1 also does not say its handler is extended by BSB-20's edit
+  mode. The BSB-20 side is written; the earlier-built BSB-19 side is not.
+- **One-sided — Finding 2.** Both BSB-20 stories assign post-merge/post-abandonment branch cleanup
+  to BSB-36, whose Functional scope does not mention deleting, finalising or reusing the
+  `build/<skill-name>` branch.
 - **Forward hand-off, not a gap.** BSB-20-PENDING-2's Notes require BSB-21's save story to assert
   the FR-125 no-second-folder rule. BSB-21 has no decomposed stories yet, which is normal
-  cross-epic sequencing; the dependency is written on the BSB-20 side.
+  cross-epic sequencing; the dependency is written on the BSB-20 side. `epic-sequence.md` records
+  the same forward hand-off and no cycle.
 - **Epic-level wording (informational).** BSB-19's epic Notes say "the name validator and scaffold
   writer [are] reused by the cloning and edit-build epic." BSB-20 uses the name validator but not
   the scaffold writer: the clone copies the source folder and the edit build reuses the existing
   folder. Correct the BSB-19 epic note on a later BSB-19 revision; no BSB-20 story change.
-- **Ordering not computed.** `epics.md` lists BSB-18, BSB-19 and BSB-20 in that order, and no
-  `epic-sequence.md`/`.json` exists for BSB-20. This pass only records the dependency gaps; build
-  order remains `sdlc-plan-epic-sequence`'s job.
+- **Ordering not computed.** `epic-sequence.md`/`.json` already exists for BSB-20 and is consistent
+  with the stories (both Wave 1, no intra-epic edge, cross-epic prerequisites BSB-18/BSB-19). This
+  pass only records the dependency gaps above; build order remains `sdlc-plan-epic-sequence`'s job.
