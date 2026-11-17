@@ -70,7 +70,8 @@ a scan request to override the configured scan model; deleting a model profile.
 Depends on BSB-22-PENDING-1 for the "projects" table and BSB-22-PENDING-4 for the project settings
 page at GET "/projects/7/settings" and its owner-only guard, and on BSB-23-PENDING-3 for the
 `kind "ai_model"` rows and their tier mapping. This story owns the "LLM scan model" control and
-the "security scan" section of the settings page, plus one nullable
+the "security scan" section of the settings page; that section is added to BSB-22-PENDING-4's
+existing settings page rather than a second settings page, plus one nullable
 `projects.llm_scan_model_profile_id` and one nullable `projects.llm_scan_model_tier` column that
 the data-model stage must record. Both columns are set together: the profile id must reference a
 row in "integrations" with kind "ai_model" and the same project_id, and the tier must be one of
@@ -338,8 +339,9 @@ Depends on BSB-31-PENDING-1 for the "scans" and "scan_findings" records and the 
 BSB-31-PENDING-5 for the author report route GET "/scans/{id}" and its field mapping, on
 BSB-32-PENDING-1 for the project's LLM-scan model profile and tier, on BSB-32-PENDING-2 for the
 full-scan control, the static-before-LLM ordering, the LLM scan record shape and the successful
-report rendering, on BSB-33 for the run report page that renders the run's verdict, and on
-BSB-26 for the run page layout that the verdict assertion reads. This story owns the LLM stage's
+report rendering, on BSB-33 for the run report page that renders the run's verdict, on BSB-26 for
+the run page layout that the verdict assertion reads, and on BSB-18-PENDING-1 for the signed-in
+report-page gate. This story owns the LLM stage's
 non-completed outcomes, their exact `failure_reason` strings and their rendering on the same
 author report page, so the author never sees a missing report or a generic error page. It adds the
 state "unavailable" value to BSB-32-PENDING-2's LLM scan record shape (not a second table
@@ -356,8 +358,9 @@ a later full scan re-runs the LLM stage, including when a prior LLM scan complet
 
 The page renders "LLM scan unavailable" or "LLM scan failed", "Model: not run" and the exact
 `failure_reason`, and does not fall back to "Scan in progress" for a terminal state. The report
-page is inherited unchanged from BSB-32-PENDING-2 and BSB-31-PENDING-5: gated by BSB-18's
-signed-in skill-builder check only, content-addressed, and applying no project-membership check.
+page is inherited unchanged from BSB-32-PENDING-2 and BSB-31-PENDING-5: gated by
+BSB-18-PENDING-1's signed-in skill-builder check only, content-addressed, and applying no
+project-membership check.
 
 FR-085 is exercised here through the unavailable and failed paths: the author reads the explicit
 outcome and then starts and finishes a run whose final verdict comes only from the shared

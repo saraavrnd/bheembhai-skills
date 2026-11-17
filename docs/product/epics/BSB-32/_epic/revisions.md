@@ -144,3 +144,66 @@ change was needed: no story key or requirement mapping changed, and the summarie
   BSB-31/BSB-32/BSB-33/BSB-26.
 - The report's cross-epic follow-ups (BSB-31-PENDING-5, BSB-22-PENDING-4, BSB-31-PENDING-1,
   BSB-33/BSB-36 and ADR SK-001 §6b) are outside this skill's write scope and were not touched.
+
+## Pass 3 — 2026-11-17 (automated verifier feedback: unchanged story map)
+
+**Report applied:** the verification feedback for the preceding attempt of this step
+(`sdlc-plan-stories-write`, verdict `changes_requested`, `feedback_active: true`). Its one failing
+check was `story_map`: `docs/product/epics/BSB-32/_epic/story-map.json` had not changed since
+precheck even though the revise pass had changed story content. No new review report and no gate
+answers were supplied, so the four findings that carry open questions remain open (see below).
+
+**Work item `SkillBuilder-2`.** The Atlassian MCP tools are not exposed in this session; the
+configured site was queried read-only through its REST API. `GET /rest/api/3/issue/SkillBuilder-2`
+still returns HTTP 404 ("Issue does not exist or you do not have permission to see it"), matching
+PRD §8/§9 and Passes 1–2, and no issue content is assumed. `GET /rest/api/3/issue/BSB-32` still
+returns HTTP 200 (Epic "LLM security scanning", status To Do, labels FA-12/MVP). No Jira write was
+attempted.
+
+### Changes made
+
+- **`story-map.json` — summaries resynchronised with the revised stories** (the failing check).
+  No story key or requirement mapping changed; the four summaries now state the scope the stories
+  carry after Pass 2:
+  - PENDING-1: names the existing settings page and the cleared-pair → unavailable outcome.
+  - PENDING-2: records that it owns the LLM `scans` record shape and the absolute no-LLM-reuse
+    rule (Finding 4, Finding 8).
+  - PENDING-3: records that it consumes PENDING-2's record shape and that its fixtures use
+    `secret_ref` paths backed by the secret store, not secret values (Finding 3, Finding 4).
+  - PENDING-4: records the `state "unavailable"` addition and the `completed`/`unavailable`/
+    `failed` enumeration with NULL verdict, and the no-reuse rule (Finding 4, Finding 8).
+- **`stories.md` — two decision-free corrections from the report.**
+  - BSB-32-PENDING-1 Notes now state that the "security scan" section is added to
+    BSB-22-PENDING-4's existing settings page rather than a second settings page (the
+    ownership-independent half of Finding 5; the guard/message choice is still open).
+  - BSB-32-PENDING-4's dependency list now names BSB-18-PENDING-1 for the signed-in report-page
+    gate, matching the prose (the minor formatting fix recorded in the report's
+    dependency-note sanity check; no product decision involved).
+
+### Coverage re-check
+
+Unchanged. All 10 requirements mapped to BSB-32 by `epic-map.json` — FR-082, FR-083, FR-084,
+FR-085, FR-086, FR-090, FR-093, FR-139, FR-156 and FR-163 — remain covered by at least one story,
+and no story claims a requirement outside the epic. 4 stories, 10 requirements, no gap and no
+foreign requirement. `stories.md`'s coverage table and `story-map.json` agree.
+
+### Still open (not applied — no answer at the gate)
+
+- **Finding 1 (Blocking) — LLM-scan model granularity.** Open question 1 has no answer. The
+  owner-only fixed `(profile, tier)` pair in PENDING-1/PENDING-2 is unchanged; the ADR SK-001 §6b
+  reconciliation is not written into the stories until the decision is made.
+- **Finding 2 (Blocking) — combined Security tab ownership.** Open question 2 has no answer. No
+  tab acceptance criterion or ownership handoff sentence was added.
+- **Finding 5 (Advisory) — owner guard for the scan-model route.** Open question 3 has no answer;
+  only the page-ownership half was clarified.
+- **Finding 7 (Advisory) — reviewer-facing LLM report.** Open question 4 has no answer; the
+  reviewer-view handoff remains only in the closing paragraph of `stories.md`.
+
+### Notes for the next review
+
+- The story map is now a faithful trace of the revised stories; the check that failed was the
+  map staying stale, not a coverage change.
+- The two Blocking findings need answers at the gate (or an earlier stage's decision) before
+  PENDING-1/-2 can be rewritten; applying either branch now would guess.
+- Cross-epic follow-ups from the report remain outside this skill's write scope and were not
+  touched.

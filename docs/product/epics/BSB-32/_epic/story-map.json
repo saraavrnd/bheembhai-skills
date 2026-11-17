@@ -4,22 +4,22 @@
   "stories": [
     {
       "story_key": "BSB-32-PENDING-1",
-      "summary": "Owner-only selection of the project's single LLM-scan AI model profile and high/medium/low tier on the project settings page, refusing non-owners, profiles from another project, non-AI-model integrations and unknown tiers, and allowing the owner to clear the setting",
+      "summary": "Owner-only selection of the project's single LLM-scan AI model profile and high/medium/low tier on the existing project settings page, refusing non-owners, profiles from another project, non-AI-model integrations and unknown tiers, allowing the owner to clear the setting, and treating a cleared pair as an unavailable scan rather than an error",
       "requirement_ids": ["FR-163"]
     },
     {
       "story_key": "BSB-32-PENDING-2",
-      "summary": "Author starts a full static-then-LLM security check from the build page and reads the LLM report's model, advisory banner and findings with severity, rule, file and line; the LLM stage runs only after a static pass, uses the project's configured profile and tier, refuses per-scan model overrides and non-members, and a critical finding never blocks starting or finishing a run",
+      "summary": "Author starts a full static-then-LLM security check from the build page and reads the LLM report's model, advisory banner and findings with severity, rule, file and line; the LLM stage runs only after a static pass, uses the project's configured profile and tier, refuses per-scan model overrides and non-members, owns the LLM scans record shape (stage \"llm\" with nullable model, model_profile_id and verdict), never reuses an LLM result, and a critical finding never blocks starting or finishing a run",
       "requirement_ids": ["FR-082", "FR-085", "FR-086", "FR-090", "FR-093", "FR-156", "FR-163"]
     },
     {
       "story_key": "BSB-32-PENDING-3",
-      "summary": "Author runs a full check on untrusted skill content and the LLM sandbox holds only the model key, reaches only the model endpoint and reads the exact bundle the static scan passed, so no project credential or other service is exposed while the report still renders the located finding",
+      "summary": "Author runs a full check on untrusted skill content and the LLM sandbox holds only the model key, reaches only the model endpoint and reads the exact bundle the static scan passed, so no project credential or other service is exposed while the report still renders the located finding; the story consumes PENDING-2's LLM record shape and its fixtures use BSB-23's secret_ref paths backed by the external secret store rather than secret values",
       "requirement_ids": ["FR-083", "FR-084"]
     },
     {
       "story_key": "BSB-32-PENDING-4",
-      "summary": "Author sees an explicit unavailable or failed LLM scan with its exact reason on the report page — no model profile, missing key, rejected key, budget exhaustion, scanner exiting without a report or the ten-minute timeout — and an unavailable or failed scan never blocks starting or finishing a run",
+      "summary": "Author sees an explicit unavailable or failed LLM scan with its exact reason on the report page — no model profile, missing key, rejected key, budget exhaustion, scanner exiting without a report or the ten-minute timeout — and an unavailable or failed scan never blocks starting or finishing a run; the only record-shape addition is state \"unavailable\" to PENDING-2's shape (completed, unavailable and failed, with verdict NULL in all three), and no LLM scan, including a completed one, is reused",
       "requirement_ids": ["FR-085", "FR-139"]
     }
   ]
