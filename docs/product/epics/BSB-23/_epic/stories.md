@@ -9,8 +9,8 @@ integrations a run needs (Jira, source control and AI model), verify the credent
 keep the credential value out of every builder surface, and require the credentials to be
 test-purpose. Each is a user-visible outcome for a project owner, not a layer of an integration
 API. All of them extend the integrations section of the project settings page that
-BSB-22-PENDING-4 owns at GET "/projects/7/settings", and every change route calls that story's
-owner-only guard.
+BSB-22-PENDING-4 owns at GET "/projects/7/settings", and every change route applies the owner
+check that story defines.
 
 > New stories use draft keys `BSB-23-PENDING-N`. `sdlc-tracker-sync` creates each story in Jira,
 > parents it to BSB-23, and replaces the draft key with the real key in `story-map.json`.
@@ -62,6 +62,16 @@ Given Project Atlas (id 7) with Ada as owner, an empty "integrations" table, and
 When Ada submits kind "jira", site URL "https://saraavrnd.atlassian.net", project key "BSB", API token "jira-test-token-9f2c", the jira MCP definition whose env sets JIRA_API_TOKEN to "jira-test-token-9f2c" and the test-purpose confirmation checked on POST "/projects/7/integrations"
 Then the builder responds with HTTP 422 and the message "MCP definitions must not contain credentials.", no "integrations" row is created for project 7, and the secret store holds no secret at path "skill-builder/7/integration-3"
 
+Scenario: The owner opens the integration create form
+Given Project Atlas (id 7) whose "project_members" table holds rows for Ada (user 42, role "owner") and Bob (user 43, role "member")
+When Ada opens GET "/projects/7/integrations/new"
+Then the builder responds with HTTP 200 rendering the heading "Add integration", the kind choices "Jira", "Source control" and "AI model", and the Jira field set with the labels "Jira site URL", "Project key", "Template project", "API token", "MCP definition" and "Test-purpose credentials", and the API token field is an empty input with no value
+
+Scenario: A non-owner cannot open the integration create form
+Given Project Atlas (id 7) whose "project_members" table holds rows for Ada (user 42, role "owner") and Bob (user 43, role "member")
+When Bob opens GET "/projects/7/integrations/new"
+Then the builder responds with HTTP 403 and the message "Only the project owner can change integrations.", and the response body does not contain "Jira site URL"
+
 ### Covered requirements (traceability)
 - FR-029
 - FR-128
@@ -77,9 +87,18 @@ is a configuration write, not a live call).
 ### Notes / dependencies
 Depends on BSB-22-PENDING-4 for the project settings page at GET "/projects/7/settings", the
 "Integrations" section, the "Add integration" link to "/projects/7/integrations/new" and the
-owner-only integration guard. This story fills that section and owns the Jira create route
-POST "/projects/7/integrations"; the guard runs before any field is read, so a non-owner or a
-non-member is refused with the messages BSB-22-PENDING-4 defines and no row or secret is written.
+owner-check contract it defines. This story fills that section and owns the shared create route
+POST "/projects/7/integrations" and its form page GET "/projects/7/integrations/new". The route
+runs its checks in one order before any kind-specific field is read: the owner check (a signed-in
+non-member is refused with HTTP 403 and "You are not a member of this project."; a member whose
+role is not "owner" with HTTP 403 and "Only the project owner can change integrations."), then the
+test-purpose confirmation BSB-23-PENDING-6 owns, then the non-secret MCP definition rule below,
+then the kind dispatch to the "jira", "github" and "ai_model" branches owned by this story,
+BSB-23-PENDING-2 and BSB-23-PENDING-3. The form renders the kind choice and, for "Jira", the site
+URL, project key, template project, API token, MCP definition and test-purpose confirmation
+fields, and it applies the same owner check. BSB-23-PENDING-2 and BSB-23-PENDING-3 add their kind
+branches and field sets to this route and form; neither creates a second route or page. No row or
+secret is written when any check refuses.
 
 The durable system of record is one row in the builder's own "integrations" table from ADR SK-001
 section 9: project_id 7, kind "jira", config JSONB, secret_ref, mcp JSONB and verified_at. The
@@ -89,18 +108,34 @@ one integration, and the "integrations.secret_ref" column holds only that path. 
 is non-secret configuration stored in "integrations.mcp" and is passed to a run as configuration,
 never as a credential: any object key at any depth whose lowercased name contains "token",
 "password", "secret", "authorization" or "apikey" is treated as a credential and the whole
-definition is rejected.
+definition is rejected. BSB-24 records the selected Jira integration id in the run request, and
+BSB-26 builds BB_MCP_CONFIG from this row's "integrations.mcp" value when it launches the run
+container; this epic records the definition only.
+
+Verification in BSB-23-PENDING-4 reads exactly the target fields this story stores — "site_url"
+and the stored "project_key" or "template_project" — so a pass proves the configured Jira target
+is readable with the stored token, not only that the token is valid. This story owns the save-path
+log line, which names the kind, the integration id and the "secret_ref" path and never the
+credential value, for example "integration save: kind=jira id=3
+secret_ref=skill-builder/7/integration-3"; BSB-23-PENDING-4 owns the corresponding verify-path log
+line under the same rule.
 
 A project has at most one Jira integration and at most one source-control integration; a second
 create for the same kind is refused with HTTP 409 and the message "A Jira integration is already
 configured for this project.", or the source-control wording that BSB-23-PENDING-2 exercises. AI
-model profiles are the exception and may be several per project (BSB-23-PENDING-3). Editing an
-existing Jira integration is POST "/projects/7/integrations/3": a blank API token keeps the
-stored secret_ref and its secret, and changing the site URL, target or credential clears
-verified_at so a stale verification never applies to different settings (BSB-23-PENDING-4 and
-BSB-23-PENDING-5 exercise the edit path). A create leaves the integration unverified;
-verified_at is NULL until BSB-23-PENDING-4's verification succeeds, and the settings page shows
-"Not verified".
+model profiles are the exception and may be several per project (BSB-23-PENDING-3).
+
+This story also owns the Jira edit route POST "/projects/7/integrations/3"; BSB-23-PENDING-4 and
+BSB-23-PENDING-5 exercise it. The edit contract is: a blank API token preserves the stored
+"secret_ref" and the stored secret; a non-blank token replaces the secret at the same "secret_ref"
+path and clears "verified_at"; a change to the site URL or target clears "verified_at"; an edit
+that changes none of them preserves "verified_at"; an edit that omits the MCP definition preserves
+the stored "integrations.mcp" value, while a submitted definition replaces it after passing the
+same non-secret rule; and every edit requires the test-purpose confirmation BSB-23-PENDING-6 owns,
+where a confirmed edit keeps "config.test_only" true and an unconfirmed edit is refused with HTTP
+422 and the message "Runs require test-purpose credentials." and changes neither the row nor the
+secret store. A create leaves the integration unverified; verified_at is NULL until
+BSB-23-PENDING-4's verification succeeds, and the settings page shows "Not verified".
 
 ---
 
@@ -158,15 +193,21 @@ Then the builder responds with HTTP 409 and the message "A source-control integr
 The Jira integration (BSB-23-PENDING-1); AI model profiles (BSB-23-PENDING-3); credential
 verification and the last-verified time (BSB-23-PENDING-4); the record-wide, log and run-result
 redaction guarantee (BSB-23-PENDING-5); the test-purpose enforcement rule (BSB-23-PENDING-6);
-creating, curating or deleting sandbox branches; configuring the platform repository inventory;
-blocking a save because of the overlap warning; secret-store administration and credential
-rotation; deleting an integration.
+editing the source-control integration (this epic defines only the Jira edit route BSB-23-PENDING-1
+owns, and no source-control edit exists in it); creating, curating or deleting sandbox branches;
+configuring the platform repository inventory; blocking a save because of the overlap warning;
+secret-store administration and credential rotation; deleting an integration.
 
 ### Notes / dependencies
-Depends on BSB-22-PENDING-4 for the settings page and the owner-only integration guard, and on
-BSB-23-PENDING-1 for the integration record shape, the secret-store path convention and the
-non-secret MCP validation rule. This story owns the source-control create path through
-POST "/projects/7/integrations"; the guard runs before any field is read.
+Depends on BSB-22-PENDING-4 for the settings page and the owner-check contract, and on
+BSB-23-PENDING-1 for the integration record shape, the secret-store path convention, the shared
+create route and form, and the non-secret MCP validation rule. This story adds the "github" kind
+branch to BSB-23-PENDING-1's shared create route POST "/projects/7/integrations" — its validation,
+one-per-project uniqueness rule and row creation — and the source-control field set (repository,
+base branch, token, MCP definition and test-purpose confirmation) to BSB-23-PENDING-1's
+GET "/projects/7/integrations/new" form. It does not create a second route or page; the owner
+check and the test-purpose confirmation are the shared pre-dispatch steps that route runs before
+this branch.
 
 The row is one "integrations" record from ADR SK-001 section 9: project_id 7, kind "github",
 config JSONB, secret_ref "skill-builder/7/integration-3", mcp JSONB and verified_at NULL. The
@@ -175,6 +216,16 @@ in the external secret store. The ADR calls this kind "github"; the interface la
 control". One source-control integration exists per project, so a second create is refused with
 HTTP 409 and the message "A source-control integration is already configured for this project."
 The Jira kind has the same one-per-project rule (BSB-23-PENDING-1).
+
+The MCP definition is non-secret; BSB-24 records the selected source-control integration id in the
+run request, and BSB-26 builds BB_MCP_CONFIG from this row's "integrations.mcp" value when it
+launches the run container. This epic records the definition only. Verification in
+BSB-23-PENDING-4 reads exactly the target fields this story stores — "repository" and
+"base_branch" — and checks that the token can read and push to that repository and that the base
+branch exists, not only that the token is valid. The run-purpose list in BSB-23-PENDING-6 exposes
+this integration as {"id", "kind": "github", "repository", "base_branch", "verified_at"}.
+Editing the source-control integration is out of scope for this epic; BSB-23 defines only the Jira
+edit route BSB-23-PENDING-1 owns.
 
 The overlap warning is a non-blocking check against the platform repository inventory, an external
 prerequisite from PRD section 8. The builder reads the inventory on save and again when it renders
@@ -240,10 +291,15 @@ project-level default model (BSB-32); editing or deleting a profile; pricing or 
 administration.
 
 ### Notes / dependencies
-Depends on BSB-22-PENDING-4 for the settings page and the owner-only integration guard, and on
-BSB-23-PENDING-1 for the integration record shape and the secret-store path convention. This story
-owns the AI model create path through POST "/projects/7/integrations"; the guard runs before any
-field is read.
+Depends on BSB-22-PENDING-4 for the settings page and the owner-check contract, and on
+BSB-23-PENDING-1 for the integration record shape, the secret-store path convention and the shared
+create route and form. This story adds the "ai_model" kind branch to BSB-23-PENDING-1's shared
+create route POST "/projects/7/integrations" — its validation, name uniqueness rule and row
+creation — and the model-profile field set (profile name, vendor, base URL, tier mapping, API key
+and test-purpose confirmation, with no MCP definition) to BSB-23-PENDING-1's
+GET "/projects/7/integrations/new" form. It does not create a second route or page; the owner
+check and the test-purpose confirmation are the shared pre-dispatch steps that route runs before
+this branch.
 
 Each profile is one "integrations" row from ADR SK-001 section 9 with kind "ai_model": id 3,
 project_id 7, config JSONB, secret_ref "skill-builder/7/integration-3", mcp NULL (a model profile
@@ -259,8 +315,13 @@ store and is never stored in the row.
 The base URL must be https, is stored without a trailing slash and carries no API-version suffix,
 so verification and the agent image append their own "/v1" path. The vendor is a non-empty
 free-form identifier. A create leaves the profile unverified; verified_at is NULL until
-BSB-23-PENDING-4's verification succeeds. Editing or deleting a profile is not part of this story,
-and a profile is not offered at run start until BSB-24 reads it.
+BSB-23-PENDING-4's verification succeeds. Verification reads exactly the target fields this story
+stores — "base_url" and every identifier in the "models" mapping — and checks each identifier
+appears in the provider's "/v1/models" response, so a profile whose model identifiers do not exist
+fails verification instead of passing on the token alone. The run-purpose list in
+BSB-23-PENDING-6 exposes this profile as {"id", "kind": "ai_model", "name", "verified_at"}.
+Editing or deleting a profile is not part of this epic, and a profile is not offered at run start
+until BSB-24 reads that run-purpose list.
 
 ---
 
@@ -275,24 +336,24 @@ As a **project owner**, I want **to verify each integration's credentials and se
 ### Acceptance Criteria
 
 Scenario: A Jira integration verifies successfully and records the time
-Given Project Atlas (id 7) with Ada (user 42) as owner, an "integrations" row with id 3, project_id 7, kind "jira", config site_url "https://saraavrnd.atlassian.net", secret_ref "skill-builder/7/integration-3" and verified_at NULL, a secret store holding "jira-test-token-9f2c" at path "skill-builder/7/integration-3", a Jira stub that returns HTTP 200 with body {"accountId":"ada"} only for GET "https://saraavrnd.atlassian.net/rest/api/3/myself" carrying the header "Authorization: Bearer jira-test-token-9f2c", and the builder clock reading "2026-11-16T11:00:00Z"
+Given Project Atlas (id 7) with Ada (user 42) as owner, an "integrations" row with id 3, project_id 7, kind "jira", config site_url "https://saraavrnd.atlassian.net" and project_key "BSB", secret_ref "skill-builder/7/integration-3" and verified_at NULL, a secret store holding "jira-test-token-9f2c" at path "skill-builder/7/integration-3", a Jira stub that returns HTTP 200 with body {"accountId":"ada"} for GET "https://saraavrnd.atlassian.net/rest/api/3/myself" and HTTP 200 with body {"key":"BSB"} for GET "https://saraavrnd.atlassian.net/rest/api/3/project/BSB", each carrying the header "Authorization: Bearer jira-test-token-9f2c", and the builder clock reading "2026-11-16T11:00:00Z"
 When Ada submits POST "/projects/7/integrations/3/verify"
-Then the Jira stub receives exactly one such request, the builder responds with HTTP 200 and a body containing "Jira integration 3 verified at 2026-11-16T11:00:00Z.", the row's verified_at is "2026-11-16T11:00:00Z", GET "/projects/7/settings" renders "Last verified: 2026-11-16T11:00:00Z", and neither response contains "jira-test-token-9f2c"
+Then the Jira stub receives exactly one request to GET "https://saraavrnd.atlassian.net/rest/api/3/myself" and exactly one request to GET "https://saraavrnd.atlassian.net/rest/api/3/project/BSB", the builder responds with HTTP 200 and a body containing "Jira integration 3 verified at 2026-11-16T11:00:00Z.", the row's verified_at is "2026-11-16T11:00:00Z", GET "/projects/7/settings" renders "Last verified: 2026-11-16T11:00:00Z", and neither response contains "jira-test-token-9f2c"
 
 Scenario: A source-control integration verifies successfully
-Given Project Atlas (id 7) with Ada as owner, an "integrations" row with id 3, project_id 7, kind "github", config repository "saraavrnd/skill-builder-sandbox" and base_branch "main", secret_ref "skill-builder/7/integration-3" and verified_at NULL, a secret store holding "ghp-test-token-7a1d" at path "skill-builder/7/integration-3", a source-control stub that returns HTTP 200 with body {"login":"ada"} only for GET "https://api.github.com/user" carrying the header "Authorization: Bearer ghp-test-token-7a1d", and the builder clock reading "2026-11-16T11:05:00Z"
+Given Project Atlas (id 7) with Ada as owner, an "integrations" row with id 3, project_id 7, kind "github", config repository "saraavrnd/skill-builder-sandbox" and base_branch "main", secret_ref "skill-builder/7/integration-3" and verified_at NULL, a secret store holding "ghp-test-token-7a1d" at path "skill-builder/7/integration-3", a source-control stub that returns HTTP 200 with body {"login":"ada"} for GET "https://api.github.com/user", HTTP 200 with body {"full_name":"saraavrnd/skill-builder-sandbox","permissions":{"admin":false,"push":true,"pull":true}} for GET "https://api.github.com/repos/saraavrnd/skill-builder-sandbox", and HTTP 200 with body {"name":"main"} for GET "https://api.github.com/repos/saraavrnd/skill-builder-sandbox/branches/main", each carrying the header "Authorization: Bearer ghp-test-token-7a1d", and the builder clock reading "2026-11-16T11:05:00Z"
 When Ada submits POST "/projects/7/integrations/3/verify"
-Then the source-control stub receives exactly one such request, the builder responds with HTTP 200 and a body containing "Source-control integration 3 verified at 2026-11-16T11:05:00Z.", the row's verified_at is "2026-11-16T11:05:00Z", GET "/projects/7/settings" renders "Last verified: 2026-11-16T11:05:00Z", and neither response contains "ghp-test-token-7a1d"
+Then the source-control stub receives exactly one request to each of those three URLs, the builder responds with HTTP 200 and a body containing "Source-control integration 3 verified at 2026-11-16T11:05:00Z.", the row's verified_at is "2026-11-16T11:05:00Z", GET "/projects/7/settings" renders "Last verified: 2026-11-16T11:05:00Z", and neither response contains "ghp-test-token-7a1d"
 
 Scenario: An AI model profile verifies successfully
-Given Project Atlas (id 7) with Ada as owner, an "integrations" row with id 3, project_id 7, kind "ai_model", config name "Default", vendor "anthropic" and base_url "https://api.anthropic.com", secret_ref "skill-builder/7/integration-3" and verified_at NULL, a secret store holding "sk-ant-test-3c9e" at path "skill-builder/7/integration-3", a model stub that returns HTTP 200 with body {"data":[]} only for GET "https://api.anthropic.com/v1/models" carrying the header "Authorization: Bearer sk-ant-test-3c9e", and the builder clock reading "2026-11-16T11:10:00Z"
+Given Project Atlas (id 7) with Ada as owner, an "integrations" row with id 3, project_id 7, kind "ai_model", config name "Default", vendor "anthropic", base_url "https://api.anthropic.com" and models {"high":"claude-opus-5-5","medium":"claude-sonnet-5-5","low":"claude-haiku-5-5"}, secret_ref "skill-builder/7/integration-3" and verified_at NULL, a secret store holding "sk-ant-test-3c9e" at path "skill-builder/7/integration-3", a model stub that returns HTTP 200 with body {"data":[{"id":"claude-opus-5-5"},{"id":"claude-sonnet-5-5"},{"id":"claude-haiku-5-5"}]} for GET "https://api.anthropic.com/v1/models" carrying the header "Authorization: Bearer sk-ant-test-3c9e", and the builder clock reading "2026-11-16T11:10:00Z"
 When Ada submits POST "/projects/7/integrations/3/verify"
 Then the model stub receives exactly one such request, the builder responds with HTTP 200 and a body containing "Model profile 3 verified at 2026-11-16T11:10:00Z.", the row's verified_at is "2026-11-16T11:10:00Z", GET "/projects/7/settings" renders "Last verified: 2026-11-16T11:10:00Z", and neither response contains "sk-ant-test-3c9e"
 
 Scenario: A rejected credential is reported and the previous verification time is kept
-Given Project Atlas (id 7) with Ada as owner, an "integrations" row with id 3, project_id 7, kind "jira", config site_url "https://saraavrnd.atlassian.net", secret_ref "skill-builder/7/integration-3" and verified_at "2026-11-10T09:00:00Z", a secret store holding "jira-test-token-9f2c" at path "skill-builder/7/integration-3", and a Jira stub that returns HTTP 401 with body {"errorMessages":["Unauthorized"]} for GET "https://saraavrnd.atlassian.net/rest/api/3/myself" carrying the header "Authorization: Bearer jira-test-token-9f2c"
+Given Project Atlas (id 7) with Ada as owner, an "integrations" row with id 3, project_id 7, kind "jira", config site_url "https://saraavrnd.atlassian.net" and project_key "BSB", secret_ref "skill-builder/7/integration-3" and verified_at "2026-11-10T09:00:00Z", a secret store holding "jira-test-token-9f2c" at path "skill-builder/7/integration-3", and a Jira stub that returns HTTP 401 with body {"errorMessages":["Unauthorized"]} for GET "https://saraavrnd.atlassian.net/rest/api/3/myself" carrying the header "Authorization: Bearer jira-test-token-9f2c"
 When Ada submits POST "/projects/7/integrations/3/verify"
-Then the builder responds with HTTP 422 and the message "Jira verification failed: the API token was rejected (HTTP 401).", the row's verified_at remains "2026-11-10T09:00:00Z", GET "/projects/7/settings" still renders "Last verified: 2026-11-10T09:00:00Z", and neither response contains "jira-test-token-9f2c"
+Then the builder responds with HTTP 422 and the message "Jira verification failed: the API token was rejected (HTTP 401).", the Jira stub receives no request to "https://saraavrnd.atlassian.net/rest/api/3/project/BSB", the row's verified_at remains "2026-11-10T09:00:00Z", GET "/projects/7/settings" still renders "Last verified: 2026-11-10T09:00:00Z", and neither response contains "jira-test-token-9f2c"
 
 Scenario: A missing secret is reported without calling the provider
 Given Project Atlas (id 7) with Ada as owner, an "integrations" row with id 3, project_id 7, kind "jira", config site_url "https://saraavrnd.atlassian.net", secret_ref "skill-builder/7/integration-3" and verified_at NULL, a secret store with no secret at path "skill-builder/7/integration-3", and a Jira stub that records every request it receives
@@ -306,8 +367,23 @@ Then the builder responds with HTTP 403 and the message "Only the project owner 
 
 Scenario: Changing the verification target clears the last verification time
 Given Project Atlas (id 7) with Ada as owner, an "integrations" row with id 3, project_id 7, kind "jira", config site_url "https://saraavrnd.atlassian.net", project_key "BSB", secret_ref "skill-builder/7/integration-3" and verified_at "2026-11-10T09:00:00Z", and a secret store holding "jira-test-token-9f2c" at path "skill-builder/7/integration-3"
-When Ada submits site URL "https://other.atlassian.net" and project key "BSB" with a blank API token on POST "/projects/7/integrations/3"
-Then the builder responds with HTTP 200 and a body containing "Jira integration 3 updated.", the row's config site_url is "https://other.atlassian.net", the row's verified_at is NULL, GET "/projects/7/settings" renders "Not verified", the row's secret_ref is still "skill-builder/7/integration-3", the secret store still holds "jira-test-token-9f2c" at that path, and neither response contains "jira-test-token-9f2c"
+When Ada submits site URL "https://other.atlassian.net" and project key "BSB" with a blank API token and the test-purpose confirmation checked on POST "/projects/7/integrations/3"
+Then the builder responds with HTTP 200 and a body containing "Jira integration 3 updated.", the row's config site_url is "https://other.atlassian.net" and config test_only is true, the row's verified_at is NULL, GET "/projects/7/settings" renders "Not verified", the row's secret_ref is still "skill-builder/7/integration-3", the secret store still holds "jira-test-token-9f2c" at that path, and neither response contains "jira-test-token-9f2c"
+
+Scenario: A valid credential whose Jira target project is not accessible fails verification
+Given Project Atlas (id 7) with Ada as owner, an "integrations" row with id 3, project_id 7, kind "jira", config site_url "https://saraavrnd.atlassian.net" and project_key "BSB", secret_ref "skill-builder/7/integration-3" and verified_at "2026-11-10T09:00:00Z", a secret store holding "jira-test-token-9f2c" at path "skill-builder/7/integration-3", a Jira stub that returns HTTP 200 with body {"accountId":"ada"} for GET "https://saraavrnd.atlassian.net/rest/api/3/myself" and HTTP 404 with body {"errorMessages":["No project could be found with key 'BSB'."]} for GET "https://saraavrnd.atlassian.net/rest/api/3/project/BSB", each carrying the header "Authorization: Bearer jira-test-token-9f2c", and the builder clock reading "2026-11-16T11:15:00Z"
+When Ada submits POST "/projects/7/integrations/3/verify"
+Then the builder responds with HTTP 422 and the message "Jira verification failed: the project BSB was not found or is not accessible (HTTP 404).", the row's verified_at remains "2026-11-10T09:00:00Z", GET "/projects/7/settings" still renders "Last verified: 2026-11-10T09:00:00Z", and neither response contains "jira-test-token-9f2c"
+
+Scenario: A valid credential without push access to the sandbox repository fails verification
+Given Project Atlas (id 7) with Ada as owner, an "integrations" row with id 3, project_id 7, kind "github", config repository "saraavrnd/skill-builder-sandbox" and base_branch "main", secret_ref "skill-builder/7/integration-3" and verified_at "2026-11-10T09:00:00Z", a secret store holding "ghp-test-token-7a1d" at path "skill-builder/7/integration-3", a source-control stub that returns HTTP 200 with body {"login":"ada"} for GET "https://api.github.com/user", HTTP 200 with body {"full_name":"saraavrnd/skill-builder-sandbox","permissions":{"admin":false,"push":false,"pull":true}} for GET "https://api.github.com/repos/saraavrnd/skill-builder-sandbox", and HTTP 200 with body {"name":"main"} for GET "https://api.github.com/repos/saraavrnd/skill-builder-sandbox/branches/main", each carrying the header "Authorization: Bearer ghp-test-token-7a1d"
+When Ada submits POST "/projects/7/integrations/3/verify"
+Then the builder responds with HTTP 422 and the message "Source-control verification failed: the token cannot push to saraavrnd/skill-builder-sandbox.", the source-control stub receives no request to "https://api.github.com/repos/saraavrnd/skill-builder-sandbox/branches/main", the row's verified_at remains "2026-11-10T09:00:00Z", and neither response contains "ghp-test-token-7a1d"
+
+Scenario: A configured model identifier that the provider does not offer fails verification
+Given Project Atlas (id 7) with Ada as owner, an "integrations" row with id 3, project_id 7, kind "ai_model", config name "Default", vendor "anthropic", base_url "https://api.anthropic.com" and models {"high":"claude-opus-5-5","medium":"claude-sonnet-5-5","low":"claude-haiku-5-5"}, secret_ref "skill-builder/7/integration-3" and verified_at "2026-11-10T09:00:00Z", a secret store holding "sk-ant-test-3c9e" at path "skill-builder/7/integration-3", and a model stub that returns HTTP 200 with body {"data":[{"id":"claude-opus-5-5"},{"id":"claude-haiku-5-5"}]} for GET "https://api.anthropic.com/v1/models" carrying the header "Authorization: Bearer sk-ant-test-3c9e"
+When Ada submits POST "/projects/7/integrations/3/verify"
+Then the builder responds with HTTP 422 and the message "Model verification failed: the model claude-sonnet-5-5 is not available at https://api.anthropic.com/v1/models.", the row's verified_at remains "2026-11-10T09:00:00Z", GET "/projects/7/settings" still renders "Last verified: 2026-11-10T09:00:00Z", and neither response contains "sk-ant-test-3c9e"
 
 ### Covered requirements (traceability)
 - FR-033
@@ -315,38 +391,66 @@ Then the builder responds with HTTP 200 and a body containing "Jira integration 
 
 ### Out of scope
 Creating the Jira, source-control or model integrations (BSB-23-PENDING-1 to BSB-23-PENDING-3);
-the record-wide, log and run-result redaction guarantee (BSB-23-PENDING-5); the test-purpose
-enforcement rule (BSB-23-PENDING-6); secret-store administration and credential rotation policy;
-automatic re-verification or scheduling; changing a credential's value in the secret store;
-starting a run.
+the create and edit routes and their non-verification contract (BSB-23-PENDING-1); the record-wide,
+log and run-result redaction guarantee (BSB-23-PENDING-5); the test-purpose enforcement rule
+(BSB-23-PENDING-6); secret-store administration and credential rotation policy; automatic
+re-verification or scheduling; changing a credential's value in the secret store; starting a run.
 
 ### Notes / dependencies
 Depends on BSB-23-PENDING-1, BSB-23-PENDING-2 and BSB-23-PENDING-3 for the integration records and
-their secret references, and on BSB-22-PENDING-4 for the owner-only integration guard. This story
-owns POST "/projects/7/integrations/3/verify" and the "Verify" control in the integrations section
-of GET "/projects/7/settings".
+their secret references, and on BSB-22-PENDING-4 for the owner-check contract. This story owns
+POST "/projects/7/integrations/3/verify" and the "Verify" control in the integrations section of
+GET "/projects/7/settings". It owns neither the create route nor the edit route: both belong to
+BSB-23-PENDING-1, and this story's target-change scenario exercises that edit route.
 
-Verification resolves the secret from the external secret store at the integration's secret_ref at
-call time and never reads a credential from the request or the database. There is one provider
-path per kind: for "jira", GET the configured site URL plus "/rest/api/3/myself"; for "github",
-GET "https://api.github.com/user"; for "ai_model", GET the configured base URL plus "/v1/models".
-Each call carries the resolved credential as "Authorization: Bearer" with the value; a 2xx
-response is a pass and any other response is a fail. The result message names the provider and the
-HTTP status on failure, as in "Jira verification failed: the API token was rejected (HTTP 401)."
-and "Source-control verification failed: the token was rejected (HTTP 401)." and "Model
-verification failed: the API key was rejected (HTTP 401)."; a provider that does not answer within
-10 seconds is a fail with the same wording and "the provider did not respond within 10 seconds"
-in place of the status text. No response, page or log echoes the credential value.
+An integration is verified only when the provider accepts the credential and the stored target is
+reachable and usable; credential validity alone is not a pass. Verification resolves the secret
+from the external secret store at the integration's secret_ref at call time and never reads a
+credential from the request or the database. There is one sequential provider path per kind, and
+every call carries the resolved credential as "Authorization: Bearer" with the value:
+- For "jira", GET the stored site_url plus "/rest/api/3/myself" proves the token is accepted, then
+  GET the stored site_url plus "/rest/api/3/project/" plus the stored project_key (or
+  template_project) proves the configured Jira target exists and is readable. Both must return 2xx.
+- For "github", GET "https://api.github.com/user" proves the token is accepted, then GET
+  "https://api.github.com/repos/" plus the stored repository proves the repository exists and is
+  readable and that its "permissions.push" is true, then GET that repository URL plus "/branches/"
+  plus the stored base_branch proves the base branch exists. Every call must return 2xx and
+  "permissions.push" must be true.
+- For "ai_model", GET the stored base_url plus "/v1/models" must return 2xx, and every identifier
+  in the stored "models" mapping must appear as an "id" in the response's "data" array.
+
+The first non-2xx response, a "permissions.push" that is not true, or a missing model identifier
+fails verification and stops the remaining calls. The result message names the provider and the
+failed check: a rejected credential is "Jira verification failed: the API token was rejected
+(HTTP 401).", "Source-control verification failed: the token was rejected (HTTP 401)." or "Model
+verification failed: the API key was rejected (HTTP 401)."; an unreachable target is "Jira
+verification failed: the project BSB was not found or is not accessible (HTTP 404).",
+"Source-control verification failed: the token cannot push to saraavrnd/skill-builder-sandbox."
+or "Model verification failed: the model claude-sonnet-5-5 is not available at
+https://api.anthropic.com/v1/models."; a provider that does not answer within 10 seconds is a fail
+with the same wording and "the provider did not respond within 10 seconds" in place of the status
+text. No response, page or log echoes the credential value.
+
+This story owns the verify-path log line, emitted after each verification attempt with the
+integration id, the kind, the secret_ref path and the result, for example "integration verify:
+id=3 kind=jira secret_ref=skill-builder/7/integration-3 result=pass" or "result=fail"; the line
+never contains the credential value, and BSB-23-PENDING-5's log scenario exercises it together
+with BSB-23-PENDING-1's save-path line.
 
 The "integrations.verified_at" column from ADR SK-001 section 9 records the last successful
 verification: a pass stamps the builder clock, and a fail, a missing secret or a refused request
-leaves the previous value untouched, so a stale success is never displayed as current. Editing an
-integration through POST "/projects/7/integrations/3" that changes the site URL, target or
-credential clears verified_at to NULL; an edit that changes none of them keeps it. The settings page renders
-"Last verified:" and the stored timestamp for a verified integration and "Not verified" when
-verified_at is NULL. Verification is an owner action, so the guard's message "Only the project
-owner can change integrations." applies; a non-owner or non-member is refused before the provider
-is called.
+leaves the previous value untouched, so a stale success is never displayed as current. An edit
+through BSB-23-PENDING-1's edit route POST "/projects/7/integrations/3" that changes the site URL,
+target or credential clears verified_at to NULL; an edit that changes none of them keeps it. Every
+edit requires the test-purpose confirmation BSB-23-PENDING-6 owns, and an unconfirmed edit is
+refused with HTTP 422 and the message "Runs require test-purpose credentials." before any field is
+applied. The settings page renders "Last verified:" and the stored timestamp for a verified
+integration and "Not verified" when verified_at is NULL. An integration with verified_at NULL is
+still offered to runs: BSB-23-PENDING-6's run-purpose list returns it with its "verified_at" value
+and treats verification as an advisory marker, not a selection filter, so this story never
+decides whether an integration is selectable. Verification is an owner action, so the guard's
+message "Only the project owner can change integrations." applies; a non-owner or non-member is
+refused before the provider is called.
 
 ---
 
@@ -376,19 +480,19 @@ When Ada submits kind "jira", site URL "http://saraavrnd.atlassian.net", project
 Then the builder responds with HTTP 422 and the message "The Jira site URL must be an https URL.", no "integrations" row is created for project 7, and neither the response body nor the captured log contains "jira-test-token-9f2c"
 
 Scenario: The application log redacts the credential
-Given Project Atlas (id 7) with Ada as owner, an empty "integrations" table whose id sequence's next value is 3, a secret store with no secret at path "skill-builder/7/integration-3", a Jira stub that returns HTTP 200 for GET "https://saraavrnd.atlassian.net/rest/api/3/myself" carrying the header "Authorization: Bearer jira-test-token-9f2c", and a captured builder application log
-When Ada saves a Jira integration with API token "jira-test-token-9f2c" and then verifies it successfully
+Given Project Atlas (id 7) with Ada as owner, an empty "integrations" table whose id sequence's next value is 3, a secret store with no secret at path "skill-builder/7/integration-3", a Jira stub that returns HTTP 200 with body {"accountId":"ada"} for GET "https://saraavrnd.atlassian.net/rest/api/3/myself" and HTTP 200 with body {"key":"BSB"} for GET "https://saraavrnd.atlassian.net/rest/api/3/project/BSB", each carrying the header "Authorization: Bearer jira-test-token-9f2c", and a captured builder application log
+When Ada saves a Jira integration with site URL "https://saraavrnd.atlassian.net", project key "BSB", API token "jira-test-token-9f2c" and the test-purpose confirmation checked and then verifies it successfully
 Then the captured log contains "secret_ref=skill-builder/7/integration-3" and a search of the entire captured log finds zero occurrences of "jira-test-token-9f2c"
 
 Scenario: A run result redacts the credential
-Given Project Atlas (id 7) and a run result document for run 11 in project 7 whose command environment records the variable JIRA_API_TOKEN with the value "jira-test-token-9f2c"
-When the builder's result writer writes the document to prefix "runs/11/" in the builder's run bucket and the run report renders it
+Given Project Atlas (id 7), an "integrations" row with id 3, project_id 7, kind "jira" and secret_ref "skill-builder/7/integration-3", a secret store holding "jira-test-token-9f2c" at path "skill-builder/7/integration-3", run 11 in project 7 whose selected Jira integration is 3, and a run result document for run 11 whose command environment records the variable JIRA_API_TOKEN with the value "jira-test-token-9f2c"
+When the builder's result writer writes the document to prefix "runs/11/" in the builder's run bucket through the shared redaction helper and the run report renders it
 Then the stored document contains "[REDACTED]" in place of the value, the rendered run report contains "[REDACTED]" in place of the value, and neither contains "jira-test-token-9f2c"
 
-Scenario: Editing an integration preserves the stored secret
-Given Project Atlas (id 7) with Ada as owner, an "integrations" row with id 3, project_id 7, kind "jira", config site_url "https://saraavrnd.atlassian.net" and project_key "BSB", secret_ref "skill-builder/7/integration-3" and verified_at "2026-11-16T11:00:00Z", and a secret store holding "jira-test-token-9f2c" at path "skill-builder/7/integration-3"
-When Ada submits the unchanged site URL "https://saraavrnd.atlassian.net" and project key "BSB" with a blank API token on POST "/projects/7/integrations/3"
-Then the builder responds with HTTP 200 and a body containing "Jira integration 3 updated.", the row's secret_ref is still "skill-builder/7/integration-3", the secret store still holds "jira-test-token-9f2c" at that path, the row's verified_at is still "2026-11-16T11:00:00Z", and the response body contains zero occurrences of "jira-test-token-9f2c"
+Scenario: Editing an integration preserves the stored secret and MCP definition
+Given Project Atlas (id 7) with Ada as owner, an "integrations" row with id 3, project_id 7, kind "jira", config site_url "https://saraavrnd.atlassian.net", project_key "BSB" and test_only true, the atlassian MCP definition with command "uvx" and args ["mcp-atlassian"] in mcp, secret_ref "skill-builder/7/integration-3" and verified_at "2026-11-16T11:00:00Z", and a secret store holding "jira-test-token-9f2c" at path "skill-builder/7/integration-3"
+When Ada submits the unchanged site URL "https://saraavrnd.atlassian.net", project key "BSB" and no MCP definition with a blank API token and the test-purpose confirmation checked on POST "/projects/7/integrations/3"
+Then the builder responds with HTTP 200 and a body containing "Jira integration 3 updated.", the row's secret_ref is still "skill-builder/7/integration-3", the secret store still holds "jira-test-token-9f2c" at that path, the row's mcp still holds the atlassian MCP definition, the row's config test_only is true, the row's verified_at is still "2026-11-16T11:00:00Z", and the response body contains zero occurrences of "jira-test-token-9f2c"
 
 ### Covered requirements (traceability)
 - FR-032
@@ -398,28 +502,43 @@ Then the builder responds with HTTP 200 and a body containing "Jira integration 
 ### Out of scope
 Creating the Jira, source-control or model integrations (BSB-23-PENDING-1 to BSB-23-PENDING-3);
 verification paths and last-verified rules (BSB-23-PENDING-4); the test-purpose enforcement rule
-(BSB-23-PENDING-6); secret-store administration; credential rotation policy; the run's own
-command, transcript and object-storage layout (BSB-26); the run report's content (BSB-33);
-encryption at rest; access control to the secret store.
+(BSB-23-PENDING-6); emitting the save-path and verify-path log lines (BSB-23-PENDING-1 and
+BSB-23-PENDING-4 own the lines; this story owns the redaction rule they apply); secret-store
+administration; credential rotation policy; the run's own command, transcript and object-storage
+layout (BSB-26); the run report's content (BSB-33); encryption at rest; access control to the
+secret store.
 
 ### Notes / dependencies
-Depends on BSB-23-PENDING-1 for the integration record and its create path, on BSB-23-PENDING-4
-for the verification path that resolves the secret, and on BSB-22-PENDING-4 for the settings page
-and the owner guard. This story owns the single redaction rule every builder surface applies:
-the credential value is written only to the external secret store, and the builder stores, logs,
-renders and reports the secret_ref instead of the value.
+Depends on BSB-23-PENDING-1 for the integration record, its create path and its Jira edit route, on
+BSB-23-PENDING-4 for the verification path that resolves the secret, and on BSB-22-PENDING-4 for
+the settings page and the owner-check contract. This story owns the single redaction rule every
+builder surface applies: the credential value is written only to the external secret store, and
+the builder stores, logs, renders and reports the secret_ref instead of the value.
 
 The "integrations" row from ADR SK-001 section 9 keeps secret_ref "skill-builder/7/integration-3"
 and never the value; the redaction covers the database, the application log, the run result
 document and the interface. The run result writer and the run report are built by BSB-26 and
-BSB-33; this story owns the shared redaction they call, and its run-result scenario exercises that
-writer against a persisted result fixture. Redaction replaces any occurrence of the resolved
-credential value with the literal text "[REDACTED]"; it applies to the value, not to the
-secret_ref, so an operator can still find the secret by path. The settings page shows
-"Credential: stored in secret manager" for every integration and never an input or text node
-holding the value. A blank token on edit leaves the stored secret, secret_ref and verified_at
-unchanged; a non-blank token replaces the secret-store value at the same path and clears
-verified_at so a check made with the old credential is not shown as current.
+BSB-33; this story owns the shared redaction helper they call, and its run-result scenario
+exercises that writer against a persisted result fixture. The helper's input is the text or
+document to redact, the project id and the run's selected integration ids; it resolves each
+selected integration's credential from the external secret store by that row's "secret_ref" at
+call time, so no credential value is stored in or passed through a durable record. Its output is
+the same text with every occurrence of every resolved value replaced by the literal text
+"[REDACTED]"; "secret_ref" paths are never redacted, so an operator can still find the secret by
+path. A selected integration with no stored secret contributes no value. BSB-26 calls the helper
+before persisting the run result document; BSB-33 renders only stored, already-redacted content
+and calls the same helper with the same inputs for any text it renders that did not pass through
+the writer. Neither caller may write a resolved value to a record, log or response.
+
+The save-path log line belongs to BSB-23-PENDING-1 and the verify-path log line to
+BSB-23-PENDING-4; this story owns the rule that both name the "secret_ref" and never the value,
+and its log scenario exercises both lines. The settings page shows "Credential: stored in secret
+manager" for every integration and never an input or text node holding the value. A blank token on
+edit leaves the stored secret, secret_ref and verified_at unchanged; a non-blank token replaces
+the secret-store value at the same path and clears verified_at so a check made with the old
+credential is not shown as current. Every edit requires the test-purpose confirmation
+BSB-23-PENDING-6 owns; an unconfirmed edit is refused with HTTP 422 and the message "Runs require
+test-purpose credentials." before any change, and a confirmed edit keeps config.test_only true.
 
 Secret-store administration, credential rotation and access control to the store are outside this
 product, as PRD section 8 states. No credential value is written to an S3 object, a log line, a
@@ -433,7 +552,7 @@ database column or an HTML response by any path in this story.
 **Epic:** BSB-23 · **Release:** MVP · **Estimate:** 2 · **Labels:** FA-5, MVP
 
 ### Story
-As a **project owner**, I want **the builder to require a test-purpose confirmation for every integration create and exclude unconfirmed integrations from run selection**, so that **a run cannot be configured with production credentials**.
+As a **project owner**, I want **the builder to require a test-purpose confirmation for every integration create and every integration edit and exclude unconfirmed integrations from run selection**, so that **a run cannot be configured with production credentials**.
 
 ### Acceptance Criteria
 
@@ -447,37 +566,76 @@ Given Project Atlas (id 7) with Ada as owner, an empty "integrations" table whos
 When Ada submits kind "jira", site URL "https://saraavrnd.atlassian.net", project key "BSB", API token "jira-test-token-9f2c", the atlassian MCP definition with command "uvx" and args ["mcp-atlassian"] and the test-purpose confirmation checked on POST "/projects/7/integrations"
 Then the builder responds with HTTP 201, the "integrations" row with id 3 has config test_only true, and GET "/projects/7/settings" renders "Test-purpose credentials: confirmed" for integration 3
 
+Scenario: An edit without the test-purpose confirmation is rejected
+Given Project Atlas (id 7) with Ada as owner, an "integrations" row with id 3, project_id 7, kind "jira", config site_url "https://saraavrnd.atlassian.net", project_key "BSB" and test_only true, secret_ref "skill-builder/7/integration-3" and verified_at "2026-11-16T11:00:00Z", and a secret store holding "jira-test-token-9f2c" at path "skill-builder/7/integration-3"
+When Ada submits the unchanged site URL "https://saraavrnd.atlassian.net" and project key "BSB" with a new API token "jira-prod-token-1a2b" and no test-purpose confirmation on POST "/projects/7/integrations/3"
+Then the builder responds with HTTP 422 and the message "Runs require test-purpose credentials.", the row's config is unchanged, the row's verified_at remains "2026-11-16T11:00:00Z", and the secret store still holds "jira-test-token-9f2c" at path "skill-builder/7/integration-3"
+
 Scenario: An unconfirmed integration is excluded from run selection
-Given Project Atlas (id 7) with Ada as owner, an "integrations" table holding rows with id 3, project_id 7, kind "ai_model", config containing name "Production profile" and test_only false, and id 4, project_id 7, kind "ai_model", config containing name "Default" and test_only true
+Given Project Atlas (id 7) with Ada (user 42) as owner, an "integrations" table holding rows with id 3, project_id 7, kind "ai_model", config name "Production profile" and test_only false, verified_at NULL, and id 4, project_id 7, kind "ai_model", config name "Default" and test_only true, verified_at NULL
 When Ada requests GET "/api/projects/7/integrations?purpose=run"
-Then the builder responds with HTTP 200 and the JSON body {"integrations":[{"id":4,"kind":"ai_model","name":"Default"}]}
+Then the builder responds with HTTP 200 and the JSON body {"integrations":[{"id":4,"kind":"ai_model","name":"Default","verified_at":null}]}, and the body contains no "Production profile"
+
+Scenario: The run-purpose list returns every integration kind with its target fields
+Given Project Atlas (id 7) with Ada (user 42) as owner, an "integrations" table holding rows with id 3, project_id 7, kind "jira", config site_url "https://saraavrnd.atlassian.net", project_key "BSB" and test_only true, verified_at "2026-11-16T11:00:00Z", id 4, project_id 7, kind "github", config repository "saraavrnd/skill-builder-sandbox", base_branch "main" and test_only true, verified_at NULL, and id 5, project_id 7, kind "ai_model", config name "Default" and test_only true, verified_at NULL
+When Ada requests GET "/api/projects/7/integrations?purpose=run"
+Then the builder responds with HTTP 200 and the JSON body {"integrations":[{"id":3,"kind":"jira","site_url":"https://saraavrnd.atlassian.net","project_key":"BSB","verified_at":"2026-11-16T11:00:00Z"},{"id":4,"kind":"github","repository":"saraavrnd/skill-builder-sandbox","base_branch":"main","verified_at":null},{"id":5,"kind":"ai_model","name":"Default","verified_at":null}]} in id order
+
+Scenario: A member can read the run-purpose list
+Given Project Atlas (id 7) with Ada (user 42) as owner and Bob (user 43) as member, and an "integrations" row with id 5, project_id 7, kind "ai_model", config name "Default" and test_only true
+When Bob requests GET "/api/projects/7/integrations?purpose=run"
+Then the builder responds with HTTP 200 and the JSON body {"integrations":[{"id":5,"kind":"ai_model","name":"Default","verified_at":null}]}
+
+Scenario: A non-member cannot read the run-purpose list
+Given Project Atlas (id 7) with Ada (user 42) as owner and Bob (user 43) as member, Carol (user 44) is a signed-in skill-builders user with no "project_members" row for project 7, and an "integrations" row with id 5, project_id 7, kind "ai_model", config name "Default" and test_only true
+When Carol requests GET "/api/projects/7/integrations?purpose=run"
+Then the builder responds with HTTP 403 and the message "You are not a member of this project.", and the response body does not contain "Default"
 
 ### Covered requirements (traceability)
 - NFR-006
 
 ### Out of scope
 Creating the Jira, source-control or model integrations (BSB-23-PENDING-1 to BSB-23-PENDING-3);
-verification paths and last-verified rules (BSB-23-PENDING-4); the redaction guarantee
-(BSB-23-PENDING-5); the run-start form, its model profile and tier choices and the run record
-(BSB-24); defining what a test-purpose Jira site, sandbox repository or model key is; detecting or
-marking a credential as production by inspecting its value; secret-store administration and
-credential rotation.
+the create and Jira edit routes that call the confirmation (BSB-23-PENDING-1); verification paths
+and last-verified rules (BSB-23-PENDING-4); the redaction guarantee (BSB-23-PENDING-5); the
+run-start form, its model profile and tier choices and the run record (BSB-24); defining what a
+test-purpose Jira site, sandbox repository or model key is; detecting or marking a credential as
+production by inspecting its value; secret-store administration and credential rotation.
 
 ### Notes / dependencies
 Depends on BSB-23-PENDING-1, BSB-23-PENDING-2 and BSB-23-PENDING-3 for the three integration kinds,
-on BSB-22-PENDING-4 for the settings page and owner guard, and on BSB-24 for the run-start choices
-that consume the run-purpose list. This story owns the test-purpose confirmation field on every
-integration create and the GET "/api/projects/7/integrations?purpose=run" contract.
+and on BSB-22-PENDING-4 for the settings page and the membership/owner-check contract. This story
+owns the test-purpose confirmation field on every integration create and every integration edit,
+and the GET "/api/projects/7/integrations?purpose=run" contract. The confirmation is a shared
+pre-dispatch step that BSB-23-PENDING-1's shared create route and its Jira edit route call before
+the kind branch runs; it is not a separate route.
 
-Every integration create carries a test-purpose confirmation. A create without it, or with it
-unchecked, is refused with HTTP 422 and the message "Runs require test-purpose credentials."
-before any row or secret is written. A confirmed create records test_only true inside the row's
-config JSONB from ADR SK-001 section 9, and the settings page renders "Test-purpose credentials:
-confirmed" for that integration. The builder cannot inspect a credential's value to decide whether
-it is test-purpose, so the confirmation is the owner's attestation and the run-purpose list is the
-hard filter: GET "/api/projects/7/integrations?purpose=run" returns only integrations whose config
-test_only is true, and BSB-24 reads that list when it offers model profiles and validates the
-project's integrations. An unconfirmed integration is never offered to a run even if it exists in
-the table. This attests purpose and filters selection; it does not replace the source-control
-overlap warning (BSB-23-PENDING-2), which still appears for a confirmed integration that points at
-a repository a platform project also uses.
+Every integration save — every create and every edit — carries a test-purpose confirmation. A save
+without it, or with it unchecked, is refused with HTTP 422 and the message "Runs require
+test-purpose credentials." before any row or secret is written, so an edit can never replace a
+confirmed credential with an unconfirmed one and a non-blank token edit that lacks the
+confirmation changes neither the row nor the secret store. A confirmed create records test_only
+true inside the row's config JSONB from ADR SK-001 section 9, a confirmed edit keeps it true, and
+the settings page renders "Test-purpose credentials: confirmed" for that integration.
+
+The builder cannot inspect a credential's value to decide whether it is test-purpose, so the
+confirmation is the owner's attestation and the run-purpose list is the hard filter:
+GET "/api/projects/7/integrations?purpose=run" returns every integration whose config test_only is
+true, of all three kinds, in id order. Each item carries the target fields the run-start consumer
+needs — for "jira", {"id", "kind": "jira", "site_url", "project_key"}, with "template_project"
+in place of "project_key" when the integration uses a template project; for "github", {"id",
+"kind": "github", "repository", "base_branch"}; for "ai_model", {"id", "kind": "ai_model",
+"name"} — and every item carries "verified_at", the stored timestamp or null.
+
+"verified_at" is an advisory marker, not a selection filter: an integration with verified_at NULL
+is returned with "verified_at": null, and verification (BSB-23-PENDING-4) never gates selection.
+Any project member, owner or member, may read the list, matching run start; a signed-in
+non-member is refused with HTTP 403 and the message "You are not a member of this project." before
+any integration data is returned. An unconfirmed integration is never offered to a run even if it
+exists in the table.
+
+BSB-24 consumes this list when it offers model profiles and validates the project's integrations;
+the endpoint is a contract this epic supplies to BSB-24, not a dependency on BSB-24. This attests
+purpose and filters selection; it does not replace the source-control overlap warning
+(BSB-23-PENDING-2), which still appears for a confirmed integration that points at a repository a
+platform project also uses.

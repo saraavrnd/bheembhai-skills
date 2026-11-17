@@ -4,27 +4,27 @@
   "stories": [
     {
       "story_key": "BSB-23-PENDING-1",
-      "summary": "Owner-only Jira integration configuration storing the site URL and exactly one of a project key or a template project, the API token only as a secret-store reference, the non-secret MCP definition and a not-verified state, rejecting ambiguous targets, non-https sites, blank tokens and credential-bearing MCP definitions",
+      "summary": "Owner-only Jira integration configuration through the shared integration create route and form, storing the site URL and exactly one of a project key or a template project, the API token only as a secret-store reference, the non-secret MCP definition and a not-verified state, rejecting ambiguous targets, non-https sites, blank tokens and credential-bearing MCP definitions, and owning the Jira edit route that preserves the secret and MCP definition, clears the verified time on a target or credential change and requires the test-purpose confirmation",
       "requirement_ids": ["FR-029", "FR-128"]
     },
     {
       "story_key": "BSB-23-PENDING-2",
-      "summary": "Owner-only source-control configuration storing the sandbox repository, base branch and non-secret MCP definition with one integration per project, warning when the repository is also used by a platform project and reporting an unavailable inventory without blocking, and rejecting malformed repositories, blank base branches, credential-bearing MCP definitions and a second source-control integration",
+      "summary": "Owner-only source-control configuration extending the shared create route and form with the source-control branch, storing the sandbox repository, base branch and non-secret MCP definition with one integration per project, warning when the repository is also used by a platform project and reporting an unavailable inventory without blocking, rejecting malformed repositories, blank base branches, credential-bearing MCP definitions and a second source-control integration, and leaving source-control editing out of scope",
       "requirement_ids": ["FR-030", "FR-129", "FR-035"]
     },
     {
       "story_key": "BSB-23-PENDING-3",
-      "summary": "Owner-only AI model profiles with a name, vendor, https base URL and a complete high/medium/low tier-to-model mapping, allowing several profiles per project and rejecting missing or unknown tiers, non-https base URLs and duplicate profile names",
+      "summary": "Owner-only AI model profiles extending the shared create route and form with the model branch, a name, vendor, https base URL and a complete high/medium/low tier-to-model mapping, allowing several profiles per project and rejecting missing or unknown tiers, non-https base URLs and duplicate profile names, with the run-purpose list exposing the profile id, name and verified time",
       "requirement_ids": ["FR-031"]
     },
     {
       "story_key": "BSB-23-PENDING-4",
-      "summary": "Owner-triggered verification per provider (Jira myself, source-control user, model models) that resolves the secret at call time, stamps verified_at on success, leaves the last successful time unchanged on a rejected credential or missing secret, refuses non-owners, and clears the time when an edit changes the target",
+      "summary": "Owner-triggered verification per provider that resolves the secret at call time and proves the stored target is usable — the Jira project or template project is readable, the repository is readable with push permission and the base branch exists, and every tier model identifier is available — stamps verified_at on success, leaves the last successful time unchanged on a rejected credential, missing secret or unreachable target, refuses non-owners, treats the time as advisory for run selection, and clears it when an edit changes the target or credential",
       "requirement_ids": ["FR-033", "FR-034"]
     },
     {
       "story_key": "BSB-23-PENDING-5",
-      "summary": "Credential secrecy across the durable record, settings page, application log and run results: only an opaque secret reference in the integrations row, a masked interface, redacted logs and results, and an edit that preserves the stored secret",
+      "summary": "Credential secrecy across the durable record, settings page, application log and run results: only an opaque secret reference in the integrations row, a masked interface, redacted logs and results through a shared helper that resolves the selected credentials at call time, and an edit that preserves the stored secret and MCP definition and requires the test-purpose confirmation",
       "requirement_ids": ["FR-032", "FR-036", "NFR-004"]
     },
     {
