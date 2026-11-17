@@ -4,7 +4,7 @@
   "stories": [
     {
       "story_key": "BSB-31-PENDING-1",
-      "summary": "Run a synchronous static scan of the exact run bundle after it is packed and before the agent container launches, producing the verdict through BSB-31-PENDING-3's function, recording the scanner version and image digest, reusing by content, and executing the scanner container with no network access and a failed record when it writes no report",
+      "summary": "Run a synchronous static scan of the exact run bundle after it is packed and before the agent container launches, applying BSB-31-PENDING-3's pass/fail rules, recording the scanner version and image digest, reusing by content, and executing the scanner container with no network access and a failed record when it writes no report",
       "requirement_ids": ["FR-076", "NFR-005"]
     },
     {
@@ -14,8 +14,8 @@
     },
     {
       "story_key": "BSB-31-PENDING-3",
-      "summary": "Own one static verdict function from the scanner report and baseline: pass only with a non-DO_NOT_INSTALL recommendation, no critical finding and complete coverage, recording each blocking reason, never letting an accepted finding clear a block, and serving PENDING-1, -2, -5, -6 and -7",
-      "requirement_ids": ["FR-078", "FR-079", "FR-080", "FR-081"]
+      "summary": "Give the author a failed static scan with the exact reasons for a DO_NOT_INSTALL recommendation, any critical finding or incomplete coverage, never let an accepted finding clear the block, and return the same verdict the platform gives for the same content and pinned scanner version",
+      "requirement_ids": ["FR-078", "FR-079", "FR-080", "FR-081", "FR-091"]
     },
     {
       "story_key": "BSB-31-PENDING-4",
@@ -31,11 +31,6 @@
       "story_key": "BSB-31-PENDING-6",
       "summary": "Let a project member start a static-only scan from BSB-21's skill page without creating a run, using BSB-22's shared project-membership check, refusing non-members, and resolving no integration or credential",
       "requirement_ids": ["FR-092"]
-    },
-    {
-      "story_key": "BSB-31-PENDING-7",
-      "summary": "Prove the builder's static verdict equals the platform's for the same bundle and pinned scanner version across a fixed corpus through the direct bundle-fixture entry point with a null build_id, recording scanner version and image digest and failing loudly on a version mismatch or missing baseline",
-      "requirement_ids": ["FR-091"]
     }
   ]
 }

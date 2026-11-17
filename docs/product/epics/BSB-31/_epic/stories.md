@@ -1,15 +1,18 @@
 # Stories — BSB-31 (Static security scanning)
 
 Epic BSB-31 covers FR-076, FR-077, FR-078, FR-079, FR-080, FR-081, FR-087, FR-088, FR-089, FR-091,
-FR-092, FR-154, FR-155 and NFR-005. Decomposed into 7 stories below; coverage of all 14
+FR-092, FR-154, FR-155 and NFR-005. Decomposed into 6 stories below; coverage of all 14
 requirements verified.
 
-The slices follow the path of one static scan result: scan the exact bundle before a run with no
-network (PENDING-1), reuse the completed result when nothing changed (PENDING-2), decide pass or
-fail from the report (PENDING-3), stop and record a scan that exceeds ten minutes (PENDING-4), show
-the report the verdict is based on (PENDING-5), let an author start a static-only scan without a
-run (PENDING-6), and prove the verdict equals the platform's for the same content and scanner
-version (PENDING-7). Each slice is a user-visible outcome, not a layer of a scanning service.
+The slices follow the path of one static scan result as an author experiences it: scan the exact
+bundle before a run with no network (PENDING-1), reuse the completed result when nothing changed
+(PENDING-2), fail the scan with a specific reason when the content is unsafe or incompletely
+scanned and give the same verdict the platform gives for that content and scanner version
+(PENDING-3), stop and record a scan that exceeds ten minutes (PENDING-4), show the report the
+verdict is based on (PENDING-5), and let an author start a static-only scan without a run
+(PENDING-6). Each slice is a user-visible outcome, not a layer of a scanning service; verdict
+agreement with the platform is an acceptance criterion of the verdict slice, not a separate
+internal test story.
 
 > New stories use draft keys `BSB-31-PENDING-N`. `sdlc-tracker-sync` creates each story in Jira,
 > parents it to BSB-31, and replaces the draft key with the real key in `story-map.json`.
@@ -61,9 +64,9 @@ is not pass (no FR maps packaging refusal to BSB-31 — the packaging gate belon
 and the epic's Definition of Done wording must be corrected there; recorded as a cross-epic gap in
 the Notes); aggregating the Ready checks (BSB-30); packing the bundle itself (BSB-25);
 the LLM scan stage (BSB-32); changing the scanner's rules, severities or recommendation values;
-reusing an earlier result (BSB-31-PENDING-2); the verdict rules themselves (BSB-31-PENDING-3 owns
-the verdict function this story calls and whose output it records; this story asserts that output
-but defines no rule); rendering the report page (BSB-31-PENDING-5).
+reusing an earlier result (BSB-31-PENDING-2); the verdict rules themselves (BSB-31-PENDING-3
+defines the pass/fail rules this story applies and whose output it records; this story asserts that
+output but defines no rule); rendering the report page (BSB-31-PENDING-5).
 
 ### Notes / dependencies
 Depends on BSB-18 for the signed-in skill-builder author and the per-request group gate, on BSB-19
@@ -80,8 +83,8 @@ SHA and scans that bundle, never the branch head and never an unpacked working t
 The service exposes one direct entry point that takes a packed bundle fixture (its bytes or
 `skill_bundles` row) plus the pinned scanner version and image digest, with no build or project,
 and returns the same scan result the route returns; the route is a thin caller of it. A scan
-created through that entry point has `build_id` NULL (BSB-31-PENDING-7 uses it for the parity
-test). `build_id` on a route-created scan records the build that first requested the scan for
+created through that entry point has `build_id` NULL (BSB-31-PENDING-3 uses it for its
+platform-parity scenario). `build_id` on a route-created scan records the build that first requested the scan for
 provenance only; it does not scope reuse (BSB-31-PENDING-2) or the report route
 (BSB-31-PENDING-5).
 
@@ -99,15 +102,15 @@ acceptance_reason); the data-model stage must record them. `report` is the scann
 document (score, recommendation, coverage counts and findings), so the report page can show the
 coverage counts and every located finding.
 
-This story depends on BSB-31-PENDING-3 for the one verdict function. The function takes the
-scanner report plus the scanned bundle's `.skillspector-baseline.yaml` and returns `verdict`,
-`verdict_reasons` and the `scan_findings` rows, which this story persists alongside the report's
-own score, recommendation and coverage fields on the `scans` row. It does not set `state` for a
-scan with no usable report; that failed state is this story's and BSB-31-PENDING-4's. This story
-does not recompute the verdict, so its acceptance criteria assert the value the function returns.
-Dependency direction is stated in
-BSB-31-PENDING-3's Notes: at runtime this story calls that function; the function depends on this
-story only for the record contract.
+This story depends on BSB-31-PENDING-3 for the pass/fail rules and the verdict they produce. Those
+rules take the scanner report plus the scanned bundle's `.skillspector-baseline.yaml` and decide
+`verdict`, `verdict_reasons` and the `scan_findings` rows, which this story persists alongside the
+report's own score, recommendation and coverage fields on the `scans` row. The rules do not set
+`state` for a scan with no usable report; that failed state is this story's and
+BSB-31-PENDING-4's. This story does not re-derive the verdict, so its acceptance criteria assert
+the value BSB-31-PENDING-3 defines. Dependency direction is stated in BSB-31-PENDING-3's Notes: at
+runtime this story applies that story's pass/fail rules; the rules depend on this story only for
+the record contract.
 
 The route applies the shared project-membership check that BSB-22-PENDING-1 defines and
 BSB-22-PENDING-3 applies on the run-start path, for the signed-in author on every request.
@@ -210,7 +213,8 @@ Because a scan row carries no `project_id`, a completed result is reusable by an
 uses the same content and scanner version; the standalone request's project-membership check runs
 before reuse lookup (BSB-31-PENDING-6). BSB-24 and BSB-25 consume the route; they do not
 implement their own cache. A scanner-version change is a new reuse key even when content is
-identical, because the result may differ and BSB-31-PENDING-7's parity claim is version-specific.
+identical, because the result may differ and BSB-31-PENDING-3's platform-parity claim is
+version-specific.
 
 This story is invoked through the same `POST /api/builds/{id}/scans/static` path as
 BSB-31-PENDING-1: BSB-24's run-start flow calls it after BSB-25 has packed the bundle at the
@@ -221,49 +225,55 @@ calls the same route. This story adds no second entry point.
 
 ## STORY: BSB-31-PENDING-3
 
-**Title:** Pass a static scan only when it is non-blocking, critical-free and complete
-**Epic:** BSB-31 · **Release:** MVP · **Estimate:** 3 · **Labels:** FA-11, MVP
+**Title:** Fail a static scan with a specific reason when its content is unsafe or incompletely scanned
+**Epic:** BSB-31 · **Release:** MVP · **Estimate:** 5 · **Labels:** FA-11, MVP
 
 ### Story
-As a **skill author**, I want **the static verdict to fail on a DO_NOT_INSTALL recommendation, any critical finding or incomplete coverage, and never let an accepted finding clear a block**, so that **a known security problem cannot be reported as a pass**.
+As a **skill author**, I want **my static scan to come back failed with the exact reasons when it finds a DO_NOT_INSTALL recommendation, any critical finding or incomplete coverage, to never let an accepted finding turn that failure into a pass, and to receive the same verdict the platform gives for the same content and pinned scanner version**, so that **I cannot mistake a known security problem for a clean result and a builder pass means the same thing as a platform pass**.
 
 ### Acceptance Criteria
 
 Scenario: A clean, complete report passes
 Given a scanner report {"score": 96, "recommendation": "INSTALL", "coverage": {"complete": true, "files_scanned": 12, "files_total": 12}, "findings": []} for bundle "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-When the static scan completes
-Then the "scans" row has state "completed", verdict "pass", score 96, recommendation "INSTALL", coverage_complete true and verdict_reasons [], and no "scan_findings" row is written.
+When the author's static scan completes
+Then the scan response is HTTP 201 with verdict "pass", the "scans" row has state "completed", verdict "pass", score 96, recommendation "INSTALL", coverage_complete true and verdict_reasons [], and no "scan_findings" row is written.
 
 Scenario: A DO_NOT_INSTALL recommendation fails even with no critical finding
 Given a scanner report {"score": 0, "recommendation": "DO_NOT_INSTALL", "coverage": {"complete": true, "files_scanned": 12, "files_total": 12}, "findings": [{"severity": "HIGH", "rule": "SS-210", "file": "SKILL.md", "line": 8}]}
-When the static scan completes
-Then the "scans" row has state "completed" and verdict "fail", verdict_reasons is ["recommendation DO_NOT_INSTALL"], and one "scan_findings" row exists with severity "HIGH", rule "SS-210", file "SKILL.md", line 8 and accepted false.
+When the author's static scan completes
+Then the scan response is HTTP 201 with verdict "fail", the "scans" row has state "completed" and verdict "fail", verdict_reasons is ["recommendation DO_NOT_INSTALL"], and one "scan_findings" row exists with severity "HIGH", rule "SS-210", file "SKILL.md", line 8 and accepted false.
 
 Scenario: Any critical finding fails even with a non-blocking recommendation
 Given a scanner report {"score": 41, "recommendation": "INSTALL", "coverage": {"complete": true, "files_scanned": 12, "files_total": 12}, "findings": [{"severity": "CRITICAL", "rule": "SS-001", "file": "SKILL.md", "line": 3}, {"severity": "LOW", "rule": "SS-300", "file": "scripts/run.sh", "line": 7}]}
-When the static scan completes
-Then the "scans" row has state "completed" and verdict "fail", verdict_reasons is ["1 critical finding"], and two "scan_findings" rows exist, one "CRITICAL"/"SS-001"/"SKILL.md"/3 with accepted false and one "LOW"/"SS-300"/"scripts/run.sh"/7 with accepted false.
+When the author's static scan completes
+Then the scan response is HTTP 201 with verdict "fail", the "scans" row has state "completed" and verdict "fail", verdict_reasons is ["1 critical finding"], and two "scan_findings" rows exist, one "CRITICAL"/"SS-001"/"SKILL.md"/3 with accepted false and one "LOW"/"SS-300"/"scripts/run.sh"/7 with accepted false.
 
 Scenario: Incomplete coverage fails even with no blocking recommendation and no critical finding
 Given a scanner report {"score": 88, "recommendation": "INSTALL", "coverage": {"complete": false, "files_scanned": 9, "files_total": 12}, "findings": []}
-When the static scan completes
-Then the "scans" row has state "completed", verdict "fail", coverage_complete false, and verdict_reasons is ["coverage incomplete: 9 of 12 files scanned"], and no "scan_findings" row is written.
+When the author's static scan completes
+Then the scan response is HTTP 201 with verdict "fail", the "scans" row has state "completed", verdict "fail", coverage_complete false, and verdict_reasons is ["coverage incomplete: 9 of 12 files scanned"], and no "scan_findings" row is written.
 
 Scenario: An accepted critical finding cannot clear the block
 Given a scanner report {"score": 41, "recommendation": "INSTALL", "coverage": {"complete": true, "files_scanned": 12, "files_total": 12}, "findings": [{"severity": "CRITICAL", "rule": "SS-001", "file": "SKILL.md", "line": 3}]} for a bundle whose ".skillspector-baseline.yaml" contains the entry {"rule": "SS-001", "file": "SKILL.md", "line": 3, "reason": "Temporary exception approved 2026-11-10"}
-When the static scan completes
-Then the "scans" row has state "completed" and verdict "fail", verdict_reasons is ["1 critical finding"], and the "scan_findings" row for "SS-001" has accepted true and acceptance_reason "Temporary exception approved 2026-11-10".
+When the author's static scan completes
+Then the scan response is HTTP 201 with verdict "fail", the "scans" row has state "completed" and verdict "fail", verdict_reasons is ["1 critical finding"], and the "scan_findings" row for "SS-001" has accepted true and acceptance_reason "Temporary exception approved 2026-11-10".
 
 Scenario: An accepted non-critical finding does not itself fail a clean scan
 Given a scanner report {"score": 90, "recommendation": "INSTALL", "coverage": {"complete": true, "files_scanned": 12, "files_total": 12}, "findings": [{"severity": "HIGH", "rule": "SS-150", "file": "scripts/run.sh", "line": 21}]} for a bundle whose ".skillspector-baseline.yaml" contains the entry {"rule": "SS-150", "file": "scripts/run.sh", "line": 21, "reason": "Reviewed and accepted 2026-11-10"}
-When the static scan completes
-Then the "scans" row has state "completed" and verdict "pass", verdict_reasons is [], and the "scan_findings" row for "SS-150" remains present with accepted true and acceptance_reason "Reviewed and accepted 2026-11-10".
+When the author's static scan completes
+Then the scan response is HTTP 201 with verdict "pass", the "scans" row has state "completed" and verdict "pass", verdict_reasons is [], and the "scan_findings" row for "SS-150" remains present with accepted true and acceptance_reason "Reviewed and accepted 2026-11-10".
+
+Scenario: The verdict matches the platform's for the same content and pinned scanner version
+Given the platform baseline records four bundles for scanner version "bheembhai-skillscan 0.4.2": bundle_sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" with platform_verdict "pass", "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08" with platform_verdict "fail", "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae" with platform_verdict "fail" and "fcde2b2edba56bf408601fb721fe9b5c338d10ee429ea04fae5511b68fbf8fb9" with platform_verdict "fail", each with the scanner report the platform recorded for it, the builder is pinned to scanner package "bheembhai-skillscan 0.4.2" and image digest "sha256:9c1f0a9d8b7e6f5a", and a stub scanner returns each bundle's recorded report
+When the builder runs a static scan for each of the four baseline bundles through BSB-31-PENDING-1's direct bundle-fixture entry point
+Then the four scan results are verdict "pass", "fail", "fail" and "fail" respectively, each equal to that bundle's platform_verdict, and every "scans" row records scanner_version "bheembhai-skillscan 0.4.2", image_digest "sha256:9c1f0a9d8b7e6f5a" and build_id NULL.
 
 ### Covered requirements (traceability)
 - FR-078
 - FR-079
 - FR-080
 - FR-081
+- FR-091
 
 ### Out of scope
 Running the scan or isolating its network (BSB-31-PENDING-1); reusing a prior result
@@ -277,22 +287,31 @@ means.
 Depends on BSB-31-PENDING-1 for the `scans` and `scan_findings` record contract and on
 BSB-31-PENDING-2 only to know when a completed result is reused instead of computed.
 
-This story owns the one verdict function every caller uses; no caller recomputes the verdict from a
-report. The function's input is the scanner report document plus the scanned bundle's
-`.skillspector-baseline.yaml` (when present); its output is `verdict`, `verdict_reasons` and the
-`scan_findings` rows (severity, rule, file, line, accepted, acceptance_reason), which the caller
-persists alongside the report's own score, recommendation and coverage fields on the `scans` row.
-It does not set `state` for a scan with no usable report — that failed state belongs to
-BSB-31-PENDING-1 and BSB-31-PENDING-4.
+This story defines the pass/fail rules the static scan applies, and the outcome the author sees is
+the scan's verdict: it is returned by BSB-31-PENDING-1's synchronous route and rendered by
+BSB-31-PENDING-5, and downstream consumers (BSB-27's FR-055 run refusal, BSB-30's FR-069 readiness)
+read that same stored value. The rules are applied in one place when a scan completes and no caller
+re-derives them, so the author cannot see two different answers for one report. Their input is the
+scanner report document plus the scanned bundle's `.skillspector-baseline.yaml` (when present);
+their output is `verdict`, `verdict_reasons` and the `scan_findings` rows (severity, rule, file,
+line, accepted, acceptance_reason), which BSB-31-PENDING-1 persists alongside the report's own
+score, recommendation and coverage fields on the `scans` row. The rules do not set `state` for a
+scan with no usable report — that failed state belongs to BSB-31-PENDING-1 and
+BSB-31-PENDING-4. The rules are fixed here once so the scan service and this story can be built
+together; no story may ship a second set of pass/fail rules.
 
-The function's callers are BSB-31-PENDING-1 (the scan service and HTTP route persist its output),
-BSB-31-PENDING-2 (a newly created scan; a reused row returns the stored verdict), BSB-31-PENDING-5
-(renders `verdict` and `verdict_reasons`), BSB-31-PENDING-6 (the standalone trigger) and
-BSB-31-PENDING-7 (the parity test). Dependency direction: at runtime BSB-31-PENDING-1 depends on
-this story for the function, and this story depends on BSB-31-PENDING-1 only for the record
-contract and never calls the route or the scan service; BSB-31-PENDING-2's new-scan path likewise
-calls the function. The contract is fixed here so the two stories can be built together; neither
-story may ship a second verdict implementation.
+Platform parity: the platform baseline records the verdict the platform's own scan gave for the
+same bundle and pinned scanner version. The parity scenario above compares the verdict the author
+receives with that recorded platform verdict. Parity is asserted only when the builder's scanner
+package and image digest equal the baseline's; a scanner-version mismatch is not compared, because
+a different scanner may legitimately decide differently. Every scan records the pinned
+`scanner_version` and `image_digest`, and the scanner container starts from that image digest rather
+than an image tag such as "latest", so image drift is visible as an identity difference rather than
+a silent verdict change. The four-bundle baseline corpus and its
+values are an external prerequisite supplied by the platform; this story consumes them and does not
+maintain them. The direct bundle-fixture entry point defined in BSB-31-PENDING-1 lets the parity
+scenario scan each bundle with no build or project, and each scan it creates has `build_id` NULL.
+BSB-32 owns the LLM stage's parity and model identity.
 
 A verdict is "pass" only when the recommendation is not "DO_NOT_INSTALL",
 no finding has severity "CRITICAL", and `coverage.complete` is true; those three conditions each
@@ -354,7 +373,7 @@ registry availability.
 
 ### Notes / dependencies
 Depends on BSB-31-PENDING-1 for the scan service and the synchronous route, and on BSB-31-PENDING-3
-for the verdict function. This story owns the ten-minute (600-second) execution limit and its
+for the pass/fail rules. This story owns the ten-minute (600-second) execution limit and its
 enforcement around the scanner container. The limit is fixed for the static stage: no project, run
 or request field can change it. A scan that has not reached state "completed" by 600 seconds is
 killed and recorded with state "failed" and verdict "fail", so a timeout can never be reused as a
@@ -518,8 +537,8 @@ for the test project and for defining the shared project-membership check, on BS
 the run-start application of that check and its exact 403 message "You are not a member of this
 project.", and on BSB-25 for the packed bundle. This story owns the "Security check (static only)"
 control and the author-facing request contract; the `POST /api/builds/7/scans/static` route and
-scan service are BSB-31-PENDING-1's, and each response's `verdict` is produced by
-BSB-31-PENDING-3's verdict function, so this story defines no verdict rule. This story adds the
+scan service are BSB-31-PENDING-1's, and each response's `verdict` is decided by
+BSB-31-PENDING-3's pass/fail rules, so this story defines no verdict rule. This story adds the
 control to BSB-21's build page and does not own that page: the page, its head SHA and the
 `signed-in skill-builders group member` access rule are BSB-21's (with BSB-18's authoring gate),
 and a signed-in group member such as Dave can open `GET /builds/7`. The control carries a project
@@ -542,70 +561,6 @@ row, a run branch or a run report.
 
 ---
 
-## STORY: BSB-31-PENDING-7
-
-**Title:** Match the platform's static verdict for the same content and scanner version
-**Epic:** BSB-31 · **Release:** MVP · **Estimate:** 3 · **Labels:** FA-11, MVP
-
-### Story
-As a **builder team member maintaining the static scan**, I want **the builder's static verdict to match the platform's for the same content and pinned scanner version**, so that **the evidence recorded in the builder is trustworthy when the catalog reviewer reads it through the catalog pull request**.
-
-### Acceptance Criteria
-
-Scenario: The builder's verdict matches the platform's on a fixed corpus
-Given the parity fixture "tests/fixtures/scan-parity.json" records four bundles with their scanner report and platform verdict for scanner version "bheembhai-skillscan 0.4.2": {"bundle": "clean", "bundle_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "report": {"score": 96, "recommendation": "INSTALL", "coverage": {"complete": true, "files_scanned": 12, "files_total": 12}, "findings": []}, "platform_verdict": "pass"}, {"bundle": "do-not-install", "bundle_sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "report": {"score": 0, "recommendation": "DO_NOT_INSTALL", "coverage": {"complete": true, "files_scanned": 12, "files_total": 12}, "findings": [{"severity": "HIGH", "rule": "SS-210", "file": "SKILL.md", "line": 8}]}, "platform_verdict": "fail"}, {"bundle": "critical", "bundle_sha256": "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae", "report": {"score": 41, "recommendation": "INSTALL", "coverage": {"complete": true, "files_scanned": 12, "files_total": 12}, "findings": [{"severity": "CRITICAL", "rule": "SS-001", "file": "SKILL.md", "line": 3}]}, "platform_verdict": "fail"} and {"bundle": "incomplete-coverage", "bundle_sha256": "fcde2b2edba56bf408601fb721fe9b5c338d10ee429ea04fae5511b68fbf8fb9", "report": {"score": 88, "recommendation": "INSTALL", "coverage": {"complete": false, "files_scanned": 9, "files_total": 12}, "findings": []}, "platform_verdict": "fail"}, the builder is pinned to scanner package "bheembhai-skillscan 0.4.2" and image digest "sha256:9c1f0a9d8b7e6f5a", and a stub scanner returns each bundle's recorded report
-When the parity test runs the static scan service on each fixture bundle through the same scan and verdict path as POST "/api/builds/7/scans/static", called directly with the bundle fixture so no build or project is needed, and compares the resulting verdict with the fixture's platform_verdict
-Then each of the 4 builder verdicts equals its platform_verdict, the test reports "4 of 4 bundles match", and every resulting scan record carries scanner_version "bheembhai-skillscan 0.4.2", image_digest "sha256:9c1f0a9d8b7e6f5a" and build_id NULL.
-
-Scenario: Every scan records the exact scanner identity it used
-Given the pinned kit records scanner package "bheembhai-skillscan 0.4.2" and image digest "sha256:9c1f0a9d8b7e6f5a", and the kit names no image tag for the scanner
-When a static scan completes
-Then the "scans" row records scanner_version "bheembhai-skillscan 0.4.2" and image_digest "sha256:9c1f0a9d8b7e6f5a", and the scanner container is started from that image digest rather than from an image tag such as "latest".
-
-Scenario: A scanner version mismatch is reported rather than compared
-Given the builder is pinned to scanner package "bheembhai-skillscan 0.4.2", and the platform baseline fixture was recorded with scanner package "bheembhai-skillscan 0.3.9"
-When the parity test runs
-Then it fails with the message "Scanner version mismatch: builder bheembhai-skillscan 0.4.2, baseline bheembhai-skillscan 0.3.9." and compares no verdict.
-
-Scenario: A bundle with no platform baseline fails the parity test
-Given the parity fixture has no entry for bundle_sha256 "6b3a55e0261b0304143f805a24924d0c1c44524821305f31d9277843b8a10f47"
-When the parity test scans that bundle and looks up its platform_verdict
-Then the test fails with the message "Bundle 6b3a55e0261b0304143f805a24924d0c1c44524821305f31d9277843b8a10f47 has no platform baseline." and no builder verdict is reported as matching.
-
-### Covered requirements (traceability)
-- FR-091
-
-### Out of scope
-Maintaining the platform's parity baseline or the fixed corpus (external to the builder); changing
-the scanner's rules, severities or recommendation vocabulary; the LLM scan's parity with the
-platform (BSB-32); per-run or per-project scanner overrides; the CI run of the static check in the
-skills repository (external); the authoring report page (BSB-31-PENDING-5); the scan's pass/fail
-rules (BSB-31-PENDING-3).
-
-### Notes / dependencies
-Depends on BSB-31-PENDING-1 for the scan record and the direct bundle-fixture service entry point,
-on BSB-31-PENDING-3 for the verdict function, and on the externally supplied platform baseline and
-pinned scanner image recorded in the kit. This story owns the parity test, the fixture's consumed
-shape (`bundle`, `bundle_sha256`, `report`, `platform_verdict`), the parity assertion over the
-scanner-identity fields on every `scans` row (`scanner_version`, `image_digest`, which
-BSB-31-PENDING-1 writes), the `build_id NULL` assertion for build-less scans, and the failure
-messages above. The parity test calls BSB-31-PENDING-1's direct bundle-fixture entry point (the
-same entry point the HTTP route calls), passing the packed bundle fixture plus the pinned scanner
-version and image digest, so it needs no build or project; every scan it creates has `build_id`
-NULL per BSB-31-PENDING-1's record contract. The verdict comes from BSB-31-PENDING-3's function
-and is not reimplemented in the test. The test does not own the baseline values: those come from
-the platform's own scan of the same bundle with the same pinned scanner version, and the fixture is
-refreshed when the platform pins a new scanner. The catalog reviewer consumes this parity evidence
-through the catalog pull request's linked reports (FR-111), not through a builder screen.
-
-Parity is asserted only when the builder's scanner version equals the baseline's; a mismatch is a
-loud test failure, not a verdict comparison against a different scanner. The builder never
-redefines the scanner's policy. The parity test runs against the local scanner image digest, not a
-tag, so an image drift is visible as a version or digest difference rather than a silent verdict
-change. The LLM stage's parity and model identity are BSB-32's.
-
----
-
 **Story coverage summary**
 
 | Requirement | Exercising story | Acceptance criteria that covers it |
@@ -619,7 +574,7 @@ change. The LLM stage's parity and model identity are BSB-32's.
 | FR-087 | BSB-31-PENDING-4 | "A scan still running at ten minutes is terminated and recorded as failed"; "The ten-minute boundary terminates a scan that has not finished" |
 | FR-088 | BSB-31-PENDING-4 | Same two scenarios: state "failed", verdict "fail", failure_reason "Scan exceeded the ten-minute limit." |
 | FR-089 | BSB-31-PENDING-5 | "A completed passing scan shows its score, recommendation and coverage"; "A failed scan shows its failure reason instead of an in-progress state"; "A scan reused by a different build and project renders from the same URL" |
-| FR-091 | BSB-31-PENDING-7 | "The builder's verdict matches the platform's on a fixed corpus"; "Every scan records the exact scanner identity it used"; "A scanner version mismatch is reported rather than compared"; "A bundle with no platform baseline fails the parity test" |
+| FR-091 | BSB-31-PENDING-3 | "The verdict matches the platform's for the same content and pinned scanner version" |
 | FR-092 | BSB-31-PENDING-6 | "A project member starts a static-only scan and no run is created"; "A non-owner member can start the scan"; "A signed-in author who is not a project member is refused"; "An author with no project membership has no project to scan for" |
 | FR-154 | BSB-31-PENDING-5 | "A completed passing scan shows its score, recommendation and coverage" |
 | FR-155 | BSB-31-PENDING-5 | "Every finding is shown with severity, rule, file and line" |

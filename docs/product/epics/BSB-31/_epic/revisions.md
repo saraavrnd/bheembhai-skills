@@ -178,3 +178,66 @@ PENDING-5 Notes prose changed, so `story-map.json` needs no update.
   angle-bracketed slot token anywhere. Scenario counts are unchanged.
 - **Next pass:** the verifier re-runs on the corrected set; `sdlc-plan-epic-review` and
   `sdlc-tracker-sync` follow as before.
+
+## Pass 3 — 2026-11-17 (automated verifier rejected Pass 2: vertical slices and unchanged story map)
+
+**Report applied:** the verification report on Pass 2's artifacts, verdict `changes_requested`,
+with two failing checks: `story_map` "artifact did not change since precheck", and judge criterion
+`vertical_slices` — `BSB-31-PENDING-7` was an internal parity-test/verification slice rather than a
+user-visible product capability (its Notes said it owned the parity test and its AC was that the
+test reports "4 of 4 bundles match"), and `BSB-31-PENDING-3` was framed as owning one verdict
+function, a technical-layer description. No epic-review finding and no gate answer changed in this
+pass.
+
+**Work item `SkillBuilder-2` / epic lookup.** The Atlassian MCP server is configured in `.mcp.json`,
+but this session again exposed no `mcp__atlassian__*` tool, so the configured site was queried
+read-only over its REST API (GET only; no Jira write). `GET /rest/api/3/issue/SkillBuilder-2`
+returned HTTP 404 "Issue does not exist or you do not have permission to see it.", matching the
+PRD section 8 note and Passes 1–2; no issue content is assumed from that lookup. `SkillBuilder-2` is
+the PRD's work-item umbrella; the epic decomposed here is `BSB-31`. `GET
+/rest/api/3/issue/BSB-31` returned HTTP 200: summary "Static security scanning", type Epic, status
+To Do, labels `FA-11`/`MVP`, and a description whose scope includes the platform-parity requirement.
+No Jira write was attempted.
+
+### Findings applied
+
+| Finding | Severity | Stories touched | Change applied |
+|---|---|---|---|
+| `vertical_slices` — PENDING-7 is an internal parity test, not a user-visible slice | Blocking (verifier) | BSB-31-PENDING-3, BSB-31-PENDING-7 | **PENDING-7 was removed as a story.** Its requirement FR-091 is now an acceptance criterion of the verdict slice, **BSB-31-PENDING-3**: a new scenario, "The verdict matches the platform's for the same content and pinned scanner version", asserts the verdict the author receives for each of four baseline bundles equals that bundle's recorded `platform_verdict`, with the pinned `scanner_version` and `image_digest` on every scan row. PENDING-3's Story statement now names this user-visible outcome, and its Notes consume the platform baseline as an external prerequisite (no internal test story owns it). PENDING-1's direct bundle-fixture entry point (with `build_id` NULL) remains and is cited by that scenario. |
+| `vertical_slices` — PENDING-3 described as owning one verdict function | Blocking (verifier) | BSB-31-PENDING-3, BSB-31-PENDING-1, BSB-31-PENDING-4, BSB-31-PENDING-6 | **PENDING-3 is reframed as an author-visible outcome:** its title is now "Fail a static scan with a specific reason when its content is unsafe or incompletely scanned", its Story statement is author-first, and each acceptance criterion now asserts the scan response `verdict` the author receives in addition to the durable `scans`/`scan_findings` rows. The Notes no longer say the story "owns the one verdict function"; they say it **defines the pass/fail rules the scan applies**, applied once, with no caller re-deriving them. The same wording fix removed "verdict function" from PENDING-1's Out of scope, PENDING-1's dependency paragraph, PENDING-4's Notes and PENDING-6's Notes. |
+| `story_map` — artifact did not change since precheck | Blocking (verifier) | `story-map.json` | The map now has **6 stories** (PENDING-7 removed), FR-091 moved from PENDING-7 to PENDING-3, and the PENDING-1 and PENDING-3 summaries rewritten to match the revised contracts. Every requirement ID and key that remains is unchanged. |
+
+### Coverage re-check
+
+Complete. BSB-31 now has 6 stories covering all 14 requirements mapped to it in `epic-map.json`:
+PENDING-1 (FR-076, NFR-005), PENDING-2 (FR-077), PENDING-3 (FR-078, FR-079, FR-080, FR-081,
+FR-091), PENDING-4 (FR-087, FR-088), PENDING-5 (FR-089, FR-154, FR-155) and PENDING-6 (FR-092).
+No foreign requirement is claimed. The coverage summary in `stories.md` maps FR-091 to PENDING-3's
+new parity scenario. PENDING-3's estimate changed from 3 to 5 to reflect the added parity outcome;
+no other estimate changed.
+
+### Still open (cross-epic follow-ups, not applied in this pass)
+
+Unchanged from Pass 1 and still outside `docs/product/epics/BSB-31/_epic/`: BSB-24/BSB-25/BSB-27
+must name the static-scan invocation and its position; BSB-25/BSB-30 must own or drop the packaging
+gate in the epic DoD; BSB-36/BSB-33 must own a reviewer-facing scan-report view (or PRD section 2
+corrected); BSB-25 and PRD NFR-001/G4 must reconcile the 60-second budget with the scan's own
+600-second ceiling; BSB-21 must own the build page, its head SHA and access rule; BSB-37's and
+BSB-31's existing review reports still name the removed PENDING-7 as historical text and are not
+edited here because another epic's artifacts and the review report are outside this skill's write
+scope.
+
+### Notes for the next review
+
+- **Only this epic's story files changed:** `stories.md`, `story-map.json` and this `revisions.md`.
+  Nothing outside `docs/product/epics/BSB-31/_epic/` was touched, and no Jira write was made
+  (ADR-035).
+- **Scenario counts:** PENDING-1 5 (unchanged); PENDING-2 7 (unchanged); PENDING-3 7 (the six
+  existing rules scenarios now also assert the returned verdict, plus the new parity scenario);
+  PENDING-4 3 (unchanged); PENDING-5 7 (unchanged); PENDING-6 5 (unchanged). Every story now opens
+  with an author-visible outcome and has at least one unhappy-path or refusal scenario where one
+  plausibly exists.
+- **Placeholder sweep:** `stories.md` has no template-brace, `TODO`, `TBD`, `FIXME`, `XXX` or
+  angle-bracketed slot token.
+- **Next pass:** the verifier re-runs on the revised set; `sdlc-plan-epic-review` and
+  `sdlc-tracker-sync` follow as before.
