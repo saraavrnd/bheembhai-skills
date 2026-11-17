@@ -1,0 +1,41 @@
+{
+  "epic_key": "BSB-44",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-44-PENDING-1",
+      "summary": "Configure a Jira integration with a credential reference",
+      "requirement_ids": ["FR-029", "FR-032"]
+    },
+    {
+      "story_key": "BSB-44-PENDING-2",
+      "summary": "Configure a source-control integration with a sandbox repository",
+      "requirement_ids": ["FR-030"]
+    },
+    {
+      "story_key": "BSB-44-PENDING-3",
+      "summary": "Configure a model profile with a tier-to-model mapping",
+      "requirement_ids": ["FR-031"]
+    },
+    {
+      "story_key": "BSB-44-PENDING-4",
+      "summary": "Verify credentials and record when they were last verified",
+      "requirement_ids": ["FR-033", "FR-034"]
+    },
+    {
+      "story_key": "BSB-44-PENDING-5",
+      "summary": "Warn when a repository is also used by a platform project",
+      "requirement_ids": ["FR-035", "NFR-006"]
+    },
+    {
+      "story_key": "BSB-44-PENDING-6",
+      "summary": "Keep credentials out of records, interface, logs and run results",
+      "requirement_ids": ["FR-032", "FR-036", "NFR-004"]
+    },
+    {
+      "story_key": "BSB-44-PENDING-7",
+      "summary": "Record MCP server definitions for Jira and source-control",
+      "requirement_ids": ["FR-128", "FR-129"]
+    }
+  ]
+}
