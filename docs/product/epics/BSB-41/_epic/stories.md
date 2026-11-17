@@ -75,6 +75,18 @@ model: sonnet
 # Legacy notes
 ```
 
+**Frontmatter name rewrite rule.** A clone changes exactly one line of the copied `SKILL.md`: the
+value of the top-level `name` key becomes the new skill name, keeping that line's quoting style
+(double quotes stay double quotes, single quotes stay single quotes) and any trailing `#` comment.
+Every other line of `SKILL.md` — including every other frontmatter line and every comment — and
+every other file in the folder are copied byte-for-byte from the source blob. Thus cloning
+`sdlc-research-summarise` to `sdlc-research-digest` changes
+`name: "sdlc-research-summarise"  # catalog skill name` to
+`name: "sdlc-research-digest"  # catalog skill name`, and cloning `sdlc-release-notes` to
+`sdlc-release-digest` changes `name: 'sdlc-release-notes'` to `name: 'sdlc-release-digest'`.
+Because the `SKILL.md` file therefore changes, a cloned `SKILL.md` blob's SHA differs from its
+source blob's SHA; blob SHAs are asserted equal only for every other file in the folder.
+
 **Fixture change commit `C`.** Scenarios that need `main` to move create exactly one commit `C`
 on top of `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c` and read its SHA at test time as
 `C=$(git rev-parse main)`; no scenario asserts a literal SHA for `C`. `C` has parent
@@ -118,7 +130,7 @@ HTTP 201 with a JSON body carrying `build_id` (matching `^bld_[0-9A-Za-z]{10}$`)
 
 ## STORY: BSB-41-PENDING-1
 
-**Title:** Clone a catalog skill under a new name
+**Title:** Clone a catalog skill under a new name, copying every file and rewriting only the frontmatter name
 **Epic:** BSB-41 · **Release:** MVP · **Estimate:** 5 · **Labels:** FA-2, MVP
 
 ### Story
@@ -130,15 +142,15 @@ Given the fixture catalog at `main` commit `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f
 When the author submits `{"build_kind":"clone","source_skill":"sdlc-research-summarise","name":"sdlc-research-digest","description":"Digest research sources for a weekly brief"}` to `POST /api/builds`
 Then the builder responds with HTTP 201 and a JSON body whose `build_kind` is `clone`, `skill_name` is `sdlc-research-digest`, `source_skill` is `sdlc-research-summarise`, `skill_path` is `skills/sdlc-research-digest`, `branch` is `build/sdlc-research-digest`, `base_sha` is `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c` and `build_id` matches `^bld_[0-9A-Za-z]{10}$`, and `git rev-parse build/sdlc-research-digest` equals the response's `head_sha`, that value matches `^[0-9a-f]{40}$`, and `git rev-parse build/sdlc-research-digest^` equals `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c`
 
-Scenario: Whole skill folder copied byte-for-byte
+Scenario: Whole skill folder copied, with only the SKILL.md name line rewritten
 Given the clone build `build/sdlc-research-digest` created from `sdlc-research-summarise`
 When `git ls-tree -r --name-only build/sdlc-research-digest skills/sdlc-research-digest/` is compared with `git ls-tree -r --name-only main skills/sdlc-research-summarise/` after stripping the `skills/sdlc-research-digest/` and `skills/sdlc-research-summarise/` prefixes
-Then both list exactly the 7 relative paths `SKILL.md`, `assets/diagram.png`, `examples/example-brief.md`, `references/README.md`, `references/corpus.txt`, `templates/brief.md` and `verify.yaml`, and for each relative path the cloned blob's SHA equals the source blob's SHA, so the 4,194,304-byte `references/corpus.txt` and the binary `assets/diagram.png` are copied without truncation or re-encoding
+Then both list exactly the 7 relative paths `SKILL.md`, `assets/diagram.png`, `examples/example-brief.md`, `references/README.md`, `references/corpus.txt`, `templates/brief.md` and `verify.yaml`; for each of the 6 relative paths other than `SKILL.md` the cloned blob's SHA equals the source blob's SHA, so the 4,194,304-byte `references/corpus.txt` and the binary `assets/diagram.png` are copied without truncation or re-encoding; and for `SKILL.md` the clone's blob differs from the source blob in exactly one line, the frontmatter `name:` line, whose value is `sdlc-research-digest` (so the cloned `SKILL.md` blob's SHA is not equal to the source `SKILL.md` blob's SHA)
 
 Scenario: Frontmatter name rewritten and everything else preserved
 Given the fixture sources `sdlc-research-summarise` (comments, a double-quoted name and a block scalar) and `sdlc-release-notes` (a single-quoted name and no comments)
 When the author clones `sdlc-research-summarise` to `sdlc-research-digest` and `sdlc-release-notes` to `sdlc-release-digest` through `POST /api/builds` with bodies `{"build_kind":"clone","source_skill":"sdlc-research-summarise","name":"sdlc-research-digest","description":"Digest research sources for a weekly brief"}` and `{"build_kind":"clone","source_skill":"sdlc-release-notes","name":"sdlc-release-digest","description":"Draft release notes for the weekly release"}`
-Then each cloned `SKILL.md` parses to `name` equal to its new skill name, each source's other frontmatter values (`description`, `compatibility`, `model`) and body after the closing `---` are byte-identical in the clone, the `# skill metadata (kept verbatim)` and `# catalog skill name` comments survive in the `sdlc-research-digest` clone, and the `name:` line is the only differing line in each pair
+Then each cloned `SKILL.md` parses to `name` equal to its new skill name, each source's other frontmatter values (`description`, `compatibility`, `model`) and body after the closing `---` are byte-identical in the clone, the `# skill metadata (kept verbatim)` and `# catalog skill name` comments survive in the `sdlc-research-digest` clone, and the `name:` line is the only differing line in each pair — in the `sdlc-research-digest` clone `name: "sdlc-research-summarise"  # catalog skill name` is replaced by `name: "sdlc-research-digest"  # catalog skill name`, and in the `sdlc-release-digest` clone `name: 'sdlc-release-notes'` is replaced by `name: 'sdlc-release-digest'`
 
 Scenario: Source skill left unchanged
 Given the source tree SHA is captured as `git rev-parse main:skills/sdlc-research-summarise` before the clone
@@ -153,7 +165,7 @@ Then the builder responds with HTTP 201 and `base_sha` `4f2a9c1d0b6e8f3a2c5d7e9f
 Scenario: A main move affects neither an existing clone build nor the base of the next clone
 Given the clone build `build/sdlc-research-digest` was created from `main` at `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c`, with `HEAD_SHA=$(git rev-parse build/sdlc-research-digest)` and `CLONE_BLOB=$(git rev-parse build/sdlc-research-digest:skills/sdlc-research-digest/SKILL.md)` captured
 When the test applies fixture change commit `C` to `main`, verifies `C=$(git rev-parse main)`, and submits `{"build_kind":"clone","source_skill":"sdlc-research-summarise","name":"sdlc-research-brief","description":"Summarise research sources into a short brief"}` to `POST /api/builds`
-Then `git rev-parse build/sdlc-research-digest` still equals `HEAD_SHA`, `git rev-parse build/sdlc-research-digest:skills/sdlc-research-digest/SKILL.md` still equals `CLONE_BLOB` and that blob contains the exact line `# Research summarise` and no line with the text `changed on main`, `git diff --name-status main..build/sdlc-research-digest` has exactly one line starting with `M`, that line is `M skills/sdlc-research-summarise/SKILL.md`, and every line starting with `A` names a path under `skills/sdlc-research-digest/`, `GET /api/builds` still reports `base_sha` `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c` for it, and the new build responds HTTP 201 with `base_sha` equal to `C`, `git rev-parse build/sdlc-research-brief^` equal to `C`, and `git rev-parse build/sdlc-research-brief:skills/sdlc-research-brief/SKILL.md` equal to `git rev-parse C:skills/sdlc-research-summarise/SKILL.md`
+Then `git rev-parse build/sdlc-research-digest` still equals `HEAD_SHA`, `git rev-parse build/sdlc-research-digest:skills/sdlc-research-digest/SKILL.md` still equals `CLONE_BLOB` and that blob contains the exact line `# Research summarise` and no line with the text `changed on main`, `git diff --name-status main..build/sdlc-research-digest` has exactly one line starting with `M`, that line is `M skills/sdlc-research-summarise/SKILL.md`, and every line starting with `A` names a path under `skills/sdlc-research-digest/`, `GET /api/builds` still reports `base_sha` `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c` for it, and the new build responds HTTP 201 with `base_sha` equal to `C`, `git rev-parse build/sdlc-research-brief^` equal to `C`, and `git show build/sdlc-research-brief:skills/sdlc-research-brief/SKILL.md` equal to `git show C:skills/sdlc-research-summarise/SKILL.md` with its single frontmatter line `name: "sdlc-research-summarise"` replaced by `name: "sdlc-research-brief"` (so the cloned `SKILL.md` blob's SHA at `skills/sdlc-research-brief/SKILL.md` is not equal to the source blob's SHA at `C:skills/sdlc-research-summarise/SKILL.md`)
 
 Scenario: Clone of a source skill missing from main rejected
 Given `main` contains no directory `skills/sdlc-does-not-exist/`

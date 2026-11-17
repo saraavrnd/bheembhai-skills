@@ -31,3 +31,36 @@ not exist or you do not have permission to see it"). The Atlassian MCP server co
 `.mcp.json` was not exposed as a tool in this session, so the read-only REST endpoint was used.
 This is already recorded in `docs/product/PRD.md` §8 and `docs/product/epics.md`; the stories
 remain grounded in the BSB-41 epic section, `epic-map.json` and the PRD requirement wording.
+
+## Pass 2 — 2026-11-17
+
+**Report applied:** the automated verifier rejection of Pass 1. The hand-off named two failing
+checks: the `scenario_executable` judge criterion on `BSB-41-PENDING-1`, and an artifact check that
+`story-map.json` had not changed since precheck. No `epic-review.md` or `story-review.md` was
+present and the hand-off carried no open questions, so both checks were actionable in full.
+
+### Finding → change
+
+| Finding | Change |
+|---------|--------|
+| `scenario_executable` — in `BSB-41-PENDING-1`, the final assertion of "A main move affects neither an existing clone build nor the base of the next clone" required the new clone's `skills/sdlc-research-brief/SKILL.md` blob SHA to equal the source `C:skills/sdlc-research-summarise/SKILL.md` blob SHA, which cannot hold once the frontmatter `name:` is rewritten. The "Whole skill folder copied byte-for-byte" scenario repeated the conflict by requiring every cloned blob's SHA, including `SKILL.md`'s, to equal the source blob's SHA. | Added a **Frontmatter name rewrite rule** to the fixture preamble: a clone changes exactly one line of `SKILL.md` — the value of the top-level `name` key, preserving quoting style and any trailing comment — and copies every other line and file byte-for-byte. The rewrite rule states that a cloned `SKILL.md` blob's SHA therefore differs from its source's, and that blob SHAs are asserted equal only for the other files. Renamed and rewrote "Whole skill folder copied, with only the SKILL.md name line rewritten": the 6 non-`SKILL.md` files must have equal blob SHAs, while `SKILL.md` must differ in exactly the `name:` line. Replaced the contradictory final assertion in the main-move scenario with the exact expected transformation: the clone's `SKILL.md` equals the source blob at `C` with `name: "sdlc-research-summarise"` replaced by `name: "sdlc-research-brief"`, and the cloned blob's SHA is explicitly not equal to the source blob's SHA. Pinned the exact rewritten lines in "Frontmatter name rewritten and everything else preserved". |
+| Artifact `story_map` did not change since precheck, while the reviewer feedback was active | `story-map.json`'s `BSB-41-PENDING-1` summary was updated to describe the revised story precisely — it now states the copy-every-file/rewrite-only-the-name behaviour — and the matching `**Title:**` line in `stories.md` was aligned with that summary. Story 2 and the requirement mappings are unchanged; requirement coverage and story keys are unchanged. |
+
+### Still open
+
+- None. Both reported findings were applied without needing a gate answer.
+
+### New problems noticed
+
+- None. Requirement coverage is unchanged (FR-011, FR-012, FR-013, FR-014, FR-124, FR-125 and
+  FR-126 are all still covered by at least one story), so `story-map.json`'s `requirement_ids`
+  arrays are unchanged.
+
+### Known input caveat (re-checked this pass)
+
+The Atlassian MCP server configured in `.mcp.json` was reached over stdio in this pass. A
+`jira_get_issue` call for `SkillBuilder-2` is rejected by the MCP server's issue-key schema
+(`^[A-Z][A-Z0-9_]+-\d+(?:-\d+)*$`), and a `jira_search` JQL text search for `SkillBuilder-2`
+returns zero issues; `BSB-41` was fetched successfully and is the epic used here. This supersedes
+Pass 1's note that the MCP server was not reachable, and matches the 404 recorded in
+`docs/product/PRD.md` §8 and `docs/product/epics.md`.

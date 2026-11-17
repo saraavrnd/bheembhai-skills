@@ -4,7 +4,7 @@
   "stories": [
     {
       "story_key": "BSB-41-PENDING-1",
-      "summary": "Clone a catalog skill under a new name",
+      "summary": "Clone a catalog skill under a new name by copying every file and rewriting only the frontmatter name",
       "requirement_ids": ["FR-011", "FR-012", "FR-013", "FR-014"]
     },
     {
