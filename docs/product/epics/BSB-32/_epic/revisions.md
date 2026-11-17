@@ -207,3 +207,78 @@ foreign requirement. `stories.md`'s coverage table and `story-map.json` agree.
   PENDING-1/-2 can be rewritten; applying either branch now would guess.
 - Cross-epic follow-ups from the report remain outside this skill's write scope and were not
   touched.
+
+## Pass 4 — 2026-11-17 (re-run of the revise step; still no gate answers)
+
+**Report applied:** the same `docs/product/epics/BSB-32/_epic/epic-review.md` (verdict CHANGES
+REQUESTED, 2026-11-16), committed at `3576df7`; this step's own upstream commit is `fb3e159`. This
+is visit 5 of `sdlc-plan-stories-write` in run `35127b4b-d762-446c-8498-c8372a7c4f7c`, re-entered
+after the previous revise pass. The run context's `settled_decisions.counts.answered` is still 0
+and `gate_follows` is false, so none of the report's four open questions has an answer. No new
+review report was supplied and the verifier baseline records `feedback_active: false`.
+
+**Work item `SkillBuilder-2` / epic lookup.** The Atlassian MCP tools are not exposed in this
+session, so the configured site was queried read-only through its REST API (GET only; no Jira
+write). `GET /rest/api/3/issue/SkillBuilder-2` still returns HTTP 404 ("Issue does not exist or
+you do not have permission to see it"), matching `PRD.md` section 8 and Passes 1–3; no issue
+content is assumed from that lookup. The run's epic `BSB-32` returns HTTP 200: type Epic, summary
+"LLM security scanning", status To Do, labels `FA-12`/`MVP`, and a description matching the
+BSB-32 section of `epics.md`. The run context (`ITEM`) binds this step to `BSB-32`.
+
+### Findings re-checked (no new change made)
+
+- **Finding 3 (Advisory)** remains applied: PENDING-3's Jira and source-control fixtures carry
+  `secret_ref "skill-builder/3/integration-6"` and `"skill-builder/3/integration-7"` backed by
+  the secret store, and its Notes name BSB-23-PENDING-1/-2.
+- **Finding 4 (Advisory)** remains applied: PENDING-2 owns the LLM `scans` record shape
+  (`stage "llm"`, nullable `model`/`model_profile_id`, nullable `verdict`); PENDING-3 consumes it;
+  PENDING-4 owns only the `state "unavailable"` addition and lists `completed`, `unavailable` and
+  `failed` with `verdict` NULL in all three.
+- **Finding 6 (Advisory)** remains applied: PENDING-2 and PENDING-4 name BSB-33 and BSB-26 in
+  their Notes and Out of scope, and their run-page assertions are scoped to the run's verdict,
+  verification result and final verdict rather than the whole page.
+- **Finding 8 (Advisory)** remains applied: PENDING-4 says no LLM scan is reused, including a
+  completed one, and PENDING-2 cross-references that sentence.
+- **Findings 1, 2, 5 and 7** remain deliberately unapplied. Each carries an unanswered question
+  (Open questions 1–4), and the report itself gives two alternative remedies for each, so applying
+  either branch would guess a product or ownership decision. A comparison of the current stories
+  against the report's Proposed changes found no other decision-free text left to apply.
+
+### Outcome of this pass
+
+No story, acceptance criterion, note, estimate, story key or requirement mapping changed this
+pass; only this entry was appended. Coverage remains complete: 4 stories cover all 10 requirements
+mapped to BSB-32 by `epic-map.json` — FR-082, FR-083, FR-084, FR-085, FR-086, FR-090, FR-093,
+FR-139, FR-156 and FR-163 — with no foreign requirement. `stories.md`'s coverage table and
+`story-map.json` agree, and the map summaries still describe the revised scope. Nothing outside
+`docs/product/epics/BSB-32/_epic/` was touched, and no Jira write was attempted (authoring only,
+ADR-035).
+
+### Still open (not applied — no answer at the gate)
+
+- **Finding 1 (Blocking) — LLM-scan model granularity.** Open question 1: is the scan model one
+  fixed, owner-configured `(profile, tier)` pair per test project, or may the author choose a
+  profile and tier per scan with the owner configuring only the default (ADR SK-001 §6b vs PRD §8/
+  §9 and FR-163)? If the owner-only pair stands, the tier's actor must also be stated. PENDING-1
+  and PENDING-2 are unchanged.
+- **Finding 2 (Blocking) — combined Security tab ownership.** Open question 2: does BSB-32 add
+  the ADR's Security tab acceptance criterion (or a fifth story), or does BSB-33/BSB-26 own it?
+  PENDING-2 and PENDING-4 are unchanged.
+- **Finding 5 (Advisory) — owner guard for the scan-model route.** Open question 3: is
+  `POST /projects/7/llm-scan-model` an "integration change" for BSB-22-PENDING-4's guard (keeping
+  its exact message), or does it use BSB-22-PENDING-2's shared owner guard with a scan-specific
+  message? PENDING-1 is unchanged.
+- **Finding 7 (Advisory) — reviewer-facing LLM report.** Open question 4: must BSB-32 state the
+  reviewer-view handoff in its stories, or is the epic-level summary sufficient and the viewer
+  entirely BSB-33/BSB-36's deliverable? PENDING-2 and PENDING-4 are unchanged.
+
+The report's cross-epic follow-ups (BSB-31-PENDING-5, BSB-22-PENDING-4, BSB-31-PENDING-1,
+BSB-33/BSB-36 and ADR SK-001 §6b) remain outside this skill's write scope and were not touched.
+
+### Notes for the next review
+
+- This pass made no content change because there was nothing new to apply: the four advisory
+  corrections were already landed in Passes 2–3, and the four remaining findings each need an
+  answer (or an earlier stage's decision) before a story can be rewritten without guessing.
+- The two Blocking findings require the gate answers or an `sdlc-arch-design` / PRD decision;
+  re-running this step without them will return `changes_requested` again.
