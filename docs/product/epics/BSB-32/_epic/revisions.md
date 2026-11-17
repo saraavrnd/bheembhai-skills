@@ -70,3 +70,77 @@ None.
   BSB-29; the static scan records and report route are BSB-31; project membership and the settings
   page are BSB-22; the model profile is BSB-23. The stories name these hand-offs in Notes rather
   than claiming their behaviour.
+
+## Pass 2 — 2026-11-17 (epic review)
+
+**Report applied:** `docs/product/epics/BSB-32/_epic/epic-review.md` (verdict CHANGES REQUESTED,
+2026-11-16). The run was routed here by `sdlc-plan-epic-review` with status `changes_requested`.
+
+**Work item `SkillBuilder-2`.** The Atlassian MCP tools are not exposed in this session, so the
+configured site was queried read-only through its REST API. `GET /rest/api/3/issue/SkillBuilder-2`
+returned HTTP 404 ("Issue does not exist or you do not have permission to see it"), matching PRD
+§9 and Pass 1; no issue content was assumed from that lookup. `GET /rest/api/3/issue/BSB-32`
+returned HTTP 200 (summary "LLM security scanning", status To Do, labels FA-12/MVP, no parent,
+sub-tasks or issue links), matching the BSB-32 section of `epics.md`. No Jira write was attempted.
+
+**Gate answers:** none. The run hand-off records `settled_decisions.counts.answered = 0` and
+`gate_follows = false`, so none of the review's four open questions has an answer.
+
+### Findings applied
+
+- **Finding 3 (Advisory) — `integrations` fixtures carried secret values.** BSB-32-PENDING-3: the
+  Jira and source-control fixtures now carry `secret_ref "skill-builder/3/integration-6"` and
+  `"skill-builder/3/integration-7"` instead of secret values, with "jira-test-token-9f2c" and
+  "ghp-test-token-7a1d" held in the secret store at those paths. The credential-absence assertions
+  are unchanged. BSB-23-PENDING-1 and BSB-23-PENDING-2 were added to the dependency Notes for the
+  `secret_ref`/secret-store contract.
+- **Finding 4 (Advisory) — overlapping `scans` extensions.** BSB-32-PENDING-2 is now the single
+  owner of the LLM scan record shape (`stage "llm"`, nullable `model` and `model_profile_id`,
+  nullable `verdict` for `stage "llm"`) and states that PENDING-3 and PENDING-4 consume it.
+  BSB-32-PENDING-3 no longer claims the extension and depends on PENDING-2's shape. BSB-32-PENDING-4
+  owns only the `state "unavailable"` addition and states the allowed states (`completed`,
+  `unavailable`, `failed`) with `verdict` NULL in all three.
+- **Finding 6 (Advisory) — silent run-report dependency and over-broad assertion.**
+  BSB-32-PENDING-2 and BSB-32-PENDING-4 now name BSB-33 (run report page) and BSB-26 (run page
+  layout) in Notes and Out of scope. The whole-page "no LLM-001" assertion is scoped to the run's
+  verdict, verification result and final verdict sections, so an advisory Security tab could still
+  show the finding.
+- **Finding 8 (Advisory) — inconsistent LLM reuse wording.** BSB-32-PENDING-4 now says "No LLM scan
+  is reused; a later full scan re-runs the LLM stage, including when a prior LLM scan completed."
+  BSB-32-PENDING-2 keeps the absolute rule and cross-references PENDING-4.
+
+### Still open (not applied — no answer at the gate)
+
+These findings carry an open question and were **not** applied; applying them would require
+guessing:
+
+- **Finding 1 (Blocking) — LLM-scan model granularity.** Open question 1: is the scan model one
+  fixed, owner-configured `(profile, tier)` pair per test project, or may the author choose a
+  profile and tier per scan with the owner configuring only the default (ADR SK-001 §6b vs PRD §8/
+  §9 and FR-163)? BSB-32-PENDING-1 and BSB-32-PENDING-2 are unchanged.
+- **Finding 2 (Blocking) — combined Security tab ownership.** Open question 2: does BSB-32 add the
+  combined Security tab acceptance criterion or a fifth story, or does BSB-33/BSB-26 own the tab?
+  BSB-32-PENDING-2 and BSB-32-PENDING-4 are unchanged.
+- **Finding 5 (Advisory) — owner guard for the scan-model route.** Open question 3: is
+  `POST /projects/7/llm-scan-model` an "integration change" for BSB-22-PENDING-4's guard (keeping
+  its exact message), or does it use BSB-22-PENDING-2's shared owner guard with a scan-specific
+  message? BSB-32-PENDING-1 is unchanged.
+- **Finding 7 (Advisory) — reviewer-facing LLM report.** Open question 4: must BSB-32 state the
+  reviewer-view handoff in its stories, or is the epic-level summary sufficient and the viewer
+  entirely BSB-33/BSB-36's deliverable? BSB-32-PENDING-2 and BSB-32-PENDING-4 are unchanged.
+
+### Coverage re-check
+
+Unchanged. All 10 requirements mapped to BSB-32 by `epic-map.json` remain covered by at least one
+acceptance criterion, and no story claims a requirement outside the epic. No `story-map.json`
+change was needed: no story key or requirement mapping changed, and the summaries remain accurate.
+
+### Notes for the next review
+
+- Four advisory corrections were applied; the two Blocking findings and two Advisory findings
+  depend on answers that were not supplied at the gate.
+- Finding 1 needs a product/architecture decision (PRD §8/§9 vs ADR SK-001 §6b) before
+  BSB-32-PENDING-1/-2 can be rewritten. Finding 2 needs an ownership decision across
+  BSB-31/BSB-32/BSB-33/BSB-26.
+- The report's cross-epic follow-ups (BSB-31-PENDING-5, BSB-22-PENDING-4, BSB-31-PENDING-1,
+  BSB-33/BSB-36 and ADR SK-001 §6b) are outside this skill's write scope and were not touched.
