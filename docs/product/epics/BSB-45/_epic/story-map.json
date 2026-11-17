@@ -1,0 +1,36 @@
+{
+  "epic_key": "BSB-45",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-45-PENDING-1",
+      "summary": "Start a run with the chosen skill and branches",
+      "requirement_ids": ["FR-037", "FR-145", "FR-146"]
+    },
+    {
+      "story_key": "BSB-45-PENDING-2",
+      "summary": "Choose the workflow and step context with optional hand-off",
+      "requirement_ids": ["FR-147", "FR-148"]
+    },
+    {
+      "story_key": "BSB-45-PENDING-3",
+      "summary": "Choose the model profile and tier",
+      "requirement_ids": ["FR-149", "FR-150"]
+    },
+    {
+      "story_key": "BSB-45-PENDING-4",
+      "summary": "Pin the skills commit and package a content-addressed bundle",
+      "requirement_ids": ["FR-038", "FR-039", "NFR-009"]
+    },
+    {
+      "story_key": "BSB-45-PENDING-5",
+      "summary": "Reuse an existing bundle for the same skills commit",
+      "requirement_ids": ["FR-040"]
+    },
+    {
+      "story_key": "BSB-45-PENDING-6",
+      "summary": "Create the run branch, record the baseline and keep the input branch read-only",
+      "requirement_ids": ["FR-041", "FR-042", "FR-043", "NFR-001"]
+    }
+  ]
+}
