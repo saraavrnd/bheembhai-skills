@@ -107,3 +107,43 @@ only the PENDING-1, PENDING-2 and PENDING-4 summary strings.
   that decision.
 - **Next pass:** once the gate answers for Open questions 1 and 2 are supplied, apply them to the
   named stories in the shape Step 3 produces, then update `story-map.json` only if coverage changes.
+
+## Pass 2 — 2026-11-17 (re-run of the revise step; still no gate answers)
+
+**Report applied:** the same `docs/product/epics/BSB-22/_epic/epic-review.md` report (verdict
+CHANGES REQUESTED, 2026-11-16) whose commit is `dcb3fb6`, with the prior revise pass at `e11dad2`
+as the step's own upstream commit. This is visit 3 of `sdlc-plan-stories-write` in run
+`42864b5b-aeee-478b-8b7f-56dea592ee04` (the step was re-entered after the revise pass returned
+`changes_requested`). The run context's `settled_decisions` still records `answered: 0`, so no
+answer to **Open question 1** or **Open question 2** was supplied.
+
+**Work item `SkillBuilder-2` / epic lookup.** The Atlassian MCP tools are not exposed in this
+session, so the configured site was queried read-only over its REST API (GET only; no Jira
+write). `GET /rest/api/3/issue/SkillBuilder-2` returned HTTP 404 "Issue does not exist or you do
+not have permission to see it", matching `PRD.md` section 8 and the prior passes; no issue
+content is assumed from that lookup. The run's epic `BSB-22` returned HTTP 200: summary "Test
+projects & membership", type Epic, status To Do, labels `FA-4`/`MVP`, no parent and no
+sub-tasks. The run context (`ITEM`) binds this step to `BSB-22`.
+
+### Findings re-checked (no new change made)
+
+- **Findings 3, 4 and 5 (Advisory)** remain applied exactly as recorded in Pass 1: PENDING-2 and
+  PENDING-4 share one owner check with two documented uses/messages; PENDING-1 renders the
+  "New project" link and the owner-only "Add member"/"Settings" links; PENDING-2 asserts the
+  per-row "Remove" control and names the project-page route; PENDING-4 states the settings page
+  is reached via PENDING-1's link; and the BSB-32 reuse addition is present in PENDING-1 and
+  PENDING-3. A comparison against the report's Proposed changes found nothing further to apply.
+- **Findings 1 and 2 (Blocking)** remain deliberately unapplied. Each carries an unanswered
+  question (Open questions 1 and 2) that this skill has no authority to guess. The affected
+  sentences are unchanged: PENDING-1's and PENDING-3's unqualified BSB-31/BSB-33 reuse claims,
+  and PENDING-3's `POST /projects/7/runs` / PENDING-4's `POST /projects/7/integrations` denial
+  ACs and route-ownership wording.
+
+### Outcome of this pass
+
+No story, acceptance criterion, note, estimate, key or requirement mapping changed this pass;
+only this entry was appended. Coverage remains complete: 4 stories cover all six requirements
+mapped to BSB-22 (FR-023 to FR-028), with no foreign requirement. The two Blocking findings
+still require the gate answers recorded under **Still open** above. Nothing outside
+`docs/product/epics/BSB-22/_epic/` was touched, and no Jira write was made (authoring only, per
+ADR-035).
