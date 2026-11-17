@@ -9,7 +9,7 @@
     },
     {
       "story_key": "BSB-39-PENDING-2",
-      "summary": "Block unauthenticated access to every authoring surface",
+      "summary": "Send unauthenticated visitors to sign-in",
       "requirement_ids": ["FR-001", "NFR-002"]
     },
     {
@@ -19,17 +19,17 @@
     },
     {
       "story_key": "BSB-39-PENDING-4",
-      "summary": "Recheck membership and revoke removed members within one hour",
+      "summary": "Revoke a removed member's access within one hour",
       "requirement_ids": ["FR-004", "FR-141"]
     },
     {
       "story_key": "BSB-39-PENDING-5",
-      "summary": "Create and reuse one local user record per identity-provider subject",
+      "summary": "Keep one authoring identity across sign-ins",
       "requirement_ids": ["FR-005", "FR-142"]
     },
     {
       "story_key": "BSB-39-PENDING-6",
-      "summary": "Keep the builder isolated from the platform database",
+      "summary": "Refuse to run with platform database access",
       "requirement_ids": ["FR-165"]
     }
   ]
