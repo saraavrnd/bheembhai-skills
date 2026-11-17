@@ -1,0 +1,16 @@
+{
+  "epic_key": "BSB-42",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-42-PENDING-1",
+      "summary": "Edit and save a file in the build's skill folder, committing it and recording the build head",
+      "requirement_ids": ["FR-018", "FR-019", "FR-127", "FR-162"]
+    },
+    {
+      "story_key": "BSB-42-PENDING-2",
+      "summary": "Show the build's current head SHA and readiness status, and clear readiness when the head moves",
+      "requirement_ids": ["FR-020", "FR-021", "FR-022"]
+    }
+  ]
+}
