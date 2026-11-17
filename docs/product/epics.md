@@ -1,102 +1,102 @@
 ```yaml bheembhai:foreach
 epics:
-  - id: FA-1-PENDING
-    epic_key: FA-1-PENDING
+  - id: BSB-39
+    epic_key: BSB-39
     summary: "Access & identity"
     feature_area: FA-1
     release: MVP
-  - id: FA-2A-PENDING
-    epic_key: FA-2A-PENDING
+  - id: BSB-40
+    epic_key: BSB-40
     summary: "Build creation & skill scaffolding"
     feature_area: FA-2
     release: MVP
-  - id: FA-2B-PENDING
-    epic_key: FA-2B-PENDING
+  - id: BSB-41
+    epic_key: BSB-41
     summary: "Cloning & edit builds"
     feature_area: FA-2
     release: MVP
-  - id: FA-3-PENDING
-    epic_key: FA-3-PENDING
+  - id: BSB-42
+    epic_key: BSB-42
     summary: "Skill editing, build state & readiness tracking"
     feature_area: FA-3
     release: MVP
-  - id: FA-4-PENDING
-    epic_key: FA-4-PENDING
+  - id: BSB-43
+    epic_key: BSB-43
     summary: "Test projects & membership"
     feature_area: FA-4
     release: MVP
-  - id: FA-5-PENDING
-    epic_key: FA-5-PENDING
+  - id: BSB-44
+    epic_key: BSB-44
     summary: "Integrations & credentials"
     feature_area: FA-5
     release: MVP
-  - id: FA-6-PENDING
-    epic_key: FA-6-PENDING
+  - id: BSB-45
+    epic_key: BSB-45
     summary: "Run setup & skill packaging"
     feature_area: FA-6
     release: MVP
-  - id: FA-11-PENDING
-    epic_key: FA-11-PENDING
+  - id: BSB-46
+    epic_key: BSB-46
     summary: "Static security scanning"
     feature_area: FA-11
     release: MVP
-  - id: FA-12-PENDING
-    epic_key: FA-12-PENDING
+  - id: BSB-47
+    epic_key: BSB-47
     summary: "LLM security scanning"
     feature_area: FA-12
     release: MVP
-  - id: FA-7-PENDING
-    epic_key: FA-7-PENDING
+  - id: BSB-48
+    epic_key: BSB-48
     summary: "Run execution & outcome capture"
     feature_area: FA-7
     release: MVP
-  - id: FA-8-PENDING
-    epic_key: FA-8-PENDING
+  - id: BSB-49
+    epic_key: BSB-49
     summary: "Run guardrails & re-runs"
     feature_area: FA-8
     release: MVP
-  - id: FA-10A-PENDING
-    epic_key: FA-10A-PENDING
+  - id: BSB-50
+    epic_key: BSB-50
     summary: "Run verification & verdict"
     feature_area: FA-10
     release: MVP
-  - id: FA-10B-PENDING
-    epic_key: FA-10B-PENDING
+  - id: BSB-51
+    epic_key: BSB-51
     summary: "Readiness checks & packaging gates"
     feature_area: FA-10
     release: MVP
-  - id: FA-13B-PENDING
-    epic_key: FA-13B-PENDING
+  - id: BSB-52
+    epic_key: BSB-52
     summary: "Run audit trail, retention & usage records"
     feature_area: FA-13
     release: MVP
-  - id: FA-13A-PENDING
-    epic_key: FA-13A-PENDING
+  - id: BSB-53
+    epic_key: BSB-53
     summary: "Run results & reporting"
     feature_area: FA-13
     release: MVP
-  - id: FA-15-PENDING
-    epic_key: FA-15-PENDING
+  - id: BSB-54
+    epic_key: BSB-54
     summary: "Catalog submission"
     feature_area: FA-15
     release: MVP
-  - id: FA-16-PENDING
-    epic_key: FA-16-PENDING
+  - id: BSB-55
+    epic_key: BSB-55
     summary: "Command line & suites"
     feature_area: FA-16
     release: mixed
-  - id: FA-17-PENDING
-    epic_key: FA-17-PENDING
+  - id: BSB-56
+    epic_key: BSB-56
     summary: "Accessibility conformance"
     feature_area: FA-17
     release: MVP
-  - id: FA-9-PENDING
-    epic_key: FA-9-PENDING
+  - id: BSB-57
+    epic_key: BSB-57
     summary: "Jira fixture seeding"
     feature_area: FA-9
     release: Later
-  - id: FA-14-PENDING
-    epic_key: FA-14-PENDING
+  - id: BSB-58
+    epic_key: BSB-58
     summary: "Skill history & run comparison"
     feature_area: FA-14
     release: Later
@@ -104,7 +104,7 @@ epics:
 
 # Epics — decomposed from the SkillBuilder PRD
 
-Project: **PENDING** (no valid target Jira project was named) · Source: `docs/product/PRD.md` · 20 epics · every FR/NFR mapped exactly once.
+Project: **BSB** (`bheembhai-skill-builder`) · Source: `docs/product/PRD.md` · 20 epics · every FR/NFR mapped exactly once.
 
 > **Work-item note.** The requested work item `SkillBuilder-2` could not be retrieved from the
 > configured Atlassian site while this plan was written. `SkillBuilder` is not a valid project key
@@ -114,13 +114,13 @@ Project: **PENDING** (no valid target Jira project was named) · Source: `docs/p
 > grounds the product in `docs/adr/SK-001-skill-builder.md`. If the work item exists elsewhere,
 > reconcile its description and acceptance criteria against the PRD before publishing.
 >
-> **Draft keys.** Every key is a draft `<EPIC>-PENDING` key. The three feature areas with 15 or
-> more requirements were split into two epics each, so their draft keys carry a letter suffix
-> (`FA-2A`/`FA-2B`, `FA-10A`/`FA-10B`, `FA-13A`/`FA-13B`). `sdlc-tracker-sync` swaps every draft
-> key for the real Jira key in this block and in `epic-map.json`.
+> **Keys.** Every epic carries its real Jira key from the `bheembhai-skill-builder` (BSB) project,
+> published by `sdlc-tracker-sync`; this block and `epic-map.json` hold the same keys. The three
+> feature areas with 15 or more requirements were split into two epics each, so their keys carry a
+> letter suffix (`FA-2A`/`FA-2B`, `FA-10A`/`FA-10B`, `FA-13A`/`FA-13B`).
 >
-> **Publishing.** `project_key` is `PENDING` because the run named no valid Jira project.
-> `sdlc-tracker-sync` must receive a confirmed project key at the approval gate; it never guesses.
+> **Publishing.** `sdlc-tracker-sync` published these epics to the `bheembhai-skill-builder` (BSB)
+> project; `project_key` in `epic-map.json` records that key.
 >
 > **NFR placement.** Each cross-cutting NFR is mapped to the one epic that owns the behavior it
 > constrains (for example NFR-005 to static scanning, NFR-012 to accessibility) rather than being
@@ -128,7 +128,7 @@ Project: **PENDING** (no valid target Jira project was named) · Source: `docs/p
 
 ---
 
-## EPIC: Access & identity  (FA-1-PENDING)
+## EPIC: Access & identity  (BSB-39)
 
 **Feature area:** FA-1 · **Release:** MVP · **Labels:** FA-1, MVP
 
@@ -214,7 +214,7 @@ ownership consume.
 
 ---
 
-## EPIC: Build creation & skill scaffolding  (FA-2A-PENDING)
+## EPIC: Build creation & skill scaffolding  (BSB-40)
 
 **Feature area:** FA-2 · **Release:** MVP · **Labels:** FA-2, MVP
 
@@ -291,7 +291,7 @@ manifest checks are external prerequisites.
 
 ---
 
-## EPIC: Cloning & edit builds  (FA-2B-PENDING)
+## EPIC: Cloning & edit builds  (BSB-41)
 
 **Feature area:** FA-2 · **Release:** MVP · **Labels:** FA-2, MVP
 
@@ -361,7 +361,7 @@ are implemented once in FA-2A; this epic does not restate them.
 
 ---
 
-## EPIC: Skill editing, build state & readiness tracking  (FA-3-PENDING)
+## EPIC: Skill editing, build state & readiness tracking  (BSB-42)
 
 **Feature area:** FA-3 · **Release:** MVP · **Labels:** FA-3, MVP
 
@@ -431,7 +431,7 @@ FA-13A, FA-15. The ready-SHA field this epic persists is written by FA-10B and r
 
 ---
 
-## EPIC: Test projects & membership  (FA-4-PENDING)
+## EPIC: Test projects & membership  (BSB-43)
 
 **Feature area:** FA-4 · **Release:** MVP · **Labels:** FA-4, MVP
 
@@ -497,7 +497,7 @@ LLM-scan model setting.
 
 ---
 
-## EPIC: Integrations & credentials  (FA-5-PENDING)
+## EPIC: Integrations & credentials  (BSB-44)
 
 **Feature area:** FA-5 · **Release:** MVP · **Labels:** FA-5, MVP
 
@@ -581,7 +581,7 @@ inventory and the test Jira/source-control/model endpoints are supplied outside 
 
 ---
 
-## EPIC: Run setup & skill packaging  (FA-6-PENDING)
+## EPIC: Run setup & skill packaging  (BSB-45)
 
 **Feature area:** FA-6 · **Release:** MVP · **Labels:** FA-6, MVP
 
@@ -670,7 +670,7 @@ every later run-scoped epic.
 
 ---
 
-## EPIC: Static security scanning  (FA-11-PENDING)
+## EPIC: Static security scanning  (BSB-46)
 
 **Feature area:** FA-11 · **Release:** MVP · **Labels:** FA-11, MVP
 
@@ -757,7 +757,7 @@ there.
 
 ---
 
-## EPIC: LLM security scanning  (FA-12-PENDING)
+## EPIC: LLM security scanning  (BSB-47)
 
 **Feature area:** FA-12 · **Release:** MVP · **Labels:** FA-12, MVP
 
@@ -835,7 +835,7 @@ scan is a recorded, non-blocking outcome by design (FR-139 and FR-069).
 
 ---
 
-## EPIC: Run execution & outcome capture  (FA-7-PENDING)
+## EPIC: Run execution & outcome capture  (BSB-48)
 
 **Feature area:** FA-7 · **Release:** MVP · **Labels:** FA-7, MVP
 
@@ -909,7 +909,7 @@ records and FA-14 compares.
 
 ---
 
-## EPIC: Run guardrails & re-runs  (FA-8-PENDING)
+## EPIC: Run guardrails & re-runs  (BSB-49)
 
 **Feature area:** FA-8 · **Release:** MVP · **Labels:** FA-8, MVP
 
@@ -991,7 +991,7 @@ numeric default.
 
 ---
 
-## EPIC: Run verification & verdict  (FA-10A-PENDING)
+## EPIC: Run verification & verdict  (BSB-50)
 
 **Feature area:** FA-10 · **Release:** MVP · **Labels:** FA-10, MVP
 
@@ -1070,7 +1070,7 @@ outside the agent container by design.
 
 ---
 
-## EPIC: Readiness checks & packaging gates  (FA-10B-PENDING)
+## EPIC: Readiness checks & packaging gates  (BSB-51)
 
 **Feature area:** FA-10 · **Release:** MVP · **Labels:** FA-10, MVP
 
@@ -1138,7 +1138,7 @@ LLM-scan outcome for readiness (FR-139) and must not be treated as a failure her
 
 ---
 
-## EPIC: Run audit trail, retention & usage records  (FA-13B-PENDING)
+## EPIC: Run audit trail, retention & usage records  (BSB-52)
 
 **Feature area:** FA-13 · **Release:** MVP · **Labels:** FA-13, MVP
 
@@ -1207,7 +1207,7 @@ FA-13A and FA-14 expect unavailable.
 
 ---
 
-## EPIC: Run results & reporting  (FA-13A-PENDING)
+## EPIC: Run results & reporting  (BSB-53)
 
 **Feature area:** FA-13 · **Release:** MVP · **Labels:** FA-13, MVP
 
@@ -1291,7 +1291,7 @@ recorded under NFR-017.
 
 ---
 
-## EPIC: Catalog submission  (FA-15-PENDING)
+## EPIC: Catalog submission  (BSB-54)
 
 **Feature area:** FA-15 · **Release:** MVP · **Labels:** FA-15, MVP
 
@@ -1371,7 +1371,7 @@ opening a pull request.
 
 ---
 
-## EPIC: Command line & suites  (FA-16-PENDING)
+## EPIC: Command line & suites  (BSB-55)
 
 **Feature area:** FA-16 · **Release:** mixed · **Labels:** FA-16, mixed
 
@@ -1444,7 +1444,7 @@ does not orchestrate workflows, gates or routing.
 
 ---
 
-## EPIC: Accessibility conformance  (FA-17-PENDING)
+## EPIC: Accessibility conformance  (BSB-56)
 
 **Feature area:** FA-17 · **Release:** MVP · **Labels:** FA-17, MVP
 
@@ -1528,7 +1528,7 @@ CI check should be delivered first (alongside FA-1/FA-2A). Accessibility is an a
 
 ---
 
-## EPIC: Jira fixture seeding  (FA-9-PENDING)
+## EPIC: Jira fixture seeding  (BSB-57)
 
 **Feature area:** FA-9 · **Release:** Later · **Labels:** FA-9, Later
 
@@ -1594,7 +1594,7 @@ decision (§8, Jira isolation); it is what makes deleting only marked issues saf
 
 ---
 
-## EPIC: Skill history & run comparison  (FA-14-PENDING)
+## EPIC: Skill history & run comparison  (BSB-58)
 
 **Feature area:** FA-14 · **Release:** Later · **Labels:** FA-14, Later
 
