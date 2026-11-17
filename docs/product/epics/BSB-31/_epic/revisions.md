@@ -134,3 +134,47 @@ so they match the revised contracts; `requirement_ids` are untouched.
   above; none blocks building BSB-31's seven stories as revised.
 - **Next pass:** `sdlc-plan-epic-review` re-runs on the revised set with the current story text.
   If it returns changes_requested, the next revise pass applies the new report the same way.
+
+## Pass 2 — 2026-11-17 (automated verifier rejected Pass 1)
+
+**Report applied:** the verification report on Pass 1's artifacts, check `no_template_residue`
+(`builtin:md_no_placeholders`), verdict `changes_requested` — `stories.md` line 445 contained the
+angle-bracketed placeholder text `<failure_reason>` in BSB-31-PENDING-5's Notes. No epic-review
+finding and no gate answer changed in this pass; the story set, the requirement mapping and every
+acceptance criterion are exactly as Pass 1 left them.
+
+**Work item `SkillBuilder-2` / epic lookup.** The Atlassian MCP tools are still not exposed in
+this session (no `mcp__atlassian__*` tool and no MCP server connection), so the configured site was
+re-queried read-only over its REST API (GET only; no Jira write).
+`GET /rest/api/3/issue/SkillBuilder-2` returned HTTP 404 "Issue does not exist or you do not have
+permission to see it.", matching `PRD.md` section 8 and the Pass 1 note; no issue content is
+assumed from that lookup. `GET /rest/api/3/issue/BSB-31` returned HTTP 200: summary "Static
+security scanning", type Epic, status To Do, labels `FA-11`/`MVP`, description matching the BSB-31
+section of `epics.md`. BSB-31 remains the epic this pass revises. No Jira write was attempted.
+
+### Findings applied
+
+| Finding | Severity | Stories touched | Change applied |
+|---|---|---|---|
+| `no_template_residue` — a `<slot>`-style placeholder remained in the PENDING-5 Notes | Blocking (verifier) | BSB-31-PENDING-5 | Rewrote the failed-state sentence so the failure text is described in prose and a template string rather than an angle-bracketed slot: the page shows "Verdict: FAIL" and the template "Scan failed: " followed by the row's `failure_reason`, never "Scan in progress" and never a score or recommendation. The concrete timeout text (BSB-31-PENDING-4) and no-report text (BSB-31-PENDING-1) are unchanged. |
+
+### Still open
+
+Unchanged from Pass 1. The cross-epic follow-ups listed under Pass 1's "Still open" are outside
+`docs/product/epics/BSB-31/_epic/` and were not touched in this pass. No epic-review finding is
+newly open, and no recorded choice from Pass 1 was reopened.
+
+### Coverage re-check
+
+Complete and unchanged. BSB-31 still has 7 stories covering all 14 requirements mapped to it in
+`epic-map.json`; no story key, title, requirement ID or estimate changed. Only `stories.md`'s
+PENDING-5 Notes prose changed, so `story-map.json` needs no update.
+
+### Notes for the next review
+
+- **Only this epic's story files changed:** `stories.md` and this `revisions.md`. Nothing outside
+  `docs/product/epics/BSB-31/_epic/` was touched, and no Jira write was made (ADR-035).
+- **Placeholder sweep:** `stories.md` now has no template-brace, `TODO`, `TBD`, `FIXME`, `XXX` or
+  angle-bracketed slot token anywhere. Scenario counts are unchanged.
+- **Next pass:** the verifier re-runs on the corrected set; `sdlc-plan-epic-review` and
+  `sdlc-tracker-sync` follow as before.

@@ -442,11 +442,11 @@ this page must render. This story owns the authoring report route `GET /scans/11
 mapping: `score` and `recommendation` are shown exactly as the scanner wrote them; each finding's
 `severity`, `rule`, `file` and `line` are shown in one row; a scan with no findings shows "No
 findings."; a scan that has not completed shows "Scan in progress" and no score; a scan with state
-"failed" shows "Verdict: FAIL" and "Scan failed: <failure_reason>", never "Scan in progress" and
-never a score or recommendation; an unknown scan id is 404. The fixed failure text template is
-"Scan failed: " followed by the row's `failure_reason`, so a timeout renders "Scan failed: Scan
-exceeded the ten-minute limit." (BSB-31-PENDING-4) and a scanner that wrote no report renders
-"Scan failed: Scanner exited with code 137 before writing a report." (BSB-31-PENDING-1).
+"failed" shows "Verdict: FAIL" and the template "Scan failed: " followed by the row's
+`failure_reason`, never "Scan in progress" and never a score or recommendation; an unknown scan id
+is 404. A timeout renders "Scan failed: Scan exceeded the ten-minute limit." (BSB-31-PENDING-4)
+and a scanner that wrote no report renders "Scan failed: Scanner exited with code 137 before
+writing a report." (BSB-31-PENDING-1).
 
 Access rule: the report route is part of the authoring interface and is gated by BSB-18's signed-in
 skill-builder check only (a signed-in author outside the `skill-builders` group receives HTTP 403).
