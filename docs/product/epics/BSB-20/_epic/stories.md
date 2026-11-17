@@ -97,6 +97,16 @@ files and every other copied file stays byte-identical, so both `python tools/ch
 pinned `bheembhai-verify lint` exit 0 on the clone. The clone has no runtime link back to the
 source beyond the cloned_from column.
 
+Traceability note (closes the epic-review's Finding 3 on the story side): FR-013's wording and the
+BSB-20 epic Description/DoD say the clone rewrites "the skill name in the copied frontmatter".
+The `verify.yaml` top-level `skill` rewrite is required *in addition to* the `SKILL.md`
+frontmatter `name` because `python tools/check.py` (README tier 1) rejects a skill whose
+`verify.yaml` `skill` value differs from its folder: without it the clone cannot pass the two
+static manifest checks asserted above. This story therefore satisfies FR-013 and catalog validity
+together, and FR-013's prose is not narrowed to `SKILL.md` alone. The corresponding wording
+clarification in `PRD.md` FR-013, `epics.md` BSB-20 Description/DoD and ADR SK-001 section 1a is a
+cross-document follow-up recorded in `revisions.md`, not a BSB-20 story defect.
+
 The clone form extends BSB-19-PENDING-1's single `GET /builds/new` + `POST /builds` handler and
 adds no second handler at that route: BSB-19-PENDING-1 owns the base create route and its `create`
 mode, and this story owns the `clone`-mode dispatch on that same handler. The build mode is
