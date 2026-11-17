@@ -1,6 +1,6 @@
 # Epic Review — BSB-31: Static security scanning
 
-**Verdict:** CHANGES REQUESTED · **Date:** 2026-11-16 · **Stories reviewed:** BSB-31-PENDING-1, BSB-31-PENDING-2, BSB-31-PENDING-3, BSB-31-PENDING-4, BSB-31-PENDING-5, BSB-31-PENDING-6, BSB-31-PENDING-7
+**Verdict:** CHANGES REQUESTED · **Date:** 2026-11-17 · **Stories reviewed:** BSB-31-PENDING-1, BSB-31-PENDING-2, BSB-31-PENDING-3, BSB-31-PENDING-4, BSB-31-PENDING-5, BSB-31-PENDING-6
 
 > Report of the cross-story gap review (ADR-035 `reviewer`): which stories were loaded together,
 > what is wrong when they are compared (not visible from any single story alone), what a person
@@ -10,578 +10,577 @@
 
 ## Context loaded
 
-- **Work item / source.** The run context (`BB_CONTEXT`) binds `ITEM.id` to `BSB-31` and records
-  the upstream `sdlc-plan-stories-write` commit `644e397`; `SkillBuilder-2` is the PRD's parent
-  work item, not a story in this epic. `SkillBuilder-2` has no Jira issue on the configured site:
-  a read-only `GET /rest/api/3/issue/SkillBuilder-2` returned HTTP 404 ("Issue does not exist or
-  you do not have permission to see it"). The Atlassian MCP tools were not exposed in this
-  session, so the same site's REST API was queried read-only (GET only; no Jira writes).
-  `PRD.md` §8 and `epics.md`'s source note record the same result and ground the product in ADR
-  SK-001.
-- **The epic.** `GET /rest/api/3/issue/BSB-31` returned HTTP 200: Epic "Static security scanning",
-  status To Do, labels `FA-11`/`MVP`, no parent, no sub-tasks and no issue links. Its description
-  matches the BSB-31 section of `epics.md`. `epic-map.json` records BSB-31 under FA-11/MVP with
-  FR-076 to FR-081, FR-087 to FR-089, FR-091, FR-092, FR-154, FR-155 and NFR-005.
-- **All 7 stories in BSB-31**, from `stories.md` and `story-map.json` in one read each —
-  BSB-31-PENDING-1 through -7 (the full set, not a sample). `story-map.json` maps the same 14
-  requirement IDs, each to exactly one story. BSB-31 has no `revisions.md` and no prior
-  `epic-review.md`.
-- **`PRD.md`** — §2 target users (including the catalog reviewer, who "does not use the authoring
-  interface"), §5 FA-11, §6 the fourteen FR rows, §7 NFR-001, NFR-005 and NFR-012, and §8's
-  source note, external prerequisites and secrets constraints. G4's 60-second / 5 MB run
-  preparation target was read with NFR-001.
-- **`epics.md`** — the BSB-31 section (description, functional scope, implementation guidance, DoD,
-  covered requirements, Notes), plus the sections of the epics that consume or supply this one:
-  BSB-18 (authoring gate), BSB-19/BSB-21 (build and head SHA; BSB-19's Notes say the full build
-  page is BSB-21's), BSB-22 (test projects and the shared membership check), BSB-24 (run start),
-  BSB-25 (packaging), BSB-26 (execution), BSB-27 (run refusal and preflight), BSB-30 (readiness
-  and packaging preflight), BSB-32 (LLM scan), BSB-33 (run report), BSB-36 (catalog submission),
-  BSB-37 (CLI) and BSB-38 (accessibility, explicitly cross-cutting over the scan surfaces).
-- **`docs/adr/SK-001-skill-builder.md`** — §1b (Ready), §2/§2a (pinned kit and image digest),
-  §3 (Cognito and the per-request `skill-builders` gate), §4 (test project, membership and
-  credentials), §5 (runs), §6b (security scan, including "static stage runs with no network" and
-  "cached by content sha") and §9 (the data model, which names no `scans` or `scan_findings`
-  table).
-- **Other story sets checked:** BSB-18, BSB-19, BSB-20, BSB-22 and BSB-23 have stories on disk.
-  BSB-21, BSB-24, BSB-25, BSB-26, BSB-27, BSB-30, BSB-32, BSB-33, BSB-36, BSB-37 and BSB-38 have
-  epic definitions but no stories yet; their epic scope and Notes were read to tell a legitimate
-  cross-epic dependency from an unowned one.
-- **Not present:** `architecture.md`, `data-model.md`, `api-contracts/` and `ui-conventions.md` are
-  not committed; the architecture-design step runs after planning, so ADR SK-001 is the design
-  authority this pass can use. No `epic-sequence.md`/`.json` exists for BSB-31; no build order is
-  computed here.
+- **Work item / source.** The run context binds the target to epic `BSB-31`; `SkillBuilder-2` is
+  the PRD's parent work item, not a story in this epic. `SkillBuilder-2` has no retrievable Jira
+  issue: a read-only `GET /rest/api/3/issue/SkillBuilder-2` returned HTTP 404 ("Issue does not
+  exist or you do not have permission to see it"). The Atlassian MCP server is configured in
+  `.mcp.json`, but no `mcp__atlassian__*` tools were exposed in this session, so the same site was
+  queried read-only over REST (GET only; no Jira writes). `PRD.md` §8 (`:273-278`) and
+  `epics.md`'s source note (`:110-119`) record the same result and designate the committed
+  decomposition as the source. This review therefore judges the committed epic artifacts, not a
+  Jira description.
+- **Stories.** Read all six stories in `stories.md` and every entry in `story-map.json` in one
+  pass: BSB-31-PENDING-1 (scan the exact run bundle before the run), -2 (reuse a completed result),
+  -3 (fail with a specific reason and match the platform verdict), -4 (ten-minute timeout), -5
+  (show the static scan report), -6 (standalone static-only scan). No PENDING-7 remains in either
+  artifact; the coverage table at `stories.md:566-584` maps all fourteen requirements.
+- **Requirements.** `epic-map.json` BSB-31 entry: FR-076, FR-077, FR-078, FR-079, FR-080, FR-081,
+  FR-087, FR-088, FR-089, FR-091, FR-092, FR-154, FR-155, NFR-005. Read `PRD.md` §2 (target users,
+  including the catalog reviewer at `:16`), the FA-11 requirements (`:150-166`, `:228-229`), FR-111
+  (`:185`) and the NFR table (`:251`, `:255`). Read the BSB-31 epic section in `epics.md`
+  (`:511-587`), including the functional scope, implementation guidance and the Goal / Definition
+  of Done (`:555-561`).
+- **Design / data.** Read `docs/adr/SK-001-skill-builder.md` §6b (security scan, `:284-315`) and
+  §9 (data model, `:345-361`). No `architecture.md`, `data-model.md` or `api-contracts/` exists in
+  `docs/` at this revision (the tree holds `docs/adr/`, `docs/product/` and `docs/skill-chain.md`),
+  so the ADR is the design input;
+  PENDING-1 already states that the data-model stage must record the new `scans` and
+  `scan_findings` structures. Read `story-map.json`, `epic-map.json` and the BSB-31 section of
+  `epics.md`.
+- **Sibling epics checked for legitimate cross-epic dependencies.** `BSB-24` (run start; stories
+  decomposed), `BSB-25` (packaging / `skill_bundles`; stories decomposed), `BSB-26` (run progress
+  and page; stories decomposed), `BSB-32` (LLM scan; stories decomposed), `BSB-33` (run report;
+  stories decomposed), `BSB-36` (catalog submission; stories decomposed), `BSB-37` (CLI; stories
+  decomposed), `BSB-22` (project membership; stories decomposed), `BSB-38` (acceptance fixtures;
+  stories decomposed). `BSB-21`, `BSB-27` and `BSB-30` have no `stories.md` yet, so only their
+  epic sections in `epics.md` were read. Also read the existing `revisions.md` (Passes 1-3) and
+  the previous `epic-review.md` to distinguish already-applied findings from current ones.
+- **Prior pass.** The previous report (dated 2026-11-16, seven stories) was superseded by Passes
+  1-3 of `sdlc-plan-stories-write`. This pass re-checks the revised six-story set against sibling
+  epics that have since been decomposed; it does not repeat findings the revision demonstrably
+  closed (the parity entry point, the PENDING-1/PENDING-3 direction, the failed-state report
+  text, and the build-page host note are now consistent).
 
 ## Findings
 
-### Finding 1 — FR-076's "before every run" call has no owner, and the consumer-side guidance contradicts the scan's input
+### Finding 1 — Cross-epic dependency and caller contradiction: the every-run static scan is attributed to BSB-24's run start, while BSB-24 and BSB-25 assign it to BSB-27's preflight
+
 - **Severity:** Blocking
 - **Stories touched:** BSB-31-PENDING-1, BSB-31-PENDING-2, BSB-31-PENDING-4, BSB-31-PENDING-6.
-  Cross-epic: BSB-24, BSB-25, BSB-27.
+  Cross-epic: BSB-24-PENDING-1, BSB-25-PENDING-1, BSB-25-PENDING-2, BSB-27 (epic; no stories yet).
 - **Evidence:**
-  - PENDING-1's Notes say "The run-start path is BSB-24's; before it launches the agent container
-    it must call this route for the run's project and SHA … BSB-24's epic does not currently name
-    this call, so its run-start stories must adopt it for FR-076's 'before every run' to hold"
-    (`stories.md:90-98`).
-  - PENDING-1's acceptance criteria start from the caller: "Given … the run-start preflight …
-    calls POST \"/api/builds/7/scans/static\"" (`stories.md:29-52`). PENDING-2 and PENDING-4 do the
-    same (`stories.md:118-141`, `stories.md:256-269`). They prove the route's behaviour once it is
-    called; no AC proves that every run start calls it.
-  - BSB-24's epic functional scope and Notes (`epics.md:669-713`) cover branch/context/model
-    selection and creating a run request for packaging; they never mention a static scan or
-    `POST /api/builds/7/scans/static`.
-  - BSB-27's implementation guidance says: "Add a preflight that rejects incompatible execution
-    components **before a bundle or branch is prepared**, and add the static-scan precondition
-    using the scanning epic's verdict function" (`epics.md:869-874`, emphasis added).
-  - PENDING-1 cannot scan before a bundle exists: the route reads the `skill_bundles` row for the
-    requested SHA and returns HTTP 409 "No packed bundle exists for commit 4f2c9a1." when there is
-    none (`stories.md:49-52`, `stories.md:76-79`). BSB-25 owns packaging (`epics.md:730-739`) and
-    its Notes say it supplies the pinned bundle to static scanning (`epics.md:771-776`).
-  - `PRD.md` FR-076 says "before every run" (`PRD.md:150`); FR-055, owned by BSB-27, refuses the
-    run when the static scan did not pass (`PRD.md:129`, `epics.md:896`).
-- **What is missing/ambiguous/contradictory:** The gate's producer (BSB-31's route) and its
-  refusal (BSB-27's FR-055) exist, but the invocation that connects them is owned by nobody. The
-  only written instruction points at BSB-24, whose epic is silent; BSB-27's guidance instead puts
-  the static-scan precondition before bundle preparation, which the scan's own input makes
-  impossible. One implementer can put the check before packaging (always 409) while another puts
-  it after packaging (the intended gate); either way, FR-076's "before every run" is not
-  demonstrated.
-- **Question (if a person must decide):** Which epic/story invokes
+  - BSB-31-PENDING-1, Notes: "the run-start flow is BSB-24's, and it invokes this route for the
+    run's project and the exact `skills_commit_sha` after BSB-25 has packed the bundle at that SHA
+    and before the agent container launches" (`stories.md:118-120`); "BSB-24's, BSB-25's and
+    BSB-27's own stories must name this call and its position when those epics are decomposed"
+    (`stories.md:123-124`).
+  - BSB-31-PENDING-2 repeats "BSB-24's run-start flow calls it after BSB-25 has packed the bundle"
+    (`stories.md:219-221`); BSB-31-PENDING-4 repeats it verbatim (`stories.md:384-386`);
+    BSB-31-PENDING-6 says "BSB-24's run-start preflight calls the same route" (`stories.md:557-558`).
+  - BSB-24-PENDING-1 says the opposite: "Run start does not resolve or package the skill, create
+    the run branch, scan or execute. … BSB-27's preflight calls BSB-31-PENDING-1's static-scan
+    route for the run's project and resolved SHA … before BSB-26 launches the agent container, and
+    BSB-27 refuses a run whose static verdict is not pass (FR-055)"
+    (`BSB-24/_epic/stories.md:116-121`).
+  - BSB-25-PENDING-1 agrees: "The static scan runs after this preparation because BSB-31-PENDING-1's
+    route reads the `skill_bundles` row for the resolved SHA; BSB-27 owns the refusal when the
+    verdict is not pass" (`BSB-25/_epic/stories.md:117-120`); BSB-25-PENDING-2 says "BSB-27's
+    preflight, static scan and execution run after this story has set `prepared`"
+    (`BSB-25/_epic/stories.md:304`).
+  - BSB-27 has no `stories.md` yet. Its epic guidance still places the preflight "before a bundle
+    or branch is prepared" (`epics.md:869-874`), which BSB-25-PENDING-1 already records as
+    superseded by the packed-bundle input (`BSB-25/_epic/stories.md:117-119`). BSB-27 is the epic
+    that owns FR-055's refusal.
+- **What is missing/ambiguous/contradictory:** BSB-31's four run-start stories all name BSB-24's
+  run start as the invoker, but BSB-24's own decomposed story explicitly says run start does not
+  scan and assigns the call to BSB-27's preflight; BSB-25's stories agree with BSB-24. An
+  implementer wiring the route per BSB-31 would put the call in BSB-24's request-creation flow,
+  contradicting BSB-24-PENDING-1's scope. An implementer wiring BSB-27 would find BSB-31's note
+  naming BSB-24. The statement that BSB-24/-25/-27 "must name this call … when those epics are
+  decomposed" is stale for BSB-24 and BSB-25: both are decomposed, and both name BSB-27's
+  preflight. The result is that FR-076's "before every run" invocation has no story-level owner
+  that all three epics agree on.
+- **Question (if a person must decide):** Which flow/story invokes
   `POST /api/builds/{id}/scans/static` before every run — BSB-24's run start or BSB-27's
-  preflight — and at what point relative to BSB-25's packaging (after the bundle is packed, before
-  the agent container launches)? Does FR-055's refusal consume the returned verdict at that same
-  point?
+  preflight — and does it run after BSB-25 sets the run's bundle prepared and before BSB-26
+  launches the agent container? If the answer is BSB-24, BSB-24-PENDING-1's explicit "does not …
+  scan" must be revised too; if the answer is BSB-27, BSB-31's four notes and BSB-27's epic
+  "before a bundle or branch is prepared" wording must be corrected. (Also Open question 1.)
 - **Proposed change:**
-  - **BSB-31-PENDING-1:** Keep the route contract and add an explicit sentence naming the caller
-    and the required order: the run-start flow calls this route after BSB-25 packs the bundle at
-    the requested SHA and before the agent container launches; the returned `verdict` is the value
-    FR-055 refuses on. Name the consumer epic/story IDs once BSB-24/BSB-25/BSB-27 are decomposed.
-  - **BSB-31-PENDING-2, -4, -6:** State that each is a caller of the same run-start/POST path (or
-    of the same service) and that the call happens after packaging and before agent launch, so no
-    story implies the scan can run before a bundle exists.
-  - **Cross-epic follow-up (not applied here):** BSB-24, BSB-25 and BSB-27 must name the call and
-    its position; reconcile BSB-27's "before a bundle or branch is prepared" wording with the
-    scan's dependence on the packed bundle. This report does not compute a build order.
+  - **BSB-31-PENDING-1:** Replace "the run-start flow is BSB-24's, and it invokes this route" with
+    "BSB-27's preflight invokes this route for the run's project and the exact
+    `skills_commit_sha` after BSB-25 has set the run prepared / packed the bundle at that SHA and
+    before BSB-26 launches the agent container." State that BSB-24's run start only records the
+    request and does not scan. Delete the stale "when those epics are decomposed" sentence and
+    instead say BSB-27's stories must name the call when that epic is decomposed.
+  - **BSB-31-PENDING-2:** Replace "BSB-24's run-start flow calls it" with "BSB-27's preflight
+    calls it" and keep the after-packaging/before-launch order.
+  - **BSB-31-PENDING-4:** Same replacement and order; keep the synchronous-wait rationale.
+  - **BSB-31-PENDING-6:** Replace "BSB-24's run-start preflight calls the same route" with
+    "BSB-27's preflight calls the same route."
+  - **Cross-epic follow-up (not applied here):** BSB-27, when decomposed, must name the
+    invocation and its position after packaging; BSB-24 and BSB-25 already state the correct
+    order, but BSB-27's epic "before a bundle or branch is prepared" wording still needs
+    correction. This report does not compute a build order.
 
-### Finding 2 — The epic's Definition of Done claims a packaging gate that no requirement or story owns
+### Finding 2 — Epic boundary: the Definition of Done promises a static scan before packaging and a packaging block that no requirement or story owns, and the ordering is impossible as written
+
 - **Severity:** Blocking
-- **Stories touched:** BSB-31-PENDING-1, BSB-31-PENDING-3. Cross-epic: BSB-25, BSB-30.
+- **Stories touched:** BSB-31-PENDING-1, BSB-31-PENDING-3. Cross-epic: BSB-25, BSB-30, the
+  BSB-31 epic's Goal / Definition of Done in `epics.md`.
 - **Evidence:**
-  - The epic's DoD says "Every run and **every packaged skill** is preceded by a static scan of
-    the exact content, and a non-passing verdict blocks the run **and packaging**"
-    (`epics.md:555-561`, emphasis added).
-  - `epic-map.json` assigns BSB-31 the fourteen requirements listed above; none is a packaging
-    gate. The only packaging-refusal requirements are FR-071 to FR-073 (verifier lint, verifier
-    self-test, verifier range), and they are mapped to BSB-30, not BSB-31 (`PRD.md:145-147`,
-    `epics.md:1032-1034`).
-  - PENDING-1's Notes already record the hole: "the epic's Definition of Done says a non-passing
-    verdict also blocks packaging, but no FR mapped to BSB-31 covers a packaging gate, BSB-25's
-    epic does not name the static verdict, and the requirement list assigns packaging refusal only
-    to the verifier checks FR-071 to FR-073" (`stories.md:100-104`). PENDING-3 repeats it
-    (`stories.md:237-242`).
-  - BSB-25's functional scope and DoD cover bundle preparation and its 60-second budget, not a
+  - The epic's Goal / Definition of Done: "Every run **and every packaged skill** is preceded by a
+    static scan of the exact content, and a non-passing verdict blocks the run **and packaging**"
+    (`epics.md:555-561`). Implementation guidance step 7: "Expose the verdict to run preflight and
+    packaging; both must consume the same function" (`epics.md:553`).
+  - `epic-map.json` assigns BSB-31 fourteen requirements; none is a packaging gate. The only
+    packaging-refusal requirements are FR-071 to FR-073 (verifier lint, verifier self-test,
+    verifier range) (`PRD.md:145-147`), mapped to BSB-30 (`epics.md:1032-1034`), not BSB-31.
+  - BSB-31-PENDING-1 says the opposite of the DoD's ordering: "The packed bundle is a
+    precondition: there is no scan before packaging, and a missing `skill_bundles` row is the HTTP
+    409 above" (`stories.md:120-121`). Its Notes record the unowned gate: "no FR mapped to BSB-31
+    assigns a packaging refusal, and BSB-25's and BSB-30's epics name no static-scan packaging
+    gate … packaging refusal belongs to the verifier checks FR-071 to FR-073 under BSB-30"
+    (`stories.md:135-141`). BSB-31-PENDING-3 repeats the hole (`stories.md:327-332`).
+  - BSB-25's functional scope and DoD cover bundle preparation and the 60-second budget, not a
     static-scan packaging gate (`epics.md:730-759`). BSB-30's packaging preflight covers verifier
     lint, self-test and range (`epics.md:992-1004`); its FR-069 Ready check includes the static
-    scan (`epics.md:994`), but Ready is not packaging.
+    scan, but Ready is not packaging. BSB-30 has no stories yet.
 - **What is missing/ambiguous/contradictory:** The epic promises a second hard gate (packaging)
-  that no story claims and no FR assigns. Two implementers can reasonably conclude either that
-  PENDING-1/-3 should reject packaging or that BSB-25/BSB-30 should — or that the sentence is
-  satisfied by FR-055's run gate. The epic cannot meet its own DoD as written.
+  that no story claims and no FR assigns, and it says every packaged skill is *preceded* by a
+  static scan even though the scan reads the packed `skill_bundles` row — so packaging must
+  happen first. The stories' note that "packaging refusal belongs to the verifier checks FR-071 to
+  FR-073" blurs the issue: those are verifier refusals, not a static-verdict refusal. The epic
+  cannot meet its own DoD as written, and the requirement map cannot tell a packaging implementer
+  whether to add the gate or omit it.
 - **Question (if a person must decide):** Is a non-passing static verdict required to block
-  packaging? If yes, which epic and FR own that gate — add it to BSB-31 (new story/AC and a
-  requirement ID) or to BSB-25/BSB-30? If no, should the DoD's packaging sentence be removed or
-  narrowed to the run gate (FR-055)?
+  packaging? If yes, which epic and FR own that gate — BSB-25, BSB-30, or a new BSB-31 story/AC
+  and requirement — and at what point relative to the bundle being packed? If no, should the
+  DoD's packaging sentence be removed or narrowed to the run gate (FR-055)? (Also Open question 2.)
 - **Proposed change:**
-  - **BSB-31-PENDING-1, -3:** Align both Notes with the answer. If BSB-31 owns the packaging
-    gate, add the AC and the requirement ID; if not, state explicitly that this epic supplies
-    only the verdict and that run refusal is FR-055 (BSB-27) and packaging belongs to the named
-    other epic.
-  - **Cross-epic follow-up (not applied here):** If the gate is assigned outside BSB-31, the
-    owning epic's scope/stories must add it and the epic DoD wording must change. A new FR or
-    `epic-map.json` change is outside this review's authority and needs a human/earlier-stage
-    decision.
+  - **BSB-31-PENDING-1:** Keep the verdict-only boundary, but replace "packaging refusal belongs
+    to the verifier checks FR-071 to FR-073" with "the only packaging refusals are FR-071 to
+    FR-073 (verifier lint, self-test and range); none is a static-verdict refusal." State the
+    resolved owner/FR once the question is answered.
+  - **BSB-31-PENDING-3:** Align the same sentence with PENDING-1's answer; do not claim a static
+    packaging gate here if no FR or story owns it.
+  - **Cross-epic follow-up (not applied here):** If the gate is assigned outside BSB-31, BSB-25 or
+    BSB-30 must add it (with a requirement) and the epic DoD wording must change. If it is
+    assigned to BSB-31, this epic needs a new acceptance criterion and a mapped requirement. A new
+    FR or `epic-map.json` change needs a human/earlier-stage decision; this review does not make
+    it.
 
-### Finding 3 — The one verdict function is owned by PENDING-3, but four sibling stories assert its output and two do not depend on it; the declared PENDING-1/PENDING-3 direction is circular
+### Finding 3 — Cross-epic data contract: the static scan's bundle identity disagrees with BSB-25's `(skill, skills_commit_sha)` key and `s3_key` layout
+
 - **Severity:** Blocking
-- **Stories touched:** BSB-31-PENDING-1, BSB-31-PENDING-2, BSB-31-PENDING-3,
-  BSB-31-PENDING-5, BSB-31-PENDING-6.
+- **Stories touched:** BSB-31-PENDING-1. Cross-epic: BSB-25-PENDING-1, BSB-25-PENDING-2.
 - **Evidence:**
-  - PENDING-1's Out of scope excludes "the pass/fail rules beyond recording what the scanner
-    reports (BSB-31-PENDING-3)" (`stories.md:58-65`), yet its ACs assert `verdict: "pass"` for the
-    clean report (`stories.md:29-32`, `stories.md:39-42`) and `verdict: "fail"` for the no-report
-    failure (`stories.md:44-47`). Its Notes say it owns "the static scan service … and the
-    synchronous `POST /api/builds/7/scans/static` route that every other caller uses" and that "a
-    caller always receives a verdict" (`stories.md:73-75`), without naming PENDING-3 as a
-    dependency.
-  - PENDING-3's Notes say "This story owns the one verdict function every caller uses; no caller
-    recomputes the verdict from a report" and "Depends on BSB-31-PENDING-1 for the scan record and
-    BSB-31-PENDING-2 for when a result is computed or reused" (`stories.md:223-235`).
-  - PENDING-2's Notes list only PENDING-1 (`stories.md:153-159`), but its ACs assert verdict
-    `pass` for a newly created scan after changed content (`stories.md:123-126`), after a scanner
-    version change (`stories.md:128-131`) and after replacing a failed row (`stories.md:133-136`)
-    — all of which require PENDING-3's verdict function.
-  - PENDING-5's Notes depend on PENDING-3 for `verdict_reasons` only (`stories.md:344-350`), but
-    its ACs assert the page text "Verdict: PASS"/"Verdict: FAIL" (`stories.md:307-320`).
-  - PENDING-6's Notes name BSB-18, BSB-22 and BSB-25 and say the route/service is PENDING-1's
-    (`stories.md:411-428`), but its ACs assert `verdict: "pass"` for each successful scan
-    (`stories.md:376-399`), which transitively needs PENDING-3.
-  - PENDING-7 already declares the dependency on PENDING-3 for the verdict function
-    (`stories.md:475-484`), showing the intended direction — the other callers do not.
-- **What is missing/ambiguous/contradictory:** There are two plausible readings. PENDING-1 owns
-  the service and computes a verdict (making PENDING-3's "one verdict function" claim false and
-  duplicating the rules); or PENDING-3 owns the function (making PENDING-1's ACs, PENDING-2's
-  new-scan ACs and PENDING-6's ACs dependent on PENDING-3, which none of those three declares).
-  PENDING-3 depends on PENDING-1 and PENDING-2, while PENDING-1 and PENDING-2's new-scan paths
-  depend on PENDING-3 — a dependency cycle that the per-story notes never acknowledge. The
-  function's interface (scanner report plus the scanned bundle's `.skillspector-baseline.yaml`
-  in; `state`, `verdict`, `verdict_reasons` and `scan_findings` out) is also never stated, so
-  each caller could shape it differently.
-- **Question (if a person must decide):** Does PENDING-1 own the verdict function (with PENDING-3
-  owning only the rule definition and its tests), or does PENDING-3 own it (with PENDING-1
-  recording only the scanner report/state and leaving `verdict` to PENDING-3)? What is the
-  function's exact input and output, and which story may assert a verdict before PENDING-3 is
-  built?
+  - BSB-31-PENDING-1: "The route accepts `project_id` and `skills_commit_sha`; it reads the
+    `skill_bundles` row for that SHA and scans that bundle" (`stories.md:80-81`). Its 409 is
+    "No packed bundle exists for commit 4f2c9a1." (`stories.md:52-55`). Its fixtures use
+    `s3_key "bundles/4f2c9a1.tar.gz"` (`stories.md:33`, `:35`, `:40`).
+  - BSB-25-PENDING-2: "The reuse key is `(skill, skills_commit_sha)`: the same commit packaged for
+    a different skill is a different bundle" (`BSB-25/_epic/stories.md:207-208`); "BSB-31-PENDING-1
+    reads the `skill_bundles` row by `(skill, skills_commit_sha)` and hands the `bundle_sha256`
+    and `s3_key` to the scanner, so a scan always reads the exact bundle the run will use"
+    (`BSB-25/_epic/stories.md:210-212`). Its `s3_key` format is `bundles/<skills_commit_sha>/<skill>.tar.gz`
+    (`BSB-25/_epic/stories.md:202-204`), and its acceptance criteria prove two skills at the same
+    commit SHA produce two distinct rows and bundles (`BSB-25/_epic/stories.md:153-156`).
+- **What is missing/ambiguous/contradictory:** BSB-25 tells BSB-31 to read the row by
+  `(skill, skills_commit_sha)` and gives the per-skill `s3_key` layout; BSB-31 says it reads "the
+  row for that SHA" and fixtures a SHA-only `s3_key`. When two skills are packed at the same
+  commit, a SHA-only lookup can select the wrong skill's row (or be ambiguous), and the fixture
+  asserts an object path the packer never writes. The route is build-scoped
+  (`/api/builds/7/scans/static`), so `skill` is resolvable from build 7; the story simply does not
+  say so. This is separate from PENDING-2's content-only reuse key
+  (`skill + stage + bundle_sha256 + scanner_version`), which is correct.
+- **Question (if a person must decide):** Does the route resolve `skill` from the build and read
+  the `skill_bundles` row by `(skill, skills_commit_sha)`, with the 409 naming both the skill and
+  the commit? (The scan must not pick a bundle by SHA alone.) (Also Open question 3.)
 - **Proposed change:**
-  - **BSB-31-PENDING-1:** Choose one owner. If PENDING-3 owns the function, add "Depends on
-    BSB-31-PENDING-3 for the verdict function" and remove the Out-of-scope sentence that disclaims
-    the rules while asserting verdicts; if PENDING-1 owns it, reword PENDING-3's ownership claim
-    and state the shared function in PENDING-1. State the function's input/output in one sentence.
-  - **BSB-31-PENDING-2:** Add "Depends on BSB-31-PENDING-3 for the verdict function on a newly
-    created scan" and keep the reused-row ACs as row copies.
-  - **BSB-31-PENDING-3:** State that PENDING-1, PENDING-2, PENDING-5, PENDING-6 and PENDING-7 call
-    its function, and give the function's input (report plus the bundle's
-    `.skillspector-baseline.yaml`) and output (`state`, `verdict`, `verdict_reasons`,
-    `scan_findings`); resolve the PENDING-1/PENDING-3 direction explicitly.
-  - **BSB-31-PENDING-5:** Extend its PENDING-3 dependency from `verdict_reasons` to the `verdict`
-    the page renders.
-  - **BSB-31-PENDING-6:** Add the PENDING-3 dependency (or state it inherits it through PENDING-1's
-    route); its ACs assert a verdict and must not appear independent of the function.
-  - Same change for all five stories: one verdict function, one caller contract, one dependency
-    direction.
+  - **BSB-31-PENDING-1:** State that the route resolves `skill` from the build and reads the
+    `skill_bundles` row by `(skill, skills_commit_sha)`; update the 409 to name both (for example,
+    "No packed bundle exists for skill bug-fix-resolver at commit 4f2c9a1."); align every fixture
+    `s3_key` with BSB-25's `bundles/<skills_commit_sha>/<skill>.tar.gz` layout. Keep the
+    direct-entry-point fixture rule (a caller that supplies the row/fixture still owns the
+    identity).
+  - **Cross-epic follow-up:** BSB-25 already states the correct key and layout; no change is
+    proposed there, but the BSB-25 story should remain the authority for the `skill_bundles`
+    contract.
 
-### Finding 4 — The scan's reuse identity includes `skills_commit_sha` in PENDING-1 but excludes it in PENDING-2, and cross-project reuse is asserted only in prose
-- **Severity:** Blocking
-- **Stories touched:** BSB-31-PENDING-1, BSB-31-PENDING-2, BSB-31-PENDING-5.
-- **Evidence:**
-  - PENDING-1's Notes say "The scan record is content-addressed by `skill`, `skills_commit_sha`,
-    `bundle_sha256`, `stage` and `scanner_version`" (`stories.md:78-81`).
-  - PENDING-2's Notes say "This story owns the reuse key: a scan is reused only when `stage` is
-    \"static\", `bundle_sha256`, `skill` and `scanner_version` all match … and the existing row's
-    state is \"completed\"" (`stories.md:154-159`). `skills_commit_sha` is absent.
-  - PENDING-2's Notes also say "Because a scan row carries no `project_id`, a completed result is
-    reusable by any project whose run uses the same content and scanner version"
-    (`stories.md:161-165`). PENDING-5 repeats that "a completed result reused by another build
-    (BSB-31-PENDING-2) renders from the same URL" (`stories.md:353-355`).
-  - PENDING-2's ACs cover an unchanged bundle, changed bundle content, a changed scanner version,
-    a failed row and a completed failing row (`stories.md:118-141`). None has the same
-    `bundle_sha256` at a different `skills_commit_sha`, and none reuses across a different build
-    or project.
-  - `PRD.md` FR-077 says a completed result is reused "when the content is unchanged"
-    (`PRD.md:151`); ADR SK-001 §6b says the static check is "Cached by content sha"
-    (`SK-001:300`).
-- **What is missing/ambiguous/contradictory:** If `skills_commit_sha` is part of the identity, the
-  same bytes committed twice (same `bundle_sha256`, different commit) are scanned twice, which
-  contradicts PENDING-2's content-key Notes and FR-077's "content is unchanged". If it is not
-  part of the identity, PENDING-1's sentence is wrong. The cross-project/cross-build reuse that
-  both PENDING-2 and PENDING-5 rely on has no acceptance criterion, so a developer can add
-  `project_id` or `build_id` scoping and still pass every AC.
-- **Question (if a person must decide):** Is the scan identity/reuse key `skill` + `stage` +
-  `bundle_sha256` + `scanner_version` (content-only), with `skills_commit_sha` recorded as
-  provenance, or does `skills_commit_sha` also scope reuse? If content-only, should PENDING-2 add
-  an AC for the same bundle at a new commit and for reuse by a different build/project, and should
-  PENDING-5 add the matching render AC?
-- **Proposed change:**
-  - **BSB-31-PENDING-1:** Reword the identity sentence to match PENDING-2: content identity is
-    `skill` + `stage` + `bundle_sha256` + `scanner_version`; `skills_commit_sha` is recorded on
-    the row for traceability but does not by itself force a new scan. If the answer is the
-    opposite, correct PENDING-2 instead.
-  - **BSB-31-PENDING-2:** Keep the same key wording and add ACs for (a) the same `bundle_sha256`
-    at a different `skills_commit_sha` and (b) a request from a different build/project reusing
-    the completed row, if cross-project reuse is intended.
-  - **BSB-31-PENDING-5:** Add an AC (or state in Notes) that a scan reused by a different build
-    renders from the same `GET /scans/{id}` URL; this is currently prose only.
-  - Same change for all three stories: one reuse key and a test for the content-only case.
+### Finding 4 — Cross-epic scope and actor: the catalog reviewer cannot open the only scan report route, and no epic owns a reviewer-readable view
 
-### Finding 5 — The catalog reviewer named as the scan's audience cannot open the only scan report route, and no epic owns a reviewer-facing view
 - **Severity:** Blocking
-- **Stories touched:** BSB-31-PENDING-5, BSB-31-PENDING-7. Cross-epic: BSB-18, BSB-33, BSB-36.
+- **Stories touched:** BSB-31-PENDING-5. Cross-epic: BSB-36-PENDING-2, BSB-33, `PRD.md` §2 and
+  FR-111.
 - **Evidence:**
-  - PENDING-5's Notes say "the report route is part of the authoring interface and is gated by
-    BSB-18's signed-in skill-builder check only" and "It does not apply the project-membership
-    check, because the same scan report is evidence linked from a catalog pull request (BSB-36,
-    FR-111) and the PRD's catalog reviewer does not use the authoring interface. The
-    reviewer-facing stable report view and its access rule belong to BSB-33/BSB-36"
-    (`stories.md:351-362`). Its Out of scope repeats the handoff (`stories.md:341`).
-  - `PRD.md` §2 defines the catalog reviewer as someone who "Consumes the catalog pull request and
-    its linked run and scan reports; does not use the authoring interface" (`PRD.md:16`). FR-111
+  - BSB-31-PENDING-5: the report route "is part of the authoring interface and is gated by
+    BSB-18's signed-in skill-builder check only (a signed-in author outside the `skill-builders`
+    group receives HTTP 403). … A catalog reviewer named in PRD section 2 does not use the
+    authoring interface, so this gated URL cannot itself be the report link FR-111 asks the
+    catalog pull request to carry. No epic currently owns a stable reviewer-facing scan-report
+    view or its access rule: BSB-33's stable view is the run report and BSB-36 only links the scan
+    reports" (`stories.md:470-480`).
+  - `PRD.md` §2 defines the catalog reviewer as one who "Consumes the catalog pull request and its
+    linked run and scan reports; does not use the authoring interface" (`PRD.md:16`); FR-111
     requires the pull-request description to link the scan reports (`PRD.md:185`).
-  - BSB-18's authoring gate requires a current `skill-builders` group member on every authoring
-    page and API; a signed-in non-member receives HTTP 403 (`BSB-18/_epic/stories.md:176-212`).
-    PENDING-5's route applies that gate, so a reviewer outside the group cannot open the link.
-  - BSB-36's functional scope only says "Link the run report and the scan reports from the
-    pull-request description" (`epics.md:1284-1295`); it defines no scan-report view or access
-    rule. BSB-33's "stable report view that catalog submission can link to and that reviewers can
-    read without the authoring interface" (`epics.md:1082-1083`) is the **run** report; BSB-33's
-    covered requirements are FR-094 to FR-103, FR-140, FR-157 and FR-158, with no scan-report
-    requirement (`epics.md:1091-1104`).
-  - PENDING-7's story actor is "a **catalog reviewer**" (`stories.md:441`), but its ACs are
-    build-time parity tests (`stories.md:445-463`); the reviewer performs no action and has no
-    builder surface.
-- **What is missing/ambiguous/contradictory:** PENDING-5 correctly identifies that the reviewer
-  cannot use the authoring interface, then gates the only scan report behind the authoring
-  interface anyway. The handoff names BSB-33/BSB-36, but neither epic owns a scan-report viewer:
-  BSB-33's stable view is the run report, and BSB-36 only links the scan reports. The result is
-  an FR-111 link that the named audience cannot open, and a reviewer actor in PENDING-7 with no
-  usable interface. This is a scope hole at the epic boundary, not a single-story wording issue.
-- **Question (if a person must decide):** Should the scan report have a stable reviewer-facing
-  view readable without the authoring interface, and which epic owns it — BSB-36 (with its PR
-  links) or a new story in BSB-31? If the catalog reviewer is expected to be a `skill-builders`
-  member, PRD §2's "does not use the authoring interface" must change; if not, PENDING-5's
-  authoring route cannot be the linked evidence and PENDING-7's reviewer actor has no surface.
+  - BSB-36-PENDING-2 links `<base>/scans/<static.id>` and `<base>/scans/<llm.id>` (`BSB-36/_epic/stories.md:51-52`)
+    and records the unresolved gap: "a reviewer outside those gates cannot open the links … the
+    access decision must be made before the catalog review flow can rely on those links"
+    (`BSB-36/_epic/stories.md:96-105`).
+  - BSB-33 lists "the security tab and scan reports (BSB-31 and BSB-32)" out of scope and records
+    the reviewer-facing stable report view as unresolved (`BSB-33/_epic/stories.md:101-103`).
+- **What is missing/ambiguous/contradictory:** The only scan report route BSB-31 builds is
+  authoring-gated, while BSB-36's catalog pull request links that same URL for a reviewer who is
+  defined as not using the authoring interface. No epic currently owns a reviewer-readable view or
+  its access rule. Two stories therefore point at the same URL with incompatible access
+  assumptions. BSB-31-PENDING-5 correctly supplies no second route, but the deliverable remains
+  unowned; this is a genuine cross-story/cross-epic scope hole, not a wording nit.
+- **Question (if a person must decide):** Do catalog reviewers read the linked run and scan
+  reports? If yes, which epic owns the stable reviewer-facing view and what authorizes a reviewer
+  (a signed read-only share link, a reviewer role/group, or a public view)? If no, should PRD §2's
+  reviewer definition and FR-111's "linked scan reports" wording be corrected? (Also Open
+  question 4.)
 - **Proposed change:**
-  - **BSB-31-PENDING-5:** State the authoring route's access rule and hand off a stable
-    reviewer-facing scan-report view *with its access rule* to a named epic; do not assert that
-    BSB-33/BSB-36 already own it. If BSB-31 must supply it, add the route/AC and name the access
-    rule (for example, a stable read-only URL whose access is not the authoring gate).
-  - **BSB-31-PENDING-7:** Reword the story value/actor to the builder team (the parity test is
-    build-time) or state that the catalog reviewer consumes the parity evidence through the
-    catalog pull request, not through a builder screen. Keep the parity ACs unchanged.
-  - **Cross-epic follow-up (not applied here):** BSB-36 (and BSB-33 if it owns the stable view)
-    must add the scan-report viewer and its access rule, or the PRD's reviewer assumption must be
-    corrected. Same change for PENDING-5 and PENDING-7: one reviewer-facing scan-report contract.
+  - **BSB-31-PENDING-5:** Keep the authoring route and its BSB-18 gate exactly as written; keep
+    the statement that this story adds no second route. Update the note to name the resolved owner
+    and the route the reviewer will use once the question is answered. Do not add a
+    reviewer-facing route to BSB-31 unless the epic is explicitly assigned that deliverable.
+  - **Cross-epic follow-up (not applied here):** BSB-36 (or BSB-33, if it extends its stable run
+    report) must add the reviewer view and its access rule; BSB-36-PENDING-2's `/scans/<id>`
+    links must then point at that view. If the answer is "reviewers do not read the reports,"
+    `PRD.md` §2 and FR-111 must be corrected. This is the same open decision recorded in BSB-36's
+    and BSB-33's reviews.
 
-### Finding 6 — PENDING-7's parity test calls a service entry point that PENDING-1 never defines, and creates scan records with no build
-- **Severity:** Advisory
-- **Stories touched:** BSB-31-PENDING-1, BSB-31-PENDING-7.
-- **Evidence:**
-  - PENDING-7's Notes say "The parity test calls the same scan and verdict service the HTTP route
-    calls, directly with a bundle fixture, so it needs no build or project"
-    (`stories.md:475-484`). Its AC says the test runs "the static scan service on each fixture
-    bundle through the same scan and verdict path as POST \"/api/builds/7/scans/static\", called
-    directly with the bundle fixture so no build or project is needed" and that "every resulting
-    scan record carries scanner_version … and image_digest" (`stories.md:445-448`).
-  - PENDING-1 owns the scan service and the HTTP route, but defines only the route's inputs —
-    `project_id` and `skills_commit_sha` — and its lookup of the `skill_bundles` row
-    (`stories.md:73-81`). It never defines a callable bundle-in service entry point.
-  - PENDING-1's `scans` schema lists `build_id` (`stories.md:82-88`) without saying it is
-    nullable, and every PENDING-1 AC uses build 7 (`stories.md:29-52`). PENDING-7 creates scans
-    with no build at all.
-- **What is missing/ambiguous/contradictory:** PENDING-7 assumes a test seam that PENDING-1 does
-  not specify. An implementer can build PENDING-1's service as route-only, leaving PENDING-7 no
-  way to call it, or make `build_id` NOT NULL, leaving PENDING-7 unable to create its fixture
-  scans. The parity test is the epic's only evidence for FR-091, so this seam is part of the
-  contract, not an optional refactor.
-- **Question (if a person must decide):** Does the scan service expose a bundle-fixture entry
-  point for the parity test, and is `scans.build_id` nullable for scans created without a build?
-  If not, how does PENDING-7 run without a build or project?
-- **Proposed change:**
-  - **BSB-31-PENDING-1:** Define the service function (bundle fixture plus scanner
-    version/digest in; scan result out) that the HTTP route and PENDING-7 both call, and state
-    that `scans.build_id` is NULL for a direct/parity scan with no build.
-  - **BSB-31-PENDING-7:** Cite that entry point and the nullable `build_id` instead of assuming
-    them; keep the parity assertions unchanged.
-  - Same change for both stories: one service contract and one nullability rule.
+### Finding 5 — Cross-epic scope boundary: the combined Security tab is handed to BSB-32, which does not claim it, and BSB-26/BSB-33 also disclaim it
 
-### Finding 7 — The synchronous static scan can occupy run start for up to ten minutes while NFR-001 promises 60-second non-model run preparation
-- **Severity:** Advisory
-- **Stories touched:** BSB-31-PENDING-1, BSB-31-PENDING-4. Cross-epic: BSB-25 and the PRD's
-  NFR-001/G4.
+- **Severity:** Blocking
+- **Stories touched:** BSB-31-PENDING-5. Cross-epic: BSB-32-PENDING-2, BSB-26, BSB-33, ADR
+  SK-001 §6b.
 - **Evidence:**
-  - PENDING-1 makes the call synchronous inside the run-start preflight: "A scan request returns
-    only after the scan reaches `completed` or `failed`, so a caller always receives a verdict",
-    and the run-start path "before it launches the agent container … must call this route"
-    (`stories.md:73-75`, `stories.md:90-96`). Its AC has the preflight call the route and assert
-    the scan result in the same response (`stories.md:29-32`).
-  - PENDING-4 allows the scan to run for up to 600 seconds and fixes that limit with no override
-    (`stories.md:256-269`, `stories.md:282-289`).
-  - `PRD.md` NFR-001 says "Non-model run preparation completes within 60 seconds for a skill
-    bundle of up to 5 MB" (`PRD.md:251`); G4 repeats the 60-second / 5 MB target as a 95%
-    metric (`PRD.md:32`). `epic-map.json` assigns NFR-001 to BSB-25, whose functional scope and
-    DoD repeat the 60-second budget (`epics.md:737`, `epics.md:754-759`).
-- **What is missing/ambiguous/contradictory:** The static scan is non-model work that the run
-  start waits for, but no story says whether it counts against NFR-001's 60-second preparation
-  budget. On a cache miss, PENDING-1/PENDING-4 allow run start to block for up to ten minutes,
-  while BSB-25's acceptance target says non-model preparation completes within 60 seconds. The
-  cache in PENDING-2 makes the common path fast but does not resolve the first scan of new
-  content.
-- **Question (if a person must decide):** Is the synchronous static scan part of "non-model run
-  preparation" for NFR-001/G4? If yes, what happens on a cache-miss scan that exceeds 60 seconds
-  (fail the run start, queue the scan, run it asynchronously)? If no, what is the scan's own time
-  budget, and should NFR-001 or BSB-25 state that the scan is outside the 60-second budget?
+  - BSB-31-PENDING-5's Out of scope assigns "the LLM scan report, which model ran it and **the
+    combined security tab (BSB-32)**" (`stories.md:451-452`). Its Notes say the route and report
+    model are "shared with the run page's Security tab (BSB-26/BSB-33 link the run's scan); this
+    story owns the scan-only page, not the run page layout" (`stories.md:482-484`).
+  - ADR SK-001 §6b requires a "**Security tab** on the skill and run pages, next to the verify
+    results (§6): score, recommendation, each finding with severity, rule, file and line, and
+    which model ran the LLM check" (`docs/adr/SK-001-skill-builder.md:308-310`).
+  - BSB-32-PENDING-2's Out of scope does not mention or claim the combined tab
+    (`BSB-32/_epic/stories.md:145-151`); its Notes own the "Full security check" control,
+    `POST /api/builds/7/scans/full`, and the LLM report's rendering on `GET /scans/{id}`, not a
+    Security tab (`BSB-32/_epic/stories.md:159-164`).
+  - BSB-33 lists "the security tab and scan reports (BSB-31 and BSB-32)" out of scope
+    (`BSB-33/_epic/stories.md:101`); BSB-26 lists "the Security tab and scan reports (BSB-31,
+    BSB-32 and BSB-33)" out of scope (`BSB-26/_epic/stories.md:187`).
+- **What is missing/ambiguous/contradictory:** BSB-31's story explicitly assigns the combined
+  Security tab to BSB-32, but no BSB-32 story claims it, and BSB-26 and BSB-33 both disclaim it.
+  The ADR requires the tab on the skill and run pages. A developer following BSB-32 would build
+  the full-scan control and the LLM report page, not the combined tab; a developer following
+  BSB-26/BSB-33 would treat it as another epic's. The capability falls in the handoff between the
+  two scan epics.
+- **Question (if a person must decide):** Does BSB-32 own the combined Security tab (adding an
+  acceptance criterion or a story for the skill/build and run pages), or do BSB-26/BSB-33 own it
+  when they compose the page? If BSB-31 supplies only the static report model and link, which
+  epic owns the tab layout and the LLM model line? (Also Open question 5.)
 - **Proposed change:**
-  - **BSB-31-PENDING-1 and -4:** State the scan's time budget and its relationship to NFR-001
-    (included with a 60-second fallback behaviour, or excluded with its own stated budget). Keep
-    the fixed ten-minute ceiling but make the run-start expectation explicit.
-  - **Cross-epic follow-up (not applied here):** BSB-25 and the PRD's NFR-001 wording must agree
-    with the chosen boundary. Same change for PENDING-1/PENDING-4: one scan-budget statement.
+  - **BSB-31-PENDING-5:** Correct the Out of scope pointer: do not state that BSB-32 owns the
+    combined tab unless BSB-32 adds it. State that this story supplies the static report model,
+    the scan-only page and the link BSB-26/BSB-33 can compose, and name the actual owner of the
+    combined tab once decided. Repeat the same owner in the Notes.
+  - **Cross-epic follow-up (not applied here):** BSB-32-PENDING-2 (or BSB-26/BSB-33) must add the
+    combined-tab acceptance criterion; ADR SK-001 §6b is the requirement. This is the same
+    handoff BSB-32's review flags as its Finding 2.
 
-### Finding 8 — PENDING-5 has no acceptance criterion for the failed/timeout scan state that PENDING-4 creates
-- **Severity:** Advisory
-- **Stories touched:** BSB-31-PENDING-4, BSB-31-PENDING-5.
-- **Evidence:**
-  - PENDING-4 creates `scans` rows with state `failed`, verdict `fail`, `score` NULL,
-    `recommendation` NULL and `failure_reason` "Scan exceeded the ten-minute limit."
-    (`stories.md:256-269`). PENDING-1 creates the same shape for a scanner that writes no report,
-    with `failure_reason` "Scanner exited with code 137 before writing a report."
-    (`stories.md:44-47`).
-  - PENDING-5's Notes say "BSB-31-PENDING-4 supplies the failed/timeout state this page must
-    render" (`stories.md:344-350`).
-  - PENDING-5's ACs cover a completed passing scan, a completed failing scan, a scan still
-    `running`, and an unknown id (`stories.md:307-330`). There is no AC for state `failed`.
-- **What is missing/ambiguous/contradictory:** The only non-completed state the page is tested
-  against is `running`, whose expected text is "Scan in progress" with no score. A developer can
-  implement "any non-completed row shows Scan in progress", and a timed-out or no-report scan
-  will then be reported as in progress forever, with its `failure_reason` never shown. The Notes
-  promise the failed state is rendered, but no AC holds it.
-- **Question (if a person must decide):** What should `GET /scans/{id}` show for a scan with state
-  `failed`, verdict `fail`, score/recommendation NULL and a `failure_reason` (timeout or no
-  report)? Which exact text is shown, and is the `failure_reason` displayed?
-- **Proposed change:**
-  - **BSB-31-PENDING-5:** Add a failed-state AC asserting the page shows "Verdict: FAIL" and the
-    agreed failure text (including the `failure_reason`) and does not show "Scan in progress";
-    state the exact strings in the Notes.
-  - **BSB-31-PENDING-4:** Cross-reference the same `failure_reason` string and state that PENDING-5
-    renders it, so the two stories share one value.
-  - Same change for both stories: one failed-state text contract.
+### Finding 6 — Epic-wide NFR: NFR-001's 60-second preparation budget and the synchronous 600-second static scan define "run preparation" differently
 
-### Finding 9 — PENDING-6 adds a control to BSB-21's build page without naming the dependency or the page's access rule
 - **Severity:** Advisory
-- **Stories touched:** BSB-31-PENDING-6. Cross-epic: BSB-19, BSB-21.
+- **Stories touched:** BSB-31-PENDING-1, BSB-31-PENDING-4. Cross-epic: BSB-25, `PRD.md`
+  NFR-001 and goal G4.
 - **Evidence:**
-  - PENDING-6 places the "Security check (static only)" control on `GET "/builds/7"`
-    (`stories.md:376-394`) and calls it "the skill page" (`stories.md:414-416`). Its Notes list
-    BSB-18, BSB-22, BSB-25, BSB-32, BSB-23/BSB-24 and BSB-37, but not BSB-21 (`stories.md:411-428`).
-  - BSB-19's Notes say "the full build page with head and readiness is BSB-21's"
-    (`BSB-19/_epic/stories.md:61`). BSB-21's epic owns the build page's head SHA and readiness
-    status (`epics.md:341-350`); BSB-21 has no stories yet.
-  - PENDING-6's AC has Dave — who has no `project_members` rows — open `GET "/builds/7"` and
-    receive HTTP 200 (`stories.md:391-394`), but no story in this epic defines who may open a
-    build page; that access rule belongs to BSB-21/BSB-18.
-- **What is missing/ambiguous/contradictory:** PENDING-6 adds a control to a page this epic does
-  not own and whose access rule is not yet defined. The dependency is silent, so an implementer
-  can build a second build page in this story (duplicating BSB-21) or place the control on a page
-  that does not yet exist. The AC's HTTP 200 for Dave also assumes an access rule no story states.
-- **Question (if a person must decide):** Is the "Security check (static only)" control delivered
-  on BSB-21's build page `GET /builds/{id}`, and should PENDING-6 depend on BSB-21 (FR-020) for
-  the page and its access rule?
+  - NFR-001: "Non-model run preparation completes within 60 seconds for a skill bundle of up to
+    5 MB" (`PRD.md:251`); goal G4 repeats the 60-second target (`PRD.md:31-32`).
+  - BSB-31-PENDING-1: "the run-start preflight waits synchronously for the verdict, so a cache-miss
+    run start can wait up to ten minutes; a reuse hit … adds no scan time. The scan is a separate
+    synchronous gate, not part of BSB-25's 60-second / 5 MB non-model bundle-preparation budget
+    (NFR-001); NFR-001's 'run preparation' wording and BSB-25 must be reconciled to say so
+    (cross-epic follow-up)" (`stories.md:129-133`). BSB-31-PENDING-4 repeats the boundary
+    (`stories.md:387-390`).
+  - BSB-25-PENDING-2 measures NFR-001 "on the end-to-end non-model preparation — resolver, packer
+    and branch preparer — for a skill folder of 5,000,000 bytes. No model call is part of
+    preparation … BSB-27's preflight, static scan and execution run after this story has set
+    `prepared`" (`BSB-25/_epic/stories.md:300-304`).
+- **What is missing/ambiguous/contradictory:** The PRD's NFR-001 says "non-model run preparation"
+  completes in 60 seconds; the stories define preparation narrowly (resolver/packer/branch
+  preparer) and put the synchronous static scan, which can wait ten minutes, outside it. The
+  intended design is clear and recorded as a follow-up, but the PRD text has not been reconciled,
+  so a reviewer can read NFR-001 as violated on every cache-miss run start. This is an
+  epic-wide NFR boundary, not a single acceptance criterion.
+- **Question (if a person must decide):** Does NFR-001's 60-second budget include the synchronous
+  static-scan wait? If yes, the gating model needs a different design (for example an asynchronous
+  scan or a separate run-start budget) or NFR-001 must change; if no, the PRD must say that "run
+  preparation" excludes the static-scan gate and BSB-25's measurement is the authoritative one.
+  (Also Open question 6.)
 - **Proposed change:**
-  - **BSB-31-PENDING-6:** Add "Depends on BSB-21 for the build page `GET /builds/{id}`, its head
-    SHA and its access rule" to the Notes, and state that this story adds the control to that
-    page rather than owning the page. Keep the control's project selector and the disabled-state
-    AC.
-  - **Cross-epic follow-up (not applied here):** BSB-21's stories must render the control. Same
-    change for PENDING-6 and BSB-21: one host page.
+  - **BSB-31-PENDING-1:** Keep the boundary note, but describe it as a proposed interpretation
+    requiring PRD/NFR-001 reconciliation rather than as settled; state the answer explicitly.
+  - **BSB-31-PENDING-4:** Same; keep the 600-second ceiling and the cache-miss wait explicit.
+  - **Cross-epic follow-up (not applied here):** `PRD.md` NFR-001/G4 and BSB-25's measurement must
+    agree on whether the scan is inside or outside the 60-second budget. No story change can
+    settle a PRD wording question.
+
+### Finding 7 — Cross-epic service contract: BSB-37's declared service call does not match PENDING-1's direct entry point
+
+- **Severity:** Advisory
+- **Stories touched:** BSB-31-PENDING-1. Cross-epic: BSB-37-PENDING-2.
+- **Evidence:**
+  - BSB-31-PENDING-1 defines "one direct entry point that takes a packed bundle fixture (its bytes
+    or `skill_bundles` row) plus the pinned scanner version and image digest, with no build or
+    project, and returns the same scan result the route returns" (`stories.md:83-86`); a scan
+    created through it has `build_id` NULL (`stories.md:87-89`).
+  - BSB-37-PENDING-2 says the command "calls BSB-31-PENDING-1's static scan service **with the
+    project**, skill, commit SHA and bundle and no build id; BSB-31-PENDING-1 must expose that
+    service independently of its build-keyed route" (`BSB-37/_epic/stories.md:243-247`); it also
+    says the row carries no `project_id` and "the project is the authorization scope only"
+    (`BSB-37/_epic/stories.md:248-250`).
+- **What is missing/ambiguous/contradictory:** BSB-31 says the direct entry point has "no build or
+  project"; BSB-37 says the CLI calls it "with the project." Both agree the scan row has no
+  `project_id`, so the likely intent is that the CLI resolves and authorizes the project before
+  calling the service, but the service signature is left ambiguous. A developer implementing the
+  entry point could add a `project_id` parameter BSB-31 says does not exist, or omit one BSB-37's
+  caller expects.
+- **Question (if a person must decide):** Does the direct scan entry point accept a `project_id`
+  (for example for authorization/audit), or does the caller resolve and authorize the project
+  before passing only the bundle fixture, scanner version and image digest? (Also Open question 7.)
+- **Proposed change:**
+  - **BSB-31-PENDING-1:** State the exact entry-point inputs and outputs, including whether
+    `project_id`, `skill` and `skills_commit_sha` are parameters or derived from the fixture;
+    name BSB-37-PENDING-2 alongside BSB-31-PENDING-3 as a consumer. If the project is not a
+    parameter, say explicitly that the caller authorizes it before calling.
+  - **Cross-epic follow-up:** BSB-37-PENDING-2's "with the project" wording should then say the
+    CLI resolves/authorizes the project and passes the bundle/provenance, not a service
+    `project_id`.
+
+### Finding 8 — Cross-story state contract: PENDING-5 renders `state "running"`, but PENDING-1 never defines the state enum or when the row is created
+
+- **Severity:** Advisory
+- **Stories touched:** BSB-31-PENDING-1, BSB-31-PENDING-4, BSB-31-PENDING-5. Cross-epic: BSB-38
+  (its acceptance fixtures assume the same running state).
+- **Evidence:**
+  - BSB-31-PENDING-5's AC: "Given a `scans` row id 14 for build 7 with state `running` and score
+    NULL, recommendation NULL and verdict NULL … Then the response is HTTP 200 and the page
+    contains 'Scan in progress'" (`stories.md:424-427`).
+  - BSB-31-PENDING-1 owns the record and its fields (`stories.md:97-103`) but says only that "a
+    scan request returns only after the scan reaches `completed` or `failed`"
+    (`stories.md:78-79`); its acceptance criteria assert `completed` and `failed`, never
+    `running`. BSB-31-PENDING-4 says a scan that has not reached `completed` by 600 seconds is
+    recorded `failed` (`stories.md:378-379`), implying an in-flight state without naming it.
+  - BSB-38's acceptance fixtures also include `GET /scans/14` in a running state
+    (`BSB-38/_epic/stories.md:54`).
+- **What is missing/ambiguous/contradictory:** PENDING-5's in-progress page depends on a persisted
+  `scans` row with `state "running"`, but PENDING-1, the record owner, never enumerates the state
+  values or says when the row is inserted. A developer could insert the row only at completion and
+  PENDING-5's running AC would be unreachable; another could use a different value or omit
+  `started_at`. The state lifecycle is a shared record contract, not a single-story detail.
+- **Question (if a person must decide):** Is `state "running"` a persisted state, and is the
+  `scans` row inserted as `running` (with `started_at`) before the scanner container starts,
+  transitioning to `completed` or `failed`? If not, how is PENDING-5's in-progress page reached?
+  (Also Open question 8.)
+- **Proposed change:**
+  - **BSB-31-PENDING-1:** Enumerate the `state` values (`running`, `completed`, `failed`) and
+    state that the row is inserted as `running` with `started_at` before the scanner starts, then
+    transitioned to `completed` or `failed`; state which story owns each transition.
+  - **BSB-31-PENDING-4:** Reference the same enum when recording the timeout as `failed`.
+  - **BSB-31-PENDING-5:** Reference PENDING-1's enum for the `running` and `failed` states rather
+    than relying on an undefined fixture value.
+
+### Finding 9 — Cross-story requirement non-duplication: the story-map's PENDING-1 summary claims content reuse that PENDING-1 assigns to PENDING-2
+
+- **Severity:** Advisory
+- **Stories touched:** BSB-31-PENDING-1, BSB-31-PENDING-2; `story-map.json`.
+- **Evidence:**
+  - `story-map.json`'s PENDING-1 summary says the story runs the scan "… recording the scanner
+    version and image digest, **reusing by content**, and executing the scanner container with no
+    network access …" (`story-map.json`, PENDING-1 `summary`).
+  - The story body assigns reuse to PENDING-2: "reusing an earlier result (BSB-31-PENDING-2)"
+    (`stories.md:67`), and "The scan record's identity/reuse key is `skill` + `stage` +
+    `bundle_sha256` + `scanner_version` (BSB-31-PENDING-2 owns reuse)" (`stories.md:91-92`).
+  - PENDING-1's mapped requirements are FR-076 and NFR-005; FR-077 (reuse) is PENDING-2's
+    (`story-map.json`; `stories.md:568-569`).
+- **What is missing/ambiguous/contradictory:** The story-map summary is the text used for the Jira
+  story summary. It claims "reusing by content" for PENDING-1 while the story body and the
+  requirement map assign reuse to PENDING-2. This is a non-duplication/traceability defect, not a
+  functional contradiction: the body is clear, but the published summary would tell a reader that
+  PENDING-1 owns FR-077.
+- **Question:** None; this is a wording fix.
+- **Proposed change:**
+  - **`story-map.json` (PENDING-1):** Remove "reusing by content" from the summary, or phrase it
+    as "exposing the route/service through which BSB-31-PENDING-2 reuses." Keep PENDING-2 as the
+    reuse owner.
+  - **BSB-31-PENDING-1 / BSB-31-PENDING-2:** No story-body change; the body already states the
+    ownership correctly.
 
 ## Open questions
 
-1. **Run-start invocation (Finding 1).** Which epic/story invokes
+1. **Run-start caller (Finding 1).** Which flow/story invokes
    `POST /api/builds/{id}/scans/static` before every run — BSB-24's run start or BSB-27's
-   preflight — and at what point relative to BSB-25's packaging? Does FR-055's refusal consume
-   the verdict there?
-2. **Packaging gate (Finding 2).** Does a non-passing static verdict block packaging, and if so
-   which epic/FR owns it — BSB-31 (new story/AC and requirement ID), BSB-25 or BSB-30? If not,
-   does the epic DoD drop the packaging sentence?
-3. **Verdict function ownership (Finding 3).** Does PENDING-1 own the verdict function (with
-   PENDING-3 owning the rules/tests), or does PENDING-3 own it (with PENDING-1 recording only the
-   report/state)? What is its input/output, and how is the PENDING-1/PENDING-3 cycle resolved?
-4. **Reuse key (Finding 4).** Is the scan reuse key content-only (`skill` + `stage` +
-   `bundle_sha256` + `scanner_version`), with `skills_commit_sha` as provenance, or does the
-   commit SHA also scope reuse? Is cross-project/cross-build reuse intended, and should PENDING-2
-   and PENDING-5 test it?
-5. **Reviewer-facing scan report (Finding 5).** Which epic owns a stable scan-report view that
-   the catalog reviewer can read without the authoring interface, and what is its access rule —
-   or is the reviewer also a `skill-builders` member (which would contradict PRD §2)?
-6. **Parity test seam (Finding 6).** Does the scan service expose a bundle-fixture entry point,
-   and is `scans.build_id` nullable for a scan with no build?
-7. **Scan time budget vs NFR-001 (Finding 7).** Is the synchronous static scan part of the
-   60-second non-model run-preparation budget? If yes, what happens when a cache-miss scan
-   exceeds it? If no, what is the scan's own budget?
-8. **Failed-state report text (Finding 8).** What exact text does `GET /scans/{id}` show for a
-   failed (timeout or no-report) scan, and is its `failure_reason` displayed?
-9. **Build-page host (Finding 9).** Is the static-only control delivered on BSB-21's
-   `GET /builds/{id}` page, and should PENDING-6 depend on BSB-21 for that page and its access
-   rule?
+   preflight — and does it run after BSB-25 sets the bundle prepared and before BSB-26 launches
+   the agent container? If BSB-24, its "does not scan" statement must change; if BSB-27, BSB-31's
+   four notes and BSB-27's epic ordering wording must change.
+2. **Packaging gate (Finding 2).** Is a non-passing static verdict required to block packaging? If
+   yes, which epic/FR owns the gate (BSB-25, BSB-30, or a new BSB-31 story/AC and requirement) and
+   at what point relative to the packed bundle? If no, should the DoD's packaging sentence be
+   removed or narrowed to the run gate?
+3. **Bundle identity (Finding 3).** Does the static-scan route resolve `skill` from the build and
+   read the `skill_bundles` row by `(skill, skills_commit_sha)`, with the 409 naming both? The scan
+   must not select a bundle by SHA alone.
+4. **Reviewer access (Finding 4).** Do catalog reviewers read the linked run and scan reports? If
+   yes, which epic owns the stable reviewer-facing view and what authorizes a reviewer? If no, do
+   PRD §2 and FR-111 need correction?
+5. **Combined Security tab (Finding 5).** Does BSB-32 own the combined Security tab, or do
+   BSB-26/BSB-33 own it when they compose the skill/run page? Which epic supplies the LLM model
+   line and the tab layout?
+6. **NFR-001 boundary (Finding 6).** Does NFR-001's 60-second non-model preparation budget include
+   the synchronous static-scan wait? If yes, the gating model or the NFR must change; if no, the
+   PRD must say preparation excludes the static-scan gate.
+7. **Direct entry point (Finding 7).** Does the direct scan entry point accept a `project_id`, or
+   does the caller resolve and authorize the project before passing only the bundle fixture,
+   scanner version and image digest?
+8. **Running state (Finding 8).** Is `state "running"` persisted, and is the `scans` row inserted
+   as `running` with `started_at` before the scanner container starts, transitioning to
+   `completed` or `failed`? If not, how is PENDING-5's in-progress page reached?
+
+Finding 9 is a story-map wording fix and needs no product answer.
 
 ## Proposed changes
 
-`docs/product/epics/BSB-31/_epic/stories.md` (proposed only; `sdlc-plan-stories-write` applies
-them):
+### BSB-31-PENDING-1 — closes Findings 1, 2, 3, 6, 7 and 8
 
-- **BSB-31-PENDING-1** — Notes/ACs: name the run-start caller and its position after packaging
-  and before agent launch (Finding 1); choose the verdict-function owner and declare the
-  dependency or re-scope it (Finding 3); make the reuse identity content-only (or correct the
-  sibling) (Finding 4); define the service entry point and nullable `build_id` (Finding 6); state
-  the scan's time budget against NFR-001 (Finding 7); align the packaging-gate note with the
-  decision (Finding 2).
-- **BSB-31-PENDING-2** — Notes/ACs: state that it is a caller of the same run-start path (Finding
-  1); add the PENDING-3 verdict dependency (Finding 3); keep the reuse-key wording consistent
-  with PENDING-1 and add ACs for the same bundle at a new commit and for cross-build/project
-  reuse if intended (Finding 4).
-- **BSB-31-PENDING-3** — Notes/ACs: state the verdict function's input/output and its callers
-  (PENDING-1, -2, -5, -6, -7), and resolve the PENDING-1/PENDING-3 direction (Finding 3); align
-  the packaging-gate note with the decision (Finding 2).
-- **BSB-31-PENDING-4** — Notes/ACs: state it is a caller of the same run-start path (Finding 1);
-  state the scan's time budget against NFR-001 (Finding 7); cross-reference the failed-state
-  `failure_reason` that PENDING-5 renders (Finding 8).
-- **BSB-31-PENDING-5** — Notes/ACs: extend the PENDING-3 dependency to the rendered `verdict`
-  (Finding 3); add the failed-state AC and exact text (Finding 8); add the cross-build reuse
-  render AC if cross-project reuse is intended (Finding 4); correct the reviewer-facing
-  scan-report handoff and access rule (Finding 5).
-- **BSB-31-PENDING-6** — Notes/ACs: state it is a caller of the same run-start path (Finding 1);
-  add the PENDING-3 dependency or say it inherits it through PENDING-1's route (Finding 3); add
-  the BSB-21 build-page dependency and the page's access rule (Finding 9).
-- **BSB-31-PENDING-7** — Notes/ACs: cite PENDING-1's service entry point and nullable `build_id`
-  (Finding 6); reword the catalog-reviewer actor/value so it does not imply a reviewer interface
-  (Finding 5).
-- **`story-map.json`** — No requirement ID or story-set change. If Finding 4 changes the reuse
-  key wording, PENDING-1/-2's summaries must match the chosen key; PENDING-2's summary already
-  says "stage, content bundle and scanner version" and needs no change.
+- **Finding 1:** Name BSB-27's preflight as the run-start invariant caller; state that BSB-24's
+  run start does not scan; delete the stale "when those epics are decomposed" sentence.
+- **Finding 2:** Keep the verdict-only boundary; correct the note to say the only existing
+  packaging refusals are FR-071 to FR-073 (verifier), not a static-verdict gate; name the resolved
+  owner once Open question 2 is answered.
+- **Finding 3:** Resolve `skill` from the build; read `skill_bundles` by
+  `(skill, skills_commit_sha)`; update the 409 message; align fixture `s3_key` values with BSB-25's
+  `bundles/<skills_commit_sha>/<skill>.tar.gz` layout.
+- **Finding 6:** State the proposed NFR-001 boundary explicitly and mark it as requiring PRD/BSB-25
+  reconciliation.
+- **Finding 7:** Specify the direct entry point's exact inputs/outputs and whether `project_id`,
+  `skill` and `skills_commit_sha` are parameters or derived; name BSB-37-PENDING-2 as a consumer.
+- **Finding 8:** Enumerate `state` values and the insert-as-`running`/transition lifecycle.
 
-Cross-epic follow-ups (not applied in this pass; they need their own epic revisions or a human
-decision):
+### BSB-31-PENDING-2 — closes Finding 1
 
-- **BSB-24 / BSB-25 / BSB-27** — Name the static-scan invocation and its position after packaging
-  and before agent launch; reconcile BSB-27's "before a bundle or branch is prepared" wording
-  (Finding 1).
-- **BSB-25 / BSB-30** — Own the packaging gate if the DoD keeps it, or remove the packaging
-  sentence from BSB-31's DoD if the answer is no (Finding 2).
-- **BSB-36 / BSB-33** — Own the stable reviewer-facing scan-report view and its access rule, or
-  correct the PRD's reviewer assumption (Finding 5).
-- **BSB-25 (and the PRD's NFR-001/G4)** — Agree the scan's budget boundary (Finding 7).
-- **BSB-21** — Render the "Security check (static only)" control on the build page and state its
-  access rule (Finding 9).
-- **BSB-22** — Minor attribution alignment: PENDING-1 and PENDING-6 cite BSB-22-PENDING-3 for the
-  shared project-membership check, while BSB-22-PENDING-1's Notes say that story *defines* the
-  check and PENDING-3 *exercises* it on the run-start path. Cite PENDING-1 for the definition and
-  PENDING-3 for the run-start application (no design or requirement change).
+- Replace "BSB-24's run-start flow calls it" (`stories.md:219-221`) with "BSB-27's preflight calls
+  it after BSB-25 has packed the bundle at the requested SHA and before the agent container
+  launches." Add no other change; the reuse key and content-only identity remain correct.
 
-No change is proposed to `epic-map.json`, the requirement IDs, the story set, `sdlc-tracker-sync`
-or Jira.
+### BSB-31-PENDING-3 — closes Finding 2
+
+- Align the packaging-boundary note (`stories.md:327-332`) with PENDING-1's answer: BSB-31 supplies
+  only the verdict; the existing packaging refusals are FR-071 to FR-073 (verifier), and any
+  static-verdict packaging gate must be assigned with a requirement before this story claims it.
+- If Open question 2 answers that BSB-31 owns a packaging gate, add the corresponding acceptance
+  criterion here and in PENDING-1, plus a mapped requirement (a change requiring a human/earlier
+  decision).
+
+### BSB-31-PENDING-4 — closes Findings 1, 6 and 8
+
+- **Finding 1:** Replace "BSB-24's run-start flow calls it" (`stories.md:384-386`) with "BSB-27's
+  preflight calls it" and keep the after-packaging/before-launch order.
+- **Finding 6:** Reference the resolved NFR-001 boundary rather than presenting the exclusion as
+  settled.
+- **Finding 8:** Reference PENDING-1's `state` enum when recording the timeout as `failed`.
+
+### BSB-31-PENDING-5 — closes Findings 4, 5 and 8
+
+- **Finding 4:** Keep the authoring route and its BSB-18 gate; keep "this story adds no second
+  route"; update the note to name the resolved owner and route for the reviewer view, or the
+  corrected PRD assumption.
+- **Finding 5:** Correct the Out of scope pointer that says the combined Security tab is BSB-32's;
+  name the actual owner once Open question 5 is answered, and state that this story supplies only
+  the static report model, the scan-only page and the link the page owner composes.
+- **Finding 8:** Reference PENDING-1's state enum for the `running` and `failed` report states.
+
+### BSB-31-PENDING-6 — closes Finding 1
+
+- Replace "BSB-24's run-start preflight calls the same route" (`stories.md:557-558`) with
+  "BSB-27's preflight calls the same route," keeping the same after-packaging/before-launch order
+  and the membership check.
+
+### `docs/product/epics/BSB-31/_epic/story-map.json` — closes Finding 9
+
+- Remove "reusing by content" from PENDING-1's `summary`, or rephrase it so reuse is explicitly
+  PENDING-2's. Do not change PENDING-1's `requirement_ids`.
+
+### Cross-epic follow-ups (not applied here)
+
+- **Finding 1:** BSB-27, when decomposed, must name the static-scan invocation and its position
+  after packaging; BSB-27's epic "before a bundle or branch is prepared" wording needs correction.
+  BSB-24 and BSB-25 already state the correct order.
+- **Finding 2:** BSB-25 or BSB-30 must own the packaging gate (with a requirement) or the BSB-31
+  epic DoD sentence must be removed/narrowed. This needs a human/earlier-stage decision.
+- **Finding 4:** BSB-36 (or BSB-33) must add the stable reviewer-facing scan-report view and its
+  access rule, or PRD §2/FR-111 must be corrected. BSB-36-PENDING-2's `/scans/<id>` links depend
+  on that decision.
+- **Finding 5:** BSB-32-PENDING-2 (or BSB-26/BSB-33) must add the combined Security tab
+  acceptance criterion; ADR SK-001 §6b is the requirement.
+- **Finding 6:** `PRD.md` NFR-001/G4 and BSB-25's measurement must agree on whether the static
+  scan is inside the 60-second budget.
+- **Finding 7:** BSB-37-PENDING-2's "with the project" wording should match the entry-point
+  contract chosen in Open question 7.
 
 ## Architecture impact
 
-None. Every finding is a story-boundary, shared-contract, access-rule, performance-budget or
-dependency-note issue. The only new persisted structures are the `scans` and `scan_findings`
-records that PENDING-1 declares (`stories.md:82-88`); ADR SK-001 §9 names no scan table, and
-PENDING-1 already says the later design stage must record them. No existing entity, field,
-endpoint or integration in ADR SK-001 conflicts with the epic, and no new design decision is
-required before `sdlc-plan-stories-write` (revise) applies this report.
+None.
 
 ## Requirement coverage check
 
-All fourteen requirements mapped to BSB-31 are exercised by at least one acceptance criterion, and
-no requirement is claimed by two stories in contradictory ways. The caveats below are the
-findings above; none removes a requirement from the epic.
+Every FR/NFR `epic-map.json` assigns to BSB-31 is exercised by at least one story's acceptance
+criteria, with no contradicting claims:
 
-| Requirement | Exercising story | Acceptance criteria that exercises it |
+| Requirement | Exercising story | Acceptance criterion / note |
 |---|---|---|
-| FR-076 | BSB-31-PENDING-1 | "Unscanned content is scanned before the run-start preflight returns a verdict"; "The scan reads the requested commit's bundle, not a newer branch head". **Caveat:** both start from "the run-start preflight calls", so the every-run caller is unowned (Finding 1). |
-| FR-077 | BSB-31-PENDING-2 | "An unchanged bundle and scanner version reuse the completed result"; "Changed bundle content starts a new scan"; "A different scanner version starts a new scan"; "A completed failing result is reused and stays failing". **Caveat:** the key omits `skills_commit_sha` here but includes it in PENDING-1, and no AC covers the same bundle at a new commit (Finding 4). |
-| FR-078 | BSB-31-PENDING-3 | "A DO_NOT_INSTALL recommendation fails even with no critical finding". |
-| FR-079 | BSB-31-PENDING-3 | "Any critical finding fails even with a non-blocking recommendation". |
-| FR-080 | BSB-31-PENDING-3 | "Incomplete coverage fails even with no blocking recommendation and no critical finding". |
-| FR-081 | BSB-31-PENDING-3 | "An accepted critical finding cannot clear the block"; "An accepted non-critical finding does not itself fail a clean scan". |
-| FR-087 | BSB-31-PENDING-4 | "A scan still running at ten minutes is terminated and recorded as failed"; "The ten-minute boundary terminates a scan that has not finished". |
-| FR-088 | BSB-31-PENDING-4 | The two timeout scenarios assert state "failed", verdict "fail" and `failure_reason` "Scan exceeded the ten-minute limit.". |
-| FR-089 | BSB-31-PENDING-5 | "A completed passing scan shows its score, recommendation and coverage" ("Static scan score: 96"). |
-| FR-091 | BSB-31-PENDING-7 | "The builder's verdict matches the platform's on a fixed corpus"; "A scanner version mismatch is reported rather than compared"; "A bundle with no platform baseline fails the parity test". **Caveat:** the test calls a service entry point and creates build-less scans that PENDING-1 does not define (Finding 6). |
-| FR-092 | BSB-31-PENDING-6 | "A project member starts a static-only scan and no run is created"; "A non-owner member can start the scan"; "A signed-in author who is not a project member is refused"; "An author with no project membership has no project to scan for". **Caveat:** the control's build-page host and access rule are BSB-21's and are not named (Finding 9). |
-| FR-154 | BSB-31-PENDING-5 | "A completed passing scan shows its score, recommendation and coverage" ("Recommendation: INSTALL"). |
-| FR-155 | BSB-31-PENDING-5 | "Every finding is shown with severity, rule, file and line" (severity-descending table). |
-| NFR-005 | BSB-31-PENDING-1 | "The static scanner container has no network access" (Docker network mode "none", dummy server receives 0 requests). |
+| FR-076 | BSB-31-PENDING-1 | "Unscanned content is scanned before the run-start preflight returns a verdict"; "The scan reads the requested commit's bundle, not a newer branch head." Conditional on Finding 1: the story proves the route's behavior once called; the every-run caller must be named consistently. |
+| FR-077 | BSB-31-PENDING-2 | Unchanged bundle/scanner reuse; changed content; changed scanner version; same bundle at a new commit; cross-build/project reuse. |
+| FR-078 | BSB-31-PENDING-3 | "A DO_NOT_INSTALL recommendation fails even with no critical finding." |
+| FR-079 | BSB-31-PENDING-3 | "Any critical finding fails even with a non-blocking recommendation." |
+| FR-080 | BSB-31-PENDING-3 | "Incomplete coverage fails even with no blocking recommendation and no critical finding." |
+| FR-081 | BSB-31-PENDING-3 | "An accepted critical finding cannot clear the block." |
+| FR-087 | BSB-31-PENDING-4 | "A scan still running at ten minutes is terminated and recorded as failed"; "The ten-minute boundary terminates a scan that has not finished." |
+| FR-088 | BSB-31-PENDING-4 | Same two scenarios: state "failed", verdict "fail", the fixed failure reason. |
+| FR-089 | BSB-31-PENDING-5 | "A completed passing scan shows its score, recommendation and coverage"; the failed and reused states. Authoring report only; reviewer access is Finding 4 and is not an FR-089/154/155 claim. |
+| FR-091 | BSB-31-PENDING-3 | "The verdict matches the platform's for the same content and pinned scanner version." |
+| FR-092 | BSB-31-PENDING-6 | Project-member start with no run; non-owner member; non-member refusal; no project membership. |
+| FR-154 | BSB-31-PENDING-5 | "A completed passing scan shows its score, recommendation and coverage." |
+| FR-155 | BSB-31-PENDING-5 | "Every finding is shown with severity, rule, file and line." |
+| NFR-005 | BSB-31-PENDING-1 | "The static scanner container has no network access." |
 
-Traceability notes: `epic-map.json` and `PRD.md` agree on all fourteen IDs and their wording;
-`story-map.json` maps each ID to exactly the story above, with no duplicate or missing claim. No
-FR/NFR wording drift was found between `epic-map.json`, `epics.md` and the current `PRD.md`. NFR-012
-(accessibility) is a cross-cutting requirement explicitly owned by BSB-38, whose Notes name the
-scan surfaces, so it is not a silent epic-wide NFR here. NFR-001 is BSB-25's requirement; the
-static scan's relationship to it is Finding 7.
+All fourteen requirements mapped to BSB-31 are covered; no story claims a requirement outside this
+epic. Finding 9 is a story-map summary wording defect, not a missing or duplicated acceptance
+criterion.
 
 ## Dependency-note sanity check
 
-Mostly consistent within the epic; the cross-story/cross-epic mismatches are Findings 1, 3, 4, 5,
-7 and 9, plus one minor attribution note.
+Every "Depends on X" / "prerequisite for Y" note refers to a real story or a named epic, and the
+in-epic directions are reciprocated. Cross-epic mismatches are called out explicitly:
 
-- **Reciprocated within the epic:** PENDING-2/-3/-4/-5/-6's Out of scope name PENDING-1 and the
-  siblings they exclude; PENDING-1's Out of scope names PENDING-2, -3 and -5; PENDING-2's Out of
-  scope names PENDING-3 and -4; PENDING-3's Out of scope names PENDING-4 and -5; PENDING-4's Out
-  of scope names PENDING-3 and -5; PENDING-5's Out of scope names PENDING-1, -3 and -4; PENDING-6's
-  Out of scope names PENDING-1 and -5. All seven draft keys exist; no dependency note points at a
-  non-existent story.
-- **Missing verdict dependencies — Finding 3:** PENDING-1, PENDING-2 and PENDING-6 assert
-  verdicts but do not declare PENDING-3; PENDING-5 declares PENDING-3 only for
-  `verdict_reasons`, not `verdict`. PENDING-3's own dependency on PENDING-1/PENDING-2 while those
-  stories depend on its verdict function is a cycle, not a real order.
-- **Contradictory reuse identity — Finding 4:** PENDING-1's "content-addressed by … `skills_commit_sha`
-  …" and PENDING-2's "reused only when `stage`, `bundle_sha256`, `skill` and `scanner_version`
-  match" cannot both be the key.
-- **One-sided cross-epic — Finding 1:** PENDING-1 says BSB-24 must call the route, but BSB-24's
-  epic scope and Notes do not mention the scan; BSB-27's guidance instead places the precondition
-  before bundle preparation, which PENDING-1's packed-bundle requirement makes impossible.
-  PENDING-1's Notes are the only place the gap is written down.
-- **Reciprocated cross-epic:** BSB-25's Notes say it supplies the bundle to static scanning
-  (`epics.md:771-776`); BSB-27's Notes say it depends on the static verdict (`epics.md:903-904`);
-  BSB-30's Notes say it depends on static scan state (`epics.md:1038-1043`); BSB-32's Notes say it
-  depends on the static verdict (`epics.md:648-653`); BSB-37's Notes say it depends on the static
-  scan service (`epics.md:1397-1402`); BSB-22-PENDING-1/PENDING-3 say BSB-31 reuses the shared
-  membership check (`BSB-22/_epic/stories.md:64-68`, `:211`). PENDING-5's BSB-33/BSB-36 handoff
-  is the exception: BSB-36 links the scan reports but owns no viewer (Finding 5).
-- **Packaging gate — Finding 2:** BSB-25's scope and BSB-30's scope both omit a static-scan
-  packaging gate, while BSB-31's DoD claims one. No epic's Notes reciprocate that claim.
-- **Build-page dependency — Finding 9:** PENDING-6 uses `GET /builds/7` but does not name
-  BSB-21, which BSB-19's Notes say owns the full build page; BSB-21 has no stories yet.
-- **Minor attribution (no finding):** PENDING-1 and PENDING-6 cite BSB-22-PENDING-3 as the shared
-  project-membership check's owner; BSB-22-PENDING-1's Notes say that story defines it and
-  PENDING-3 exercises it. Cite PENDING-1 for the definition and PENDING-3 for the run-start
-  application.
-- **Ordering not computed:** no `epic-sequence.md`/`.json` exists for BSB-31; sequencing remains
-  `sdlc-plan-epic-sequence`'s job. This pass records the dependency gaps and does not propose a
-  wave or build order.
-
----
-
-*On approval: `docs/product/epics/BSB-31/_epic/stories.md` is updated in place for
-BSB-31-PENDING-1 through -7 (and the PENDING-1/-2 summary alignment in `story-map.json` only if
-Finding 4 changes the reuse-key wording). No Jira keys exist yet for these draft stories, and no
-Jira write is made in this pass. Next: `sdlc-plan-stories-write` (revise), then
-`sdlc-plan-epic-sequence` and the per-story review for single-story concerns this epic-level pass
-deliberately did not raise.*
+- **PENDING-1 ↔ PENDING-3:** reciprocal and consistent — PENDING-1 applies PENDING-3's rules and
+  records the output; PENDING-3 depends on PENDING-1 only for the record contract. No cycle remains.
+- **PENDING-2 → PENDING-1 / PENDING-3:** both exist; PENDING-1 names PENDING-2 as the reuse owner.
+- **PENDING-4 → PENDING-1 / PENDING-3:** both exist; PENDING-1 names PENDING-1/-4 as the
+  failed/timeout state owners.
+- **PENDING-5 → PENDING-1 / PENDING-3 / PENDING-4:** all exist; PENDING-1 names PENDING-5 as the
+  report route owner.
+- **PENDING-6 → PENDING-1 / PENDING-3 / BSB-22-PENDING-1/-3 / BSB-21 / BSB-25:** all named stories
+  exist or the referenced epic is named (BSB-21 has no stories yet); the membership-check
+  dependency matches BSB-22-PENDING-1's and -3's notes.
+- **Cross-epic mismatch (Finding 1):** BSB-31-PENDING-1/-2/-4/-6 say BSB-24's run start invokes the
+  route; BSB-24-PENDING-1 says run start does not scan and BSB-27's preflight invokes it; BSB-25
+  agrees with BSB-24. The dependency is one-sided and contradictory. BSB-27's epic guidance still
+  says "before a bundle or branch is prepared," which BSB-25 records as superseded.
+- **Cross-epic mismatch (Finding 3):** BSB-25-PENDING-2 says BSB-31-PENDING-1 reads the
+  `skill_bundles` row by `(skill, skills_commit_sha)`; BSB-31-PENDING-1 says it reads by SHA alone.
+  The two contracts do not match.
+- **Cross-epic mismatch (Finding 4):** BSB-36-PENDING-2 depends on BSB-31-PENDING-5's `GET /scans/{id}`
+  for the catalog pull-request link, while PENDING-5 says that route is authoring-gated and cannot
+  serve the reviewer.
+- **Cross-epic mismatch (Finding 5):** BSB-31-PENDING-5 says BSB-32 owns the combined Security tab;
+  BSB-32's stories do not claim it, and BSB-26/BSB-33 disclaim it.
+- **Cross-epic mismatch (Finding 7):** BSB-37-PENDING-2 depends on BSB-31-PENDING-1's direct scan
+  service "with the project"; PENDING-1 defines the entry point as "no build or project." The row
+  has no `project_id` in both stories, so the mismatch is in the service signature/wording.
+- **Epic references without stories:** BSB-21, BSB-27 and BSB-30 have no `stories.md` yet. Their
+  epic-level references (build page, FR-055 refusal, FR-069 readiness / FR-071-073 packaging) are
+  correctly named as epics, not as missing story keys; they cannot be checked for story-level
+  reciprocity until decomposition. This check does not compute build order.
