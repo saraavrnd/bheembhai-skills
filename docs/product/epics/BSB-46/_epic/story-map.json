@@ -1,0 +1,46 @@
+{
+  "epic_key": "BSB-46",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-46-PENDING-1",
+      "summary": "Block a run whose static scan does not pass",
+      "requirement_ids": ["FR-076", "FR-078", "FR-079", "FR-080"]
+    },
+    {
+      "story_key": "BSB-46-PENDING-2",
+      "summary": "Reuse a completed static scan for unchanged content",
+      "requirement_ids": ["FR-077"]
+    },
+    {
+      "story_key": "BSB-46-PENDING-3",
+      "summary": "Keep an accepted finding from clearing a static-scan block",
+      "requirement_ids": ["FR-081"]
+    },
+    {
+      "story_key": "BSB-46-PENDING-4",
+      "summary": "Time out a static scan after ten minutes and record it as failed",
+      "requirement_ids": ["FR-087", "FR-088"]
+    },
+    {
+      "story_key": "BSB-46-PENDING-5",
+      "summary": "Show the scan score, recommendation and findings in the report",
+      "requirement_ids": ["FR-089", "FR-154", "FR-155"]
+    },
+    {
+      "story_key": "BSB-46-PENDING-6",
+      "summary": "Match the platform's verdict for the same content and scanner version",
+      "requirement_ids": ["FR-091"]
+    },
+    {
+      "story_key": "BSB-46-PENDING-7",
+      "summary": "Start a static-only scan from the skill page without a run",
+      "requirement_ids": ["FR-092"]
+    },
+    {
+      "story_key": "BSB-46-PENDING-8",
+      "summary": "Run the static scan with no network access",
+      "requirement_ids": ["NFR-005"]
+    }
+  ]
+}
