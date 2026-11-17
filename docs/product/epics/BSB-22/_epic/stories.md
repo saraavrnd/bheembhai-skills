@@ -39,6 +39,16 @@ Given a signed-in skill author and an empty "projects" table
 When the author submits a project name of "   " on the create project form at "/projects/new"
 Then the builder responds with HTTP 422 and the message "A project name is required.", and creates no "projects" row and no "project_members" row
 
+Scenario: The projects list links to the create form
+Given a signed-in skill author whose local "users" id is 42, and Project Atlas (id 7, owner_id 42) whose "project_members" table holds only the row with project_id 7, user_id 42 and role "owner"
+When the author opens GET "/projects"
+Then the builder responds with HTTP 200 rendering the heading "Your projects" and a "New project" link whose target is "/projects/new"
+
+Scenario: The project page shows the owner the member and settings links
+Given Project Atlas (id 7, owner_id 42) whose "project_members" table holds only the row with project_id 7, user_id 42 and role "owner", with Ada signed in as user 42
+When Ada opens GET "/projects/7"
+Then the builder responds with HTTP 200 rendering an "Add member" link whose target is "/projects/7/members/new" and a "Settings" link whose target is "/projects/7/settings"
+
 ### Covered requirements (traceability)
 - FR-023
 - FR-024
@@ -61,12 +71,16 @@ submitted form fields.
 
 The project page is served at GET "/projects/7". GET "/projects" is the minimal "Your projects"
 list an author needs to select a project, and the epic's non-goal excludes discovery beyond that.
-This story also defines the shared project-membership check the rest of the epic and the later
-project-scoped epics reuse: the signed-in user must have a "project_members" row for the project,
-otherwise the builder responds with HTTP 403 and the message "You are not a member of this
-project." before returning any project data. BSB-22-PENDING-3 exercises that check on the
-run-start path, and BSB-24, BSB-31, BSB-33 and BSB-37 reuse it. Ownership transfer, renaming,
-deleting a project, and user, group or role administration are out of scope for this release.
+As the host pages, this story owns the entry points to the rest of the epic: GET "/projects"
+renders a "New project" link to "/projects/new", and GET "/projects/7" renders an owner-only
+"Add member" link to "/projects/7/members/new" and an owner-only "Settings" link to
+"/projects/7/settings"; a non-owner member sees neither project-page link. This story also defines
+the shared project-membership check the rest of the epic and the later project-scoped epics reuse:
+the signed-in user must have a "project_members" row for the project, otherwise the builder
+responds with HTTP 403 and the message "You are not a member of this project." before returning
+any project data. BSB-22-PENDING-3 exercises that check on the run-start path, and BSB-24, BSB-31,
+BSB-32, BSB-33 and BSB-37 reuse it. Ownership transfer, renaming, deleting a project, and user,
+group or role administration are out of scope for this release.
 
 ---
 
@@ -89,6 +103,11 @@ Scenario: The owner removes a member and that member loses access
 Given Project Atlas (id 7) whose "project_members" table holds rows (project_id 7, user_id 42, role "owner") and (project_id 7, user_id 43, role "member"), with Ada at user 42 and Bob at user 43
 When Ada submits POST "/projects/7/members/43/delete"
 Then the builder responds with HTTP 200 and a body containing "bob@example.com removed from Project Atlas.", no "project_members" row exists for project 7 and user 43, GET "/projects/7" no longer renders "bob@example.com", Bob's next GET "/projects/7" returns HTTP 403 with the message "You are not a member of this project.", and Bob's GET "/projects" does not list "Project Atlas"
+
+Scenario: The owner sees a remove control on each non-owner member row
+Given Project Atlas (id 7) whose "project_members" table holds rows (project_id 7, user_id 42, role "owner") and (project_id 7, user_id 43, role "member"), with Ada at user 42 and Bob at user 43
+When Ada opens GET "/projects/7"
+Then the builder responds with HTTP 200 rendering on Bob's member row a "Remove" control that submits POST "/projects/7/members/43/delete", and rendering no "Remove" control on Ada's own owner row
 
 Scenario: Adding an email with no builder account is refused
 Given Project Atlas (id 7) owned by Ada (user 42), and no "users" row with email "carol@example.com"
@@ -128,12 +147,16 @@ creating builder accounts; user, group and role administration; project renaming
 ### Notes / dependencies
 Depends on BSB-22-PENDING-1 for the "projects" and "project_members" records, the project page and
 the shared project-membership check, and on BSB-18 for the signed-in users and the local "users"
-table. Member management is owner-only: this story defines the shared owner guard every
-project-administration route uses. The signed-in user must first pass the project-membership check,
-then must have a "project_members" row for the project with role "owner"; a member without that
-role receives HTTP 403 and the message "Only the project owner can change project members."
-BSB-23's integration configuration routes apply the same owner-only rule, with the message "Only
-the project owner can change integrations." BSB-22-PENDING-4 exercises it there.
+table. Member management is owner-only: this story defines the member-management use of one
+shared owner check; BSB-22-PENDING-4 owns the integration-management use. The signed-in user must
+first pass the project-membership check, then must have a "project_members" row for the project
+with role "owner"; a member without that role receives HTTP 403. The check is parameterised by the
+resource-specific denial message: "Only the project owner can change project members." here and
+"Only the project owner can change integrations." on BSB-22-PENDING-4's integration routes.
+BSB-23's integration configuration routes apply the same owner-only rule; BSB-22-PENDING-4
+exercises it there. The project page is served by BSB-22-PENDING-1; it renders the "Add member"
+link to "/projects/7/members/new" and a "Remove" control on each non-owner member row, so member
+management is reachable from the project page rather than only by typing a URL.
 
 The add form identifies the target by email and looks the person up in the builder's own "users"
 table; a single matching row is required, no match returns HTTP 422 and creates nothing, and this
@@ -208,8 +231,9 @@ project." before any project or run data is returned. An anonymous visitor is re
 per-request middleware before this check runs. The check reads the current "project_members" rows
 on every request, so removing a member takes effect on that person's next request without a new
 sign-in. BSB-24 must apply the same check before returning any selection data or creating a run
-(FR-037); BSB-31's standalone scans, BSB-33's reports and BSB-37's command line reuse it. The
-project owner is a member for this purpose, so the owner passes the same check.
+(FR-037); BSB-31's standalone scans, BSB-32's full-scan entry point, BSB-33's reports and BSB-37's
+command line reuse it. The project owner is a member for this purpose, so the owner passes the
+same check.
 
 ---
 
@@ -255,16 +279,20 @@ FR-128, FR-129); secret-store administration and credential rotation; displaying
 
 ### Notes / dependencies
 Depends on BSB-22-PENDING-1 for the project, the "project_members" rows and the shared
-project-membership check, and on BSB-22-PENDING-2 for the owner guard. This story owns the project
-settings page at GET "/projects/7/settings", its "Integrations" section and the owner-only
-integration-management guard. The integration form, its configuration fields, the opaque secret
-reference and the verification step are BSB-23 (FR-029 to FR-036, FR-128 and FR-129); BSB-23 must
-call this guard on every integration change route, and "POST /projects/7/integrations" is the
-representative guarded route used by this story's acceptance criteria.
+project-membership check, and on BSB-22-PENDING-2 for the shared owner check. This story uses that
+same shared owner check rather than a second implementation, and owns its integration-management
+use and the denial message "Only the project owner can change integrations." This story owns the
+project settings page at GET "/projects/7/settings", its "Integrations" section and the
+integration-management use of that shared owner check. The settings page is reached from the
+project page via the "Settings" link defined by BSB-22-PENDING-1; this story does not own that
+link. The integration form, its configuration fields, the opaque secret reference and the
+verification step are BSB-23 (FR-029 to FR-036, FR-128 and FR-129); BSB-23 must call this guard on
+every integration change route, and "POST /projects/7/integrations" is the representative guarded
+route used by this story's acceptance criteria.
 
-The guard applies two checks in order. The project-membership check runs first: a signed-in user
-without a "project_members" row for the project receives HTTP 403 and the message "You are not a
-member of this project." and sees no project data. The owner check runs second: a member whose
+The shared owner check applies two checks in order. The project-membership check runs first: a
+signed-in user without a "project_members" row for the project receives HTTP 403 and the message
+"You are not a member of this project." and sees no project data. The owner check runs second: a member whose
 "project_members" role is not "owner" receives HTTP 403 and the message "Only the project owner can
 change integrations." on any change attempt, and the settings page is read-only for them.
 Integration changes are refused before any configuration is read or written, so a refused change
