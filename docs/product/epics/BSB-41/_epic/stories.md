@@ -75,6 +75,26 @@ model: sonnet
 # Legacy notes
 ```
 
+**Fixture change commit `C`.** Scenarios that need `main` to move create exactly one commit `C`
+on top of `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c` and read its SHA at test time as
+`C=$(git rev-parse main)`; no scenario asserts a literal SHA for `C`. `C` has parent
+`4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c`, its tree equals that commit's tree except that
+`skills/sdlc-research-summarise/SKILL.md` is replaced byte-for-byte by the block below followed by
+exactly one trailing newline. Its author and committer are both
+`Fixture <fixture@example.test>`, its author and committer dates are both
+`2026-11-16T09:00:00+00:00`, and its message is exactly `fixture: change research summarise`.
+
+```markdown
+---
+name: "sdlc-research-summarise"
+description: >-
+  Summarise research sources into a short, cited brief.
+compatibility: claude-code
+model: sonnet
+---
+# Research summarise (changed on main)
+```
+
 **Build-creation contract used by these stories.** The author is a signed-in current member of
 the `skill-builders` group (FA-1 owns sign-in and the guard). Build creation is
 `POST /api/builds` with `Content-Type: application/json`; a successful clone or edit responds
@@ -125,10 +145,15 @@ Given the source tree SHA is captured as `git rev-parse main:skills/sdlc-researc
 When the clone build `build/sdlc-research-digest` completes and `git diff --name-status main..build/sdlc-research-digest` is inspected
 Then `git rev-parse main:skills/sdlc-research-summarise` still equals the captured SHA, every line of the diff starts with `A` and names a path under `skills/sdlc-research-digest/`, no diff line names `skills/sdlc-research-summarise/`, `git rev-parse main` still equals `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c`, and `git status --porcelain` on the fixture working tree is empty
 
-Scenario: Clone pinned to the base commit when main moves
-Given the builder resolves `main` to `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c` when the clone starts and a concurrent push advances `main` to `9b3c5e7a1d2f4b6c8e0a2c4e6f8a0b2c4d6e8f0a` before the copy completes
-When the clone of `sdlc-research-summarise` to `sdlc-research-digest` finishes
-Then the response's `base_sha` is `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c`, `git merge-base build/sdlc-research-digest main` is `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c`, and the cloned `SKILL.md` matches the version at `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c` rather than the version at `9b3c5e7a1d2f4b6c8e0a2c4e6f8a0b2c4d6e8f0a`
+Scenario: Clone copies the recorded base commit rather than the checkout working tree
+Given a fresh fixture copy whose `main` is `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c` and whose working tree carries exactly one uncommitted edit replacing the line `# Research summarise` in `skills/sdlc-research-summarise/SKILL.md` with `# Research summarise (uncommitted local edit)`, so `git status --porcelain` is exactly ` M skills/sdlc-research-summarise/SKILL.md`
+When the author submits `{"build_kind":"clone","source_skill":"sdlc-research-summarise","name":"sdlc-research-digest","description":"Digest research sources for a weekly brief"}` to `POST /api/builds`
+Then the builder responds with HTTP 201 and `base_sha` `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c`, and `git show build/sdlc-research-digest:skills/sdlc-research-digest/SKILL.md` parses to `name` equal to `sdlc-research-digest`, has frontmatter values `description`, `compatibility` and `model` equal to those in `git show 4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c:skills/sdlc-research-summarise/SKILL.md`, and has a body after the closing `---` that is byte-identical to the body of that same `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c` blob, so it contains the exact line `# Research summarise` and no line with the text `uncommitted local edit`
+
+Scenario: A main move affects neither an existing clone build nor the base of the next clone
+Given the clone build `build/sdlc-research-digest` was created from `main` at `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c`, with `HEAD_SHA=$(git rev-parse build/sdlc-research-digest)` and `CLONE_BLOB=$(git rev-parse build/sdlc-research-digest:skills/sdlc-research-digest/SKILL.md)` captured
+When the test applies fixture change commit `C` to `main`, verifies `C=$(git rev-parse main)`, and submits `{"build_kind":"clone","source_skill":"sdlc-research-summarise","name":"sdlc-research-brief","description":"Summarise research sources into a short brief"}` to `POST /api/builds`
+Then `git rev-parse build/sdlc-research-digest` still equals `HEAD_SHA`, `git rev-parse build/sdlc-research-digest:skills/sdlc-research-digest/SKILL.md` still equals `CLONE_BLOB` and that blob contains the exact line `# Research summarise` and no line with the text `changed on main`, `git diff --name-status main..build/sdlc-research-digest` has exactly one line starting with `M`, that line is `M skills/sdlc-research-summarise/SKILL.md`, and every line starting with `A` names a path under `skills/sdlc-research-digest/`, `GET /api/builds` still reports `base_sha` `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c` for it, and the new build responds HTTP 201 with `base_sha` equal to `C`, `git rev-parse build/sdlc-research-brief^` equal to `C`, and `git rev-parse build/sdlc-research-brief:skills/sdlc-research-brief/SKILL.md` equal to `git rev-parse C:skills/sdlc-research-summarise/SKILL.md`
 
 Scenario: Clone of a source skill missing from main rejected
 Given `main` contains no directory `skills/sdlc-does-not-exist/`
@@ -185,7 +210,7 @@ Then the builder responds with HTTP 404 and body exactly `{"error":"skill_not_fo
 
 Scenario: A concurrent clone of the same skill leaves the edit build untouched
 Given the edit build `build/sdlc-research-summarise` is open at head `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c`
-When the author clones `sdlc-research-summarise` to `sdlc-research-digest` with `POST /api/builds`
+When the author submits `{"build_kind":"clone","source_skill":"sdlc-research-summarise","name":"sdlc-research-digest","description":"Digest research sources for a weekly brief"}` to `POST /api/builds`
 Then the edit build's branch head is still `4f2a9c1d0b6e8f3a2c5d7e9f1b3a5c7d9e1f2a4c`, `git diff --name-status build/sdlc-research-summarise..build/sdlc-research-digest` contains only lines starting with `A` under `skills/sdlc-research-digest/`, and `GET /api/builds` returns both builds with distinct `branch` values `build/sdlc-research-summarise` and `build/sdlc-research-digest`
 
 ### Covered requirements
