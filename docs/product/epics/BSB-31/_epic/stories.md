@@ -57,12 +57,13 @@ Then the response is HTTP 409 with {"error": "No packed bundle exists for commit
 
 ### Out of scope
 Refusing the run when the verdict is not pass (FR-055, BSB-27); refusing packaging when the verdict
-is not pass (the epic's Definition of Done names this, but no FR mapped to BSB-31 covers it and
-BSB-25's epic does not consume the static verdict; recorded as a cross-epic gap in the Notes);
-aggregating the Ready checks (BSB-30); packing the bundle itself (BSB-25);
+is not pass (no FR maps packaging refusal to BSB-31 — the packaging gate belongs to BSB-25/BSB-30
+and the epic's Definition of Done wording must be corrected there; recorded as a cross-epic gap in
+the Notes); aggregating the Ready checks (BSB-30); packing the bundle itself (BSB-25);
 the LLM scan stage (BSB-32); changing the scanner's rules, severities or recommendation values;
-reusing an earlier result (BSB-31-PENDING-2); the pass/fail rules beyond recording what the
-scanner reports (BSB-31-PENDING-3); rendering the report page (BSB-31-PENDING-5).
+reusing an earlier result (BSB-31-PENDING-2); the verdict rules themselves (BSB-31-PENDING-3 owns
+the verdict function this story calls and whose output it records; this story asserts that output
+but defines no rule); rendering the report page (BSB-31-PENDING-5).
 
 ### Notes / dependencies
 Depends on BSB-18 for the signed-in skill-builder author and the per-request group gate, on BSB-19
@@ -74,34 +75,67 @@ This story owns the static scan service, the `scans` and `scan_findings` records
 synchronous `POST /api/builds/7/scans/static` route that every other caller uses. A scan request
 returns only after the scan reaches `completed` or `failed`, so a caller always receives a verdict.
 The route accepts `project_id` and `skills_commit_sha`; it reads the `skill_bundles` row for that
-SHA and scans that bundle, never the branch head and never an unpacked working tree. The scan
-record is content-addressed by `skill`, `skills_commit_sha`, `bundle_sha256`, `stage` and
-`scanner_version`; it carries no `project_id`, so identical content can be reused across projects.
-`build_id` records the build that first requested the scan for provenance only; it does not scope
-reuse (BSB-31-PENDING-2) or the report route (BSB-31-PENDING-5).
-ADR SK-001 section 9 names no scan table, so this epic introduces `scans` (id, build_id, skill,
-stage, skills_commit_sha, bundle_sha256, scanner_version, image_digest, state, verdict,
-verdict_reasons, score, recommendation, coverage_complete, report, failure_reason,
-started_at, finished_at) and `scan_findings` (id, scan_id, severity, rule,
-file, line, accepted, acceptance_reason); the data-model stage must record them. `report` is the
-scanner's report document (score, recommendation, coverage counts and findings), so the report page
-can show the coverage counts and every located finding.
+SHA and scans that bundle, never the branch head and never an unpacked working tree.
 
-The route applies BSB-22-PENDING-3's shared project-membership check for the signed-in author on
-every request. The run-start path is BSB-24's; before it launches the agent container it must call
-this route for the run's project and SHA, and its caller has already passed the same
-project-membership check in the run request. BSB-27 owns the refusal when the returned verdict is
-not pass (FR-055); BSB-30 reads the verdict for readiness; BSB-32's full security scan calls this
-static stage first. BSB-24's epic does not currently name this call, so its run-start stories must
-adopt it for FR-076's "before every run" to hold; this story supplies the contract they call. The
+The service exposes one direct entry point that takes a packed bundle fixture (its bytes or
+`skill_bundles` row) plus the pinned scanner version and image digest, with no build or project,
+and returns the same scan result the route returns; the route is a thin caller of it. A scan
+created through that entry point has `build_id` NULL (BSB-31-PENDING-7 uses it for the parity
+test). `build_id` on a route-created scan records the build that first requested the scan for
+provenance only; it does not scope reuse (BSB-31-PENDING-2) or the report route
+(BSB-31-PENDING-5).
+
+The scan record's identity/reuse key is `skill` + `stage` + `bundle_sha256` + `scanner_version`
+(BSB-31-PENDING-2 owns reuse). `skills_commit_sha` is recorded on the row for provenance and to say
+which content a run scanned, but it does not by itself force a new scan: the same bundle bytes
+committed at a new SHA reuse the completed row. The row carries no `project_id`, so identical
+content can be reused across projects.
+
+ADR SK-001 section 9 names no scan table, so this epic introduces `scans` (id, build_id nullable,
+skill, stage, skills_commit_sha, bundle_sha256, scanner_version, image_digest, state, verdict,
+verdict_reasons, score, recommendation, coverage_complete, report, failure_reason, started_at,
+finished_at) and `scan_findings` (id, scan_id, severity, rule, file, line, accepted,
+acceptance_reason); the data-model stage must record them. `report` is the scanner's report
+document (score, recommendation, coverage counts and findings), so the report page can show the
+coverage counts and every located finding.
+
+This story depends on BSB-31-PENDING-3 for the one verdict function. The function takes the
+scanner report plus the scanned bundle's `.skillspector-baseline.yaml` and returns `verdict`,
+`verdict_reasons` and the `scan_findings` rows, which this story persists alongside the report's
+own score, recommendation and coverage fields on the `scans` row. It does not set `state` for a
+scan with no usable report; that failed state is this story's and BSB-31-PENDING-4's. This story
+does not recompute the verdict, so its acceptance criteria assert the value the function returns.
+Dependency direction is stated in
+BSB-31-PENDING-3's Notes: at runtime this story calls that function; the function depends on this
+story only for the record contract.
+
+The route applies the shared project-membership check that BSB-22-PENDING-1 defines and
+BSB-22-PENDING-3 applies on the run-start path, for the signed-in author on every request.
+
+Run-start invocation (FR-076's "before every run"): the run-start flow is BSB-24's, and it invokes
+this route for the run's project and the exact `skills_commit_sha` after BSB-25 has packed the
+bundle at that SHA and before the agent container launches. The packed bundle is a precondition:
+there is no scan before packaging, and a missing `skill_bundles` row is the HTTP 409 above. The
+verdict returned by that call is the value BSB-27's FR-055 refusal consumes and BSB-30's FR-069
+readiness reads; neither BSB-27 nor BSB-30 recomputes it. BSB-24's, BSB-25's and BSB-27's own
+stories must name this call and its position when those epics are decomposed; until then this story
+supplies the contract they call. BSB-32's full security scan calls this static stage first, and the
 standalone author-triggered use is exercised in BSB-31-PENDING-6. A container that cannot start or
 produces no report is a failed scan, never a missing or passing one.
 
-Cross-epic gap recorded for the next review, not implemented here: the epic's Definition of Done
-says a non-passing verdict also blocks packaging, but no FR mapped to BSB-31 covers a packaging
-gate, BSB-25's epic does not name the static verdict, and the requirement list assigns packaging
-refusal only to the verifier checks FR-071 to FR-073. BSB-31 supplies the verdict; whoever owns the
-packaging sentence must consume it. No story here claims a packaging requirement.
+Time budget: the static scan's own fixed ceiling is 600 seconds (BSB-31-PENDING-4) and the
+run-start preflight waits synchronously for the verdict, so a cache-miss run start can wait up to
+ten minutes; a reuse hit (BSB-31-PENDING-2) adds no scan time. The scan is a separate synchronous
+gate, not part of BSB-25's 60-second / 5 MB non-model bundle-preparation budget (NFR-001);
+NFR-001's "run preparation" wording and BSB-25 must be reconciled to say so (cross-epic follow-up).
+
+Packaging gate: BSB-31 supplies only the verdict. No FR mapped to BSB-31 assigns a packaging
+refusal, and BSB-25's and BSB-30's epics name no static-scan packaging gate; FR-055 (BSB-27)
+refuses the run on a non-pass verdict and FR-069 (BSB-30) reads it for Ready, while packaging
+refusal belongs to the verifier checks FR-071 to FR-073 under BSB-30. The epic's Definition of Done
+sentence that says a non-passing verdict also blocks packaging therefore needs its owner and
+requirement fixed in BSB-25/BSB-30 (or the sentence removed); no story here claims it. This is
+recorded as a cross-epic gap for the next review, not implemented here.
 
 ---
 
@@ -140,6 +174,16 @@ Given the run-start preflight runs as a signed-in member of test project 3, a co
 When the run-start preflight calls POST "/api/builds/7/scans/static" with {"project_id": 3, "skills_commit_sha": "4f2c9a1"}
 Then the response is HTTP 200 with {"scan_id": 11, "state": "completed", "verdict": "fail", "reused": true}, no new "scans" row exists, and the stub scanner's container-start counter remains 0.
 
+Scenario: The same bundle content at a new commit reuses the completed result
+Given the run-start preflight runs as a signed-in member of test project 3, a completed "scans" row id 11 for bundle_sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" with scanner_version "bheembhai-skillscan 0.4.2", state "completed" and verdict "pass", a new commit "8a7d3e0" packed as the same bundle_sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", and a stub scanner whose container-start counter is 0
+When the run-start preflight calls POST "/api/builds/7/scans/static" with {"project_id": 3, "skills_commit_sha": "8a7d3e0"}
+Then the response is HTTP 200 with {"scan_id": 11, "state": "completed", "verdict": "pass", "reused": true}, the "scans" table still contains exactly 1 row, that row keeps skills_commit_sha "4f2c9a1", and the stub scanner's container-start counter remains 0.
+
+Scenario: A request from a different build and project reuses the completed result
+Given a completed "scans" row id 11 for bundle_sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" with scanner_version "bheembhai-skillscan 0.4.2", state "completed" and verdict "pass", build 9 in test project 5 at head SHA "c0ffee1" packed as the same bundle_sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", a signed-in member of test project 5, and a stub scanner whose container-start counter is 0
+When the run-start preflight for test project 5 calls POST "/api/builds/9/scans/static" with {"project_id": 5, "skills_commit_sha": "c0ffee1"}
+Then the response is HTTP 200 with {"scan_id": 11, "state": "completed", "verdict": "pass", "reused": true}, no new "scans" row exists, and the stub scanner's container-start counter remains 0.
+
 ### Covered requirements (traceability)
 - FR-077
 
@@ -151,18 +195,27 @@ scanning changed content in place; any cross-project access decision about who m
 result (that is the report view's rule in BSB-31-PENDING-5).
 
 ### Notes / dependencies
-Depends on BSB-31-PENDING-1 for the scan service, the `scans` row and the synchronous route. This
-story owns the reuse key: a scan is reused only when `stage` is "static", `bundle_sha256`,
-`skill` and `scanner_version` all match the requested bundle and the existing row's state is
-"completed". A completed scan is reused whether its verdict is pass or fail, so unchanged content
-is never re-scanned until it or the scanner changes. A row with state "failed" (including a
-timeout from BSB-31-PENDING-4) is never reused.
+Depends on BSB-31-PENDING-1 for the scan service, the `scans` row and the synchronous route, and
+on BSB-31-PENDING-3 for the verdict of a newly created scan; a reused row returns the `verdict`
+already stored by BSB-31-PENDING-3 and computes nothing. This story owns the reuse key: a scan is
+reused only when `stage` is "static", `bundle_sha256`, `skill` and `scanner_version` all match the
+requested bundle and the existing row's state is "completed". The key is content-only:
+`skills_commit_sha` is recorded on the row for provenance and `build_id` is provenance, but neither
+scopes reuse, so the same bytes committed at a new SHA and the same bytes requested by another
+build or project reuse the existing row. A completed scan is reused whether its verdict is pass or
+fail, so unchanged content is never re-scanned until it or the scanner changes. A row with state
+"failed" (including a timeout from BSB-31-PENDING-4) is never reused.
 
 Because a scan row carries no `project_id`, a completed result is reusable by any project whose run
 uses the same content and scanner version; the standalone request's project-membership check runs
 before reuse lookup (BSB-31-PENDING-6). BSB-24 and BSB-25 consume the route; they do not
 implement their own cache. A scanner-version change is a new reuse key even when content is
 identical, because the result may differ and BSB-31-PENDING-7's parity claim is version-specific.
+
+This story is invoked through the same `POST /api/builds/{id}/scans/static` path as
+BSB-31-PENDING-1: BSB-24's run-start flow calls it after BSB-25 has packed the bundle at the
+requested SHA and before the agent container launches, and BSB-31-PENDING-6's standalone control
+calls the same route. This story adds no second entry point.
 
 ---
 
@@ -221,9 +274,27 @@ the scanner's rule set, severities or recommendation vocabulary; overriding a ve
 means.
 
 ### Notes / dependencies
-Depends on BSB-31-PENDING-1 for the scan record and BSB-31-PENDING-2 for when a result is computed
-or reused. This story owns the one verdict function every caller uses; no caller recomputes the
-verdict from a report. A verdict is "pass" only when the recommendation is not "DO_NOT_INSTALL",
+Depends on BSB-31-PENDING-1 for the `scans` and `scan_findings` record contract and on
+BSB-31-PENDING-2 only to know when a completed result is reused instead of computed.
+
+This story owns the one verdict function every caller uses; no caller recomputes the verdict from a
+report. The function's input is the scanner report document plus the scanned bundle's
+`.skillspector-baseline.yaml` (when present); its output is `verdict`, `verdict_reasons` and the
+`scan_findings` rows (severity, rule, file, line, accepted, acceptance_reason), which the caller
+persists alongside the report's own score, recommendation and coverage fields on the `scans` row.
+It does not set `state` for a scan with no usable report — that failed state belongs to
+BSB-31-PENDING-1 and BSB-31-PENDING-4.
+
+The function's callers are BSB-31-PENDING-1 (the scan service and HTTP route persist its output),
+BSB-31-PENDING-2 (a newly created scan; a reused row returns the stored verdict), BSB-31-PENDING-5
+(renders `verdict` and `verdict_reasons`), BSB-31-PENDING-6 (the standalone trigger) and
+BSB-31-PENDING-7 (the parity test). Dependency direction: at runtime BSB-31-PENDING-1 depends on
+this story for the function, and this story depends on BSB-31-PENDING-1 only for the record
+contract and never calls the route or the scan service; BSB-31-PENDING-2's new-scan path likewise
+calls the function. The contract is fixed here so the two stories can be built together; neither
+story may ship a second verdict implementation.
+
+A verdict is "pass" only when the recommendation is not "DO_NOT_INSTALL",
 no finding has severity "CRITICAL", and `coverage.complete` is true; those three conditions each
 add their exact reason to `verdict_reasons`, in the fixed order recommendation, critical finding,
 coverage, when more than one fails. The verdict is computed from the findings as the scanner
@@ -235,11 +306,13 @@ A scan that produces no usable report is "failed" rather than "completed" with a
 BSB-31-PENDING-1 and BSB-31-PENDING-4), so this story applies only to a completed report.
 
 BSB-30's readiness check reads `verdict` (FR-069) and BSB-27 refuses a run on a non-pass verdict
-(FR-055); neither re-implements these rules. The epic's Definition of Done also says packaging is
-blocked on a non-pass verdict, but no FR mapped to BSB-31 covers that gate and BSB-25's epic does
-not currently name the static verdict, so it is recorded as a cross-epic gap in
-BSB-31-PENDING-1's Notes rather than claimed here. The scanner's policy and baseline format are
-external prerequisites; changing either belongs to the platform's scanner, not this epic.
+(FR-055); neither re-implements these rules. BSB-31 supplies only the verdict: no FR mapped to
+BSB-31 assigns a packaging refusal, and BSB-25's and BSB-30's epics name no static-scan packaging
+gate. The epic's Definition of Done sentence that says a non-passing verdict also blocks packaging
+therefore needs its owner and requirement fixed in BSB-25/BSB-30 (or the sentence removed); it is
+recorded as a cross-epic gap in BSB-31-PENDING-1's Notes and not claimed here. The scanner's policy
+and baseline format are external prerequisites; changing either belongs to the platform's scanner,
+not this epic.
 
 ---
 
@@ -285,8 +358,18 @@ for the verdict function. This story owns the ten-minute (600-second) execution 
 enforcement around the scanner container. The limit is fixed for the static stage: no project, run
 or request field can change it. A scan that has not reached state "completed" by 600 seconds is
 killed and recorded with state "failed" and verdict "fail", so a timeout can never be reused as a
-result and can never pass a run or packaging gate. The reason string is exactly "Scan exceeded the
-ten-minute limit." so the report and downstream consumers read one value.
+result and can never pass a run or readiness check. The reason string is exactly "Scan exceeded the
+ten-minute limit." so the report and downstream consumers read one value; BSB-31-PENDING-5 renders
+it as "Scan failed: Scan exceeded the ten-minute limit.".
+
+This story is a caller of the same `POST /api/builds/{id}/scans/static` path as
+BSB-31-PENDING-1: BSB-24's run-start flow calls it after BSB-25 has packed the bundle at the
+requested SHA and before the agent container launches, and the ten-minute wait is why that call is
+synchronous. The 600-second ceiling is the static scan's own budget: the scan is a separate
+synchronous gate, not part of BSB-25's 60-second / 5 MB non-model bundle-preparation budget
+(NFR-001); the PRD's "run preparation" wording and BSB-25 must be reconciled to say so (cross-epic
+follow-up). A cache-miss run start can therefore wait up to ten minutes, while a reuse hit
+(BSB-31-PENDING-2) adds no scan time.
 
 BSB-32's LLM stage has its own ten-minute per-container limit and is out of scope here. The
 run-start preflight's own deadline is BSB-27's concern; this story only guarantees that the static
@@ -329,6 +412,16 @@ Given no "scans" row with id 99
 When the author opens GET "/scans/99"
 Then the response is HTTP 404 with {"error": "Scan 99 not found."} and no score, recommendation or finding is rendered.
 
+Scenario: A failed scan shows its failure reason instead of an in-progress state
+Given a "scans" row id 15 for build 7 with state "failed", verdict "fail", score NULL, recommendation NULL, coverage_complete NULL and failure_reason "Scan exceeded the ten-minute limit."
+When the author opens GET "/scans/15"
+Then the response is HTTP 200 and the page contains "Verdict: FAIL" and "Scan failed: Scan exceeded the ten-minute limit.", and does not contain "Scan in progress", "Static scan score:" or "Recommendation:".
+
+Scenario: A scan reused by a different build and project renders from the same URL
+Given a completed "scans" row id 11 requested by build 7 in test project 3 and reused by build 9 in test project 5 (both runs packed bundle_sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"), with state "completed", verdict "pass", score 96, recommendation "INSTALL", coverage_complete true and no "scan_findings" rows, and a signed-in skill author
+When the author opens GET "/scans/11"
+Then the response is HTTP 200 and the page contains "Verdict: PASS", "Static scan score: 96", "Recommendation: INSTALL" and "Coverage: 12 of 12 files scanned".
+
 ### Covered requirements (traceability)
 - FR-089
 - FR-154
@@ -338,28 +431,38 @@ Then the response is HTTP 404 with {"error": "Scan 99 not found."} and no score,
 Starting or running a scan (BSB-31-PENDING-1 and BSB-31-PENDING-6); computing the verdict
 (BSB-31-PENDING-3); timeout behaviour (BSB-31-PENDING-4); the LLM scan report, which model ran it
 and the combined security tab (BSB-32); the catalog reviewer's stable report view and its access
-rule (BSB-33/BSB-36); exporting the report as SARIF or another file format; filtering or sorting
-findings; editing a finding or its acceptance from the page.
+rule (unowned today — a cross-epic gap for BSB-36/BSB-33; this story supplies no second route);
+exporting the report as SARIF or another file format; filtering or sorting findings; editing a
+finding or its acceptance from the page.
 
 ### Notes / dependencies
 Depends on BSB-31-PENDING-1 for the `scans` and `scan_findings` records and on BSB-31-PENDING-3 for
-`verdict_reasons`; BSB-31-PENDING-4 supplies the failed/timeout state this page must render. This
-story owns the authoring report route `GET /scans/11` and its field mapping: `score` and
-`recommendation` are shown exactly as the scanner wrote them; each finding's `severity`, `rule`,
-`file` and `line` are shown in one row; a scan with no findings shows "No findings."; a scan that
-has not completed shows "Scan in progress" and no score; an unknown scan id is 404.
+the `verdict` and `verdict_reasons` it renders; BSB-31-PENDING-4 supplies the failed/timeout state
+this page must render. This story owns the authoring report route `GET /scans/11` and its field
+mapping: `score` and `recommendation` are shown exactly as the scanner wrote them; each finding's
+`severity`, `rule`, `file` and `line` are shown in one row; a scan with no findings shows "No
+findings."; a scan that has not completed shows "Scan in progress" and no score; a scan with state
+"failed" shows "Verdict: FAIL" and "Scan failed: <failure_reason>", never "Scan in progress" and
+never a score or recommendation; an unknown scan id is 404. The fixed failure text template is
+"Scan failed: " followed by the row's `failure_reason`, so a timeout renders "Scan failed: Scan
+exceeded the ten-minute limit." (BSB-31-PENDING-4) and a scanner that wrote no report renders
+"Scan failed: Scanner exited with code 137 before writing a report." (BSB-31-PENDING-1).
 
 Access rule: the report route is part of the authoring interface and is gated by BSB-18's signed-in
-skill-builder check only. The route is content-addressed and is not scoped to the build that first
-requested the scan, so a completed result reused by another build (BSB-31-PENDING-2) renders from the
-same URL. It does not apply the project-membership check, because the same scan
-report is evidence linked from a catalog pull request (BSB-36, FR-111) and the PRD's catalog
-reviewer does not use the authoring interface. The reviewer-facing stable report view and its
-access rule belong to BSB-33/BSB-36; this story supplies the report content and adds no
-project-membership gate to it. The report contains no credential, so no redaction is required
-beyond the BSB-23 secret rule for integration values. The HTML route and the report model are
-shared with the run page's Security tab (BSB-26/BSB-33 link the run's scan); this story owns the
-scan-only page, not the run page layout.
+skill-builder check only (a signed-in author outside the `skill-builders` group receives HTTP 403).
+The route is content-addressed and is not scoped to the build or project that first requested the
+scan, so a completed result reused by another build (BSB-31-PENDING-2) renders from the same URL.
+It does not apply the project-membership check. A catalog reviewer named in PRD section 2 does not
+use the authoring interface, so this gated URL cannot itself be the report link FR-111 asks the
+catalog pull request to carry. No epic currently owns a stable reviewer-facing scan-report view or
+its access rule: BSB-33's stable view is the run report and BSB-36 only links the scan reports.
+That view and its access rule must be added by BSB-36 (or BSB-33 if it extends its stable view),
+and its access rule must not be the authoring-interface gate, since PRD section 2 says the reviewer
+does not use that interface — or the PRD's reviewer assumption corrected. This is a cross-epic gap
+recorded for the next review; this story adds no second route. The report contains no credential, so no redaction is required beyond the
+BSB-23 secret rule for integration values. The HTML route and the report model are shared with the
+run page's Security tab (BSB-26/BSB-33 link the run's scan); this story owns the scan-only page,
+not the run page layout.
 
 ---
 
@@ -389,7 +492,7 @@ When Carol calls POST "/api/builds/7/scans/static" with {"project_id": 3, "skill
 Then the response is HTTP 403 with {"error": "You are not a member of this project."}, no "scans" row and no "scan_findings" row are created, and the stub scanner's container-start counter remains 0.
 
 Scenario: An author with no project membership has no project to scan for
-Given a signed-in skill author Dave whose local "users" id is 45 and who has no "project_members" rows, and build 7 at head SHA "4f2c9a1" with bundle_sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+Given a signed-in skill author Dave who is a current member of the "skill-builders" group, whose local "users" id is 45 and who has no "project_members" rows, and build 7 at head SHA "4f2c9a1" with bundle_sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 When Dave opens GET "/builds/7"
 Then the response is HTTP 200 and the "Security check (static only)" control is disabled with the message "No test project available.", and a direct POST "/api/builds/7/scans/static" with {"project_id": 3, "skills_commit_sha": "4f2c9a1"} returns HTTP 403 with {"error": "You are not a member of this project."} and creates no "scans" row.
 
@@ -410,11 +513,17 @@ bundle (BSB-31-PENDING-1).
 
 ### Notes / dependencies
 Depends on BSB-18 for the signed-in skill-builder author and its per-request group gate, on
-BSB-22-PENDING-1 for the test project and BSB-22-PENDING-3 for the shared project-membership check
-and its exact 403 message "You are not a member of this project.", and on BSB-25 for the packed
-bundle. This story owns the "Security check (static only)" control and the author-facing request
-contract; the `POST /api/builds/7/scans/static` route and scan service are BSB-31-PENDING-1's. The
-control carries a project selector listing only the test projects in which the signed-in author has
+BSB-21 for the build page `GET /builds/{id}`, its head SHA and its access rule, on BSB-22-PENDING-1
+for the test project and for defining the shared project-membership check, on BSB-22-PENDING-3 for
+the run-start application of that check and its exact 403 message "You are not a member of this
+project.", and on BSB-25 for the packed bundle. This story owns the "Security check (static only)"
+control and the author-facing request contract; the `POST /api/builds/7/scans/static` route and
+scan service are BSB-31-PENDING-1's, and each response's `verdict` is produced by
+BSB-31-PENDING-3's verdict function, so this story defines no verdict rule. This story adds the
+control to BSB-21's build page and does not own that page: the page, its head SHA and the
+`signed-in skill-builders group member` access rule are BSB-21's (with BSB-18's authoring gate),
+and a signed-in group member such as Dave can open `GET /builds/7`. The control carries a project
+selector listing only the test projects in which the signed-in author has
 a current `project_members` row (read from BSB-22's records); the selected `project_id` is sent with
 `skills_commit_sha`, and an author with no membership sees the control disabled with "No test
 project available." rather than a selector. The request requires `project_id` and
@@ -427,8 +536,9 @@ no credential. The full security scan (static then LLM) is BSB-32's separate ent
 profile; it calls this static stage first. The skill page's ordinary build access is BSB-18's
 authoring gate; the route's project-membership check guards the scan trigger, not the build page.
 This story owns and exercises the standalone trigger; BSB-24's run-start preflight calls the same
-route as an already-authorized project member. A successful standalone scan does not create a
-`runs` row, a run branch or a run report.
+route as an already-authorized project member, after BSB-25 has packed the bundle at the requested
+SHA and before the agent container launches. A successful standalone scan does not create a `runs`
+row, a run branch or a run report.
 
 ---
 
@@ -438,14 +548,14 @@ route as an already-authorized project member. A successful standalone scan does
 **Epic:** BSB-31 · **Release:** MVP · **Estimate:** 3 · **Labels:** FA-11, MVP
 
 ### Story
-As a **catalog reviewer**, I want **the builder's static verdict to match the platform's for the same content and pinned scanner version**, so that **the evidence recorded in the builder can be trusted when the skill reaches the platform**.
+As a **builder team member maintaining the static scan**, I want **the builder's static verdict to match the platform's for the same content and pinned scanner version**, so that **the evidence recorded in the builder is trustworthy when the catalog reviewer reads it through the catalog pull request**.
 
 ### Acceptance Criteria
 
 Scenario: The builder's verdict matches the platform's on a fixed corpus
 Given the parity fixture "tests/fixtures/scan-parity.json" records four bundles with their scanner report and platform verdict for scanner version "bheembhai-skillscan 0.4.2": {"bundle": "clean", "bundle_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "report": {"score": 96, "recommendation": "INSTALL", "coverage": {"complete": true, "files_scanned": 12, "files_total": 12}, "findings": []}, "platform_verdict": "pass"}, {"bundle": "do-not-install", "bundle_sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "report": {"score": 0, "recommendation": "DO_NOT_INSTALL", "coverage": {"complete": true, "files_scanned": 12, "files_total": 12}, "findings": [{"severity": "HIGH", "rule": "SS-210", "file": "SKILL.md", "line": 8}]}, "platform_verdict": "fail"}, {"bundle": "critical", "bundle_sha256": "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae", "report": {"score": 41, "recommendation": "INSTALL", "coverage": {"complete": true, "files_scanned": 12, "files_total": 12}, "findings": [{"severity": "CRITICAL", "rule": "SS-001", "file": "SKILL.md", "line": 3}]}, "platform_verdict": "fail"} and {"bundle": "incomplete-coverage", "bundle_sha256": "fcde2b2edba56bf408601fb721fe9b5c338d10ee429ea04fae5511b68fbf8fb9", "report": {"score": 88, "recommendation": "INSTALL", "coverage": {"complete": false, "files_scanned": 9, "files_total": 12}, "findings": []}, "platform_verdict": "fail"}, the builder is pinned to scanner package "bheembhai-skillscan 0.4.2" and image digest "sha256:9c1f0a9d8b7e6f5a", and a stub scanner returns each bundle's recorded report
 When the parity test runs the static scan service on each fixture bundle through the same scan and verdict path as POST "/api/builds/7/scans/static", called directly with the bundle fixture so no build or project is needed, and compares the resulting verdict with the fixture's platform_verdict
-Then each of the 4 builder verdicts equals its platform_verdict, the test reports "4 of 4 bundles match", and every resulting scan record carries scanner_version "bheembhai-skillscan 0.4.2" and image_digest "sha256:9c1f0a9d8b7e6f5a".
+Then each of the 4 builder verdicts equals its platform_verdict, the test reports "4 of 4 bundles match", and every resulting scan record carries scanner_version "bheembhai-skillscan 0.4.2", image_digest "sha256:9c1f0a9d8b7e6f5a" and build_id NULL.
 
 Scenario: Every scan records the exact scanner identity it used
 Given the pinned kit records scanner package "bheembhai-skillscan 0.4.2" and image digest "sha256:9c1f0a9d8b7e6f5a", and the kit names no image tag for the scanner
@@ -473,15 +583,20 @@ skills repository (external); the authoring report page (BSB-31-PENDING-5); the 
 rules (BSB-31-PENDING-3).
 
 ### Notes / dependencies
-Depends on BSB-31-PENDING-1 for the scan record and BSB-31-PENDING-3 for the verdict function, and
-on the externally supplied platform baseline and pinned scanner image recorded in the kit. This
-story owns the parity test, the fixture's consumed shape (`bundle`, `bundle_sha256`, `report`,
-`platform_verdict`), the parity assertion over the scanner-identity fields on every `scans` row
-(`scanner_version`, `image_digest`, which BSB-31-PENDING-1 writes) and the failure messages above.
-The parity test calls the same scan and verdict
-service the HTTP route calls, directly with a bundle fixture, so it needs no build or project; it
-does not own the baseline values: those come from the platform's own scan of the same bundle with
-the same pinned scanner version, and the fixture is refreshed when the platform pins a new scanner.
+Depends on BSB-31-PENDING-1 for the scan record and the direct bundle-fixture service entry point,
+on BSB-31-PENDING-3 for the verdict function, and on the externally supplied platform baseline and
+pinned scanner image recorded in the kit. This story owns the parity test, the fixture's consumed
+shape (`bundle`, `bundle_sha256`, `report`, `platform_verdict`), the parity assertion over the
+scanner-identity fields on every `scans` row (`scanner_version`, `image_digest`, which
+BSB-31-PENDING-1 writes), the `build_id NULL` assertion for build-less scans, and the failure
+messages above. The parity test calls BSB-31-PENDING-1's direct bundle-fixture entry point (the
+same entry point the HTTP route calls), passing the packed bundle fixture plus the pinned scanner
+version and image digest, so it needs no build or project; every scan it creates has `build_id`
+NULL per BSB-31-PENDING-1's record contract. The verdict comes from BSB-31-PENDING-3's function
+and is not reimplemented in the test. The test does not own the baseline values: those come from
+the platform's own scan of the same bundle with the same pinned scanner version, and the fixture is
+refreshed when the platform pins a new scanner. The catalog reviewer consumes this parity evidence
+through the catalog pull request's linked reports (FR-111), not through a builder screen.
 
 Parity is asserted only when the builder's scanner version equals the baseline's; a mismatch is a
 loud test failure, not a verdict comparison against a different scanner. The builder never
@@ -496,15 +611,15 @@ change. The LLM stage's parity and model identity are BSB-32's.
 | Requirement | Exercising story | Acceptance criteria that covers it |
 |---|---|---|
 | FR-076 | BSB-31-PENDING-1 | "Unscanned content is scanned before the run-start preflight returns a verdict"; "The scan reads the requested commit's bundle, not a newer branch head" |
-| FR-077 | BSB-31-PENDING-2 | "An unchanged bundle and scanner version reuse the completed result"; "Changed bundle content starts a new scan"; "A different scanner version starts a new scan" |
+| FR-077 | BSB-31-PENDING-2 | "An unchanged bundle and scanner version reuse the completed result"; "Changed bundle content starts a new scan"; "A different scanner version starts a new scan"; "The same bundle content at a new commit reuses the completed result"; "A request from a different build and project reuses the completed result" |
 | FR-078 | BSB-31-PENDING-3 | "A DO_NOT_INSTALL recommendation fails even with no critical finding" |
 | FR-079 | BSB-31-PENDING-3 | "Any critical finding fails even with a non-blocking recommendation" |
 | FR-080 | BSB-31-PENDING-3 | "Incomplete coverage fails even with no blocking recommendation and no critical finding" |
 | FR-081 | BSB-31-PENDING-3 | "An accepted critical finding cannot clear the block" |
 | FR-087 | BSB-31-PENDING-4 | "A scan still running at ten minutes is terminated and recorded as failed"; "The ten-minute boundary terminates a scan that has not finished" |
 | FR-088 | BSB-31-PENDING-4 | Same two scenarios: state "failed", verdict "fail", failure_reason "Scan exceeded the ten-minute limit." |
-| FR-089 | BSB-31-PENDING-5 | "A completed passing scan shows its score, recommendation and coverage" |
-| FR-091 | BSB-31-PENDING-7 | "The builder's verdict matches the platform's on a fixed corpus"; "A scanner version mismatch is reported rather than compared" |
+| FR-089 | BSB-31-PENDING-5 | "A completed passing scan shows its score, recommendation and coverage"; "A failed scan shows its failure reason instead of an in-progress state"; "A scan reused by a different build and project renders from the same URL" |
+| FR-091 | BSB-31-PENDING-7 | "The builder's verdict matches the platform's on a fixed corpus"; "Every scan records the exact scanner identity it used"; "A scanner version mismatch is reported rather than compared"; "A bundle with no platform baseline fails the parity test" |
 | FR-092 | BSB-31-PENDING-6 | "A project member starts a static-only scan and no run is created"; "A non-owner member can start the scan"; "A signed-in author who is not a project member is refused"; "An author with no project membership has no project to scan for" |
 | FR-154 | BSB-31-PENDING-5 | "A completed passing scan shows its score, recommendation and coverage" |
 | FR-155 | BSB-31-PENDING-5 | "Every finding is shown with severity, rule, file and line" |

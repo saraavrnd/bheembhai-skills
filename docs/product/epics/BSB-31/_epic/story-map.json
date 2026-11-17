@@ -4,17 +4,17 @@
   "stories": [
     {
       "story_key": "BSB-31-PENDING-1",
-      "summary": "Run a synchronous static scan of the exact packed run bundle before the run-start preflight returns, recording the scanner version and image digest, and executing the scanner container with no network access and a failed record when it writes no report",
+      "summary": "Run a synchronous static scan of the exact run bundle after it is packed and before the agent container launches, producing the verdict through BSB-31-PENDING-3's function, recording the scanner version and image digest, reusing by content, and executing the scanner container with no network access and a failed record when it writes no report",
       "requirement_ids": ["FR-076", "NFR-005"]
     },
     {
       "story_key": "BSB-31-PENDING-2",
-      "summary": "Reuse a completed static scan result only when stage, content bundle and scanner version match, scan again when content or scanner version changes, and never reuse a failed scan while reusing a completed failing result",
+      "summary": "Reuse a completed static scan result only when stage, content bundle and scanner version match, including the same bundle at a new commit and reuse from another build or project, scan again when content or scanner version changes, and never reuse a failed scan while reusing a completed failing result",
       "requirement_ids": ["FR-077"]
     },
     {
       "story_key": "BSB-31-PENDING-3",
-      "summary": "Compute one static verdict from the scanner report: pass only with a non-DO_NOT_INSTALL recommendation, no critical finding and complete coverage, recording each blocking reason and never letting an accepted finding clear a block",
+      "summary": "Own one static verdict function from the scanner report and baseline: pass only with a non-DO_NOT_INSTALL recommendation, no critical finding and complete coverage, recording each blocking reason, never letting an accepted finding clear a block, and serving PENDING-1, -2, -5, -6 and -7",
       "requirement_ids": ["FR-078", "FR-079", "FR-080", "FR-081"]
     },
     {
@@ -24,17 +24,17 @@
     },
     {
       "story_key": "BSB-31-PENDING-5",
-      "summary": "Show the static scan report with verdict, score, recommendation, coverage, every finding's severity, rule, file and line, an in-progress state, and a not-found response for an unknown scan id",
+      "summary": "Show the static scan report with verdict, score, recommendation, coverage, every finding's severity, rule, file and line, an in-progress state, a failed state with its failure reason, the same URL for a scan reused by another build or project, and a not-found response for an unknown scan id",
       "requirement_ids": ["FR-089", "FR-154", "FR-155"]
     },
     {
       "story_key": "BSB-31-PENDING-6",
-      "summary": "Let a project member start a static-only scan from the skill page without creating a run, using BSB-22's shared project-membership check, refusing non-members, and resolving no integration or credential",
+      "summary": "Let a project member start a static-only scan from BSB-21's skill page without creating a run, using BSB-22's shared project-membership check, refusing non-members, and resolving no integration or credential",
       "requirement_ids": ["FR-092"]
     },
     {
       "story_key": "BSB-31-PENDING-7",
-      "summary": "Prove the builder's static verdict equals the platform's for the same bundle and pinned scanner version across a fixed corpus, recording scanner version and image digest and failing loudly on a version mismatch or missing baseline",
+      "summary": "Prove the builder's static verdict equals the platform's for the same bundle and pinned scanner version across a fixed corpus through the direct bundle-fixture entry point with a null build_id, recording scanner version and image digest and failing loudly on a version mismatch or missing baseline",
       "requirement_ids": ["FR-091"]
     }
   ]
