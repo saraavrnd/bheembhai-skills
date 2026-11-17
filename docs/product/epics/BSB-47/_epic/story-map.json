@@ -1,0 +1,41 @@
+{
+  "epic_key": "BSB-47",
+  "project_key": "BSB",
+  "stories": [
+    {
+      "story_key": "BSB-47-PENDING-1",
+      "summary": "Queue the model security review only after the static scan passes",
+      "requirement_ids": ["FR-082"]
+    },
+    {
+      "story_key": "BSB-47-PENDING-2",
+      "summary": "Keep the model security review from blocking a run",
+      "requirement_ids": ["FR-085"]
+    },
+    {
+      "story_key": "BSB-47-PENDING-3",
+      "summary": "Give the model security review no credential but the model key",
+      "requirement_ids": ["FR-083"]
+    },
+    {
+      "story_key": "BSB-47-PENDING-4",
+      "summary": "Let the model security review reach only the model endpoint",
+      "requirement_ids": ["FR-084"]
+    },
+    {
+      "story_key": "BSB-47-PENDING-5",
+      "summary": "Show the model review's findings and the model that ran it",
+      "requirement_ids": ["FR-086", "FR-090", "FR-156"]
+    },
+    {
+      "story_key": "BSB-47-PENDING-6",
+      "summary": "Record a model review that cannot run as unavailable",
+      "requirement_ids": ["FR-139"]
+    },
+    {
+      "story_key": "BSB-47-PENDING-7",
+      "summary": "Start a full security scan from the skill page without a run",
+      "requirement_ids": ["FR-093", "FR-163"]
+    }
+  ]
+}
