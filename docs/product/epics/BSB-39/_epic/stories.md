@@ -72,7 +72,7 @@ Then it has no column named `password`, `password_hash` or `credential`, and the
 Account creation, password reset and multi-factor authentication (owned by the platform identity provider); group membership administration; sign-out.
 
 ### Notes / dependencies
-The platform identity provider (Cognito user pool, separate app client) is an external prerequisite supplied outside this product. The local user record created for the subject is BSB-39-PENDING-5. A non-member's sign-in attempt is rejected by BSB-39-PENDING-3.
+The platform identity provider (Cognito user pool, separate app client) is an external prerequisite supplied outside this product. The local user record created for the subject is BSB-39-PENDING-5. A non-member's sign-in attempt is rejected by BSB-39-PENDING-3. BSB-39-PENDING-2 and BSB-39-PENDING-3 depend on the session this story issues.
 
 ---
 
@@ -113,7 +113,7 @@ Then `GET /builds` and `GET /builds/new` each respond with HTTP 302 to the ident
 Deciding whether a signed-in user belongs to the skill-builders group (BSB-39-PENDING-3); sign-in itself (BSB-39-PENDING-1).
 
 ### Notes / dependencies
-The guard must fail closed on every page and API route, including routes added by later epics. BSB-39-PENDING-1 provides the authenticated session this story checks for.
+The guard must fail closed on every page and API route, including routes added by later epics. BSB-39-PENDING-1 provides the authenticated session this story checks for. The route list in "Guard covers every authoring route" is the canonical guarded-route set for both the authentication guard (this story) and the membership guard (BSB-39-PENDING-3), so the two stories cannot drift.
 
 ---
 
@@ -146,6 +146,11 @@ Given a signed-in user whose token contains no `cognito:groups` claim
 When the user requests `GET /builds`
 Then the builder responds with HTTP 403 and body exactly `{"error":"membership_required"}`, and renders no build data
 
+Scenario: Membership guard covers every authoring route
+Given a signed-in user whose token contains no `cognito:groups` claim
+When the user requests `GET /builds`, `GET /builds/new`, `GET /api/builds`, `POST /api/builds` and `GET /api/me`
+Then `GET /builds`, `GET /builds/new`, `GET /api/builds`, `POST /api/builds` and `GET /api/me` each respond with HTTP 403 and body exactly `{"error":"membership_required"}`, and none of the responses returns build data
+
 ### Covered requirements
 - FR-003
 - FR-138
@@ -155,7 +160,7 @@ Then the builder responds with HTTP 403 and body exactly `{"error":"membership_r
 The one-hour revocation window for a removed member (BSB-39-PENDING-4); administering users, groups or roles; invitations.
 
 ### Notes / dependencies
-The membership claim is issued by the platform identity provider and managed by the platform administrator outside this product. This story evaluates the claim at sign-in and on a request; BSB-39-PENDING-4 owns the continuous-recheck and removal deadline.
+The membership claim is issued by the platform identity provider and managed by the platform administrator outside this product. This story evaluates the claim at sign-in and on a request; BSB-39-PENDING-4 owns the continuous-recheck and removal deadline. Depends on BSB-39-PENDING-1 for the sign-in flow its non-member scenario exercises. BSB-39-PENDING-5 depends on this story's member gate. The route list in "Membership guard covers every authoring route" is the same canonical guarded-route set as BSB-39-PENDING-2 and includes routes added by later epics.
 
 ---
 
@@ -193,7 +198,7 @@ Then the builder responds with HTTP 503 and body exactly `{"error":"membership_u
 - FR-141
 
 ### Out of scope
-Terminating a run that is already executing when the author is removed (owned by the run guardrail epic); group membership administration.
+Terminating a run that is already executing when the author is removed (owned by BSB-49 — Run guardrails & re-runs); group membership administration.
 
 ### Notes / dependencies
 Depends on BSB-39-PENDING-3 for the membership-claim check. The one-hour limit is the maximum age of any cached membership decision; an uncached check is always allowed to be fresher. Behaviour for runs already in flight is explicitly outside this story.
