@@ -1,0 +1,12 @@
+# For small or well-understood ideas (SK-003). No gate on the brief: prd-write adopts each open
+# question's proposed default and records it in the PRD's §8. The reviewer's questions are also
+# defaulted on revise, and listed in §9 for a person to confirm. A person still signs off the
+# final PRD, and sees any Drifted verdict, before the run ends.
+policy: sdlc-policy-planning-prd-fast
+version: 1
+applies_to: sdlc-wf-planning-prd
+gates:
+  sdlc-plan-prd-review:
+    review: required
+    role: any
+    on_status: [completed, escalation_required]

@@ -1,0 +1,20 @@
+# Default governance for sdlc-wf-planning-prd (ADR-035, SK-003).
+# - idea-frame: a person answers the brief's open questions (the answers travel to prd-write) and
+#   confirms the framing before the PRD is written; a "Needs framing" brief ends the run only
+#   after a person has seen it.
+# - prd-review: a person answers the review's open questions when it requests changes (the answers
+#   travel to prd-write's revise pass), signs off a clean PRD, and decides on a Drifted one.
+# prd-write itself is not gated: the review straight after it is the check, and its own
+# changes_requested loop is not gated (same as the other planning policies).
+policy: sdlc-policy-planning-prd-governed
+version: 1
+applies_to: sdlc-wf-planning-prd
+gates:
+  sdlc-plan-idea-frame:
+    review: required
+    role: any
+    on_status: [completed, escalation_required]
+  sdlc-plan-prd-review:
+    review: required
+    role: lead
+    on_status: [completed, changes_requested, escalation_required]

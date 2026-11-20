@@ -1,0 +1,49 @@
+# BheemBhai Planning — Idea to PRD (ADR-035, SK-003). From a raw product idea to a reviewed PRD
+# that sdlc-plan-epics-create can decompose, with each skill doing one job:
+#   idea-frame (author: idea-brief.md with shape-changing questions, each with a default)
+#   -> prd-write (author: PRD.md from the brief and the gate's answers)
+#   -> prd-review (reviewer, reviewer model; changes_requested -> prd-write in revise mode)
+# Authors run on the run's primary model; prd-review (and every judge) on the reviewer model.
+# prd-review reviews prd-write: its changes_requested edge says so (ADR-035 §3).
+# Nothing is published: the run ends at a reviewed PRD. sdlc-wf-planning takes it from there
+# (epics -> Jira -> per-epic stories).
+# Routing convention: changes_requested re-runs the same step (visit-capped by BB_MAX_STEP_VISITS),
+# except prd-review, whose changes_requested means "revise the PRD".
+workflow: sdlc-wf-planning-prd
+version: 1
+category: Software Delivery
+description: Turn a raw product idea into a framed brief and a reviewed, decomposable PRD — author and reviewer on different model families.
+start: sdlc-plan-idea-frame
+
+steps:
+  - id: sdlc-plan-idea-frame
+    skill: sdlc-plan-idea-frame
+    model: medium
+    label: Frame the idea
+    deadline: 600
+    "on":
+      completed: sdlc-plan-prd-write
+      changes_requested: sdlc-plan-idea-frame
+      # Too thin or self-contradictory to frame: a person re-states the idea and starts again.
+      escalation_required: DONE
+
+  - id: sdlc-plan-prd-write
+    skill: sdlc-plan-prd-write
+    model: high
+    label: Write the PRD
+    deadline: 1200
+    "on":
+      completed: sdlc-plan-prd-review
+      changes_requested: sdlc-plan-prd-write
+      escalation_required: DONE
+
+  - id: sdlc-plan-prd-review
+    skill: sdlc-plan-prd-review
+    model: high
+    label: Review the PRD
+    deadline: 900
+    "on":
+      completed: DONE
+      changes_requested: sdlc-plan-prd-write      # revise mode applies the report
+      # Idea fidelity is Drifted: a person re-frames the idea or accepts the change.
+      escalation_required: DONE

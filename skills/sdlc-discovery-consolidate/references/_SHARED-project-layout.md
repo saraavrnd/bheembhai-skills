@@ -32,6 +32,9 @@ when the repo has no `AGENTS.md`. When both exist, `AGENTS.md` wins.
 | Design history (proposals) | `docs/design-history/` |
 | Design changelog | `docs/CHANGELOG-design.md` |
 | PRD | `docs/product/PRD.md` |
+| Idea brief | `docs/product/idea-brief.md` |
+| PRD review log | `docs/product/prd-review.md` |
+| PRD revisions log | `docs/product/prd-revisions.md` |
 | Epics | `docs/product/epics.md` |
 | Epic map | `docs/product/epic-map.json` |
 | Per-epic folder | `docs/product/epics/<EPIC_KEY>/` |

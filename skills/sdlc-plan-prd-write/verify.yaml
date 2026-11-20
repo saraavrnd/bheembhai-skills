@@ -4,6 +4,10 @@ summary: PRD.md exists, follows the template, and every requirement is uniquely 
 verdicts_used: [changes_requested, escalation_required]
 
 facts:
+  revise_mode:
+    kind: context
+    key: upstream_handoff.from_step
+    description: Set when sdlc-plan-prd-review handed the run back with changes_requested (revise mode).
   fr_ids:
     kind: regex
     from: prd
@@ -45,6 +49,13 @@ checks:
       ordered: true
     on_fail: changes_requested
     reason_code: structure
+  - id: revisions_logged
+    description: Revise mode records which review it applied and how each finding was handled.
+    when: "facts.revise_mode == 'sdlc-plan-prd-review'"
+    run: builtin:file_exists
+    args: {path: "docs/product/prd-revisions.md"}
+    on_fail: changes_requested
+    reason_code: traceability_gap
   - id: no_template_residue
     run: builtin:md_no_placeholders
     args: {artifact: prd}

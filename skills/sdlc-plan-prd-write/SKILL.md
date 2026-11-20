@@ -44,13 +44,29 @@ with acceptance criteria. A pretty prose PRD that can't be decomposed is a failu
 > This skill is product-agnostic. The product could be a K-12 tutor, a payments API, or a
 > warehouse app. Read the input, ask only what's essential, and produce the PRD.
 
+## Modes
+- **Create** (default): no review report has been handed to this run. Steps 1–5.
+- **Revise**: the run hands you back from `sdlc-plan-prd-review` with `changes_requested` (the
+  hand-off names the report), or the user asks to "apply the PRD review". Step R.
+
 ## Input it expects
 Any of: a one-line idea, a page of concept notes, a domain whitepaper, a transcript, or a
 mix. The input may be incomplete — that is normal.
 
+Under `sdlc-wf-planning-prd`, also:
+- `idea-brief.md` from `sdlc-plan-idea-frame` (current layout: `docs/product/idea-brief.md`) and
+  the answers a person gave to its open questions at the gate, in the run hand-off. When the
+  brief exists it is your starting point; the raw input is still the yardstick for fidelity.
+- Revise mode only: `prd-review.md` from `sdlc-plan-prd-review` and the gate answers to its open
+  questions.
+
 ## Output it produces
 One file: `PRD.md`, following `templates/PRD.md.tmpl`. It is self-contained and ready for
 `sdlc-plan-epics-create`.
+
+Revise mode also writes `prd-revisions.md` next to the PRD (current layout:
+`docs/product/prd-revisions.md`): one entry per pass, naming the report applied, each finding →
+what changed, and each question → the answer given or the default adopted.
 
 ## Procedure
 1. **Read the input fully.** Extract the problem, the users, and the core value before
@@ -59,6 +75,11 @@ One file: `PRD.md`, following `templates/PRD.md.tmpl`. It is self-contained and 
    few questions, and only for things that would change the PRD's shape (target users,
    must-have vs later, any hard constraints like compliance or platform). If the input is
    rich enough, proceed and state your assumptions inline instead of asking.
+   **When an idea brief exists, do not ask again:** the brief's questions are the questions.
+   For each `Q-n`, use the answer given at the gate; if none was given, adopt its proposed
+   default. Record both in §8 as `Q-n: <answer> (answered at the gate)` or
+   `Q-n: <default> (default adopted)`, and carry each brief `A-n` assumption into §8 as well.
+   Keep the brief's target users, constraints and non-goals unless an answer changed them.
 3. **Draft the PRD** from the template. Rules that make it decomposable:
    - Every functional requirement gets a stable ID: `FR-001`, `FR-002`, …
    - Non-functional requirements get `NFR-001`, … (performance, security, compliance,
@@ -77,6 +98,19 @@ One file: `PRD.md`, following `templates/PRD.md.tmpl`. It is self-contained and 
    `sdlc-arch-repo-scaffold` will place it under `docs/product/`. Tell the user
    it's ready to feed into `sdlc-plan-epics-create`.
 
+### Step R — Revise from a PRD review
+1. Read `prd-review.md`'s **Proposed changes** and **Open questions**, and the gate answers.
+2. Apply each proposed change to `PRD.md`. For each `RQ-n`, use the gate answer; if none was
+   given (a policy with no gate on the review), adopt the proposed default and record it in §8
+   as `RQ-n: <default> (default adopted)` and in §9 as still open for a person to confirm.
+3. Splitting a requirement keeps the original id on the first part and gives the new parts the
+   next free ids at the end of the table, so ids already cited elsewhere stay stable. Never
+   renumber.
+4. Do not change requirements the report does not name, and do not add findings of your own:
+   note anything new you spot in `prd-revisions.md` for the next review pass.
+5. Re-run the self-check (Step 4), append the `prd-revisions.md` entry, and hand back: the
+   reviewer runs again on the revised PRD.
+
 ## What makes a good requirement (the core rule)
 A requirement must be **atomic and testable**. Compare:
 
@@ -90,7 +124,8 @@ If you can't write a one-sentence acceptance check for a requirement, it isn't a
 
 ## Handoff
 End by telling the user: the PRD is at `<path>`, it contains N feature areas and M
-requirements, and the next step is `sdlc-plan-epics-create` to turn feature areas into Jira epics.
+requirements, and the next step is `sdlc-plan-epics-create` to turn feature areas into Jira epics
+(under `sdlc-wf-planning-prd`, `sdlc-plan-prd-review` reviews it first).
 
 ## Outcomes
 
@@ -100,7 +135,7 @@ calls code can't make: each line gives a situation and the word it gets. What ea
 is injected at run time.
 
 - **escalation_required**: The idea is too thin or self-contradictory to write a PRD without inventing the product's core.
-- **completed**: Ordinary gaps in the idea. State them as explicit assumptions, never as given.
+- **completed**: Ordinary gaps in the idea. State them as explicit assumptions, never as given. In revise mode, an unanswered review question is not a reason to stop: adopt its proposed default and record it.
 
 ## Reference files
 - `templates/PRD.md.tmpl` — the structure to fill in.
