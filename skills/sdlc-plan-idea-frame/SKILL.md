@@ -5,7 +5,7 @@ description: >
   Frame a raw product idea before anyone writes requirements: restate the idea as given, name the
   problem, the users and the value hypothesis, separate what was stated from what is inferred,
   and list the questions that would change the PRD's shape, each with a proposed default answer.
-  Writes one file, `idea-brief.md`. Use this as the FIRST step of `sdlc-wf-planning-prd` (idea to
+  Writes one file, the idea brief. Use this as the FIRST step of `sdlc-wf-planning-prd` (idea to
   PRD), or whenever someone says "here's an idea", "help me shape this concept", "what do we need
   to know before writing a PRD", or pastes rough notes that are not yet ready for requirements.
   It writes no requirements: `sdlc-plan-prd-write` turns the brief, plus the answers a person gives
@@ -13,7 +13,7 @@ description: >
 compatibility: >
   Tool-agnostic (Claude Code or Codex). No external tools required. Reads the run's input (the
   idea text, notes, transcript or whitepaper) and, when the repo already has them, the PRD and
-  AGENTS.md for context. Writes only `idea-brief.md`; no Jira writes.
+  AGENTS.md for context. Writes only the idea brief; no Jira writes.
 ---
 
 # sdlc-plan-idea-frame — Shape an Idea into a Brief
@@ -105,5 +105,5 @@ is injected at run time.
 - `templates/idea-brief.md.tmpl` — the structure to fill in.
 - `references/template-guide.md` — section-by-section guidance.
 - `references/question-guide.md` — what makes a question Blocking, with examples.
-- `examples/idea-brief.md` — a worked brief for the Learn Portal idea that `sdlc-plan-prd-write`'s
+- `examples/learn-portal-brief.md` — a worked brief for the Learn Portal idea that `sdlc-plan-prd-write`'s
   example PRD was written from.
