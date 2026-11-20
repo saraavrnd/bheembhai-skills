@@ -85,8 +85,8 @@ a model from a different family, so content is never reviewed by the family that
 
 | Role | Does | Writes | Skills |
 |------|------|--------|--------|
-| `author` | creates, updates or deletes content | content in its own scope | prd-write, epics-create, stories-write, epic-sequence, arch-design, arch-ui-conventions, arch-repo-scaffold, story-design, tests-write, code-implement, docs-sync, fix-bug-triage, fix-bug-reproduce, fix-rootcause-analyze, all 16 discovery skills, adhoc-session |
-| `reviewer` | judges another step's output | its own report only | code-review, tests-verify, epic-review, story-review |
+| `author` | creates, updates or deletes content | content in its own scope | idea-frame, prd-write, epics-create, stories-write, epic-sequence, arch-design, arch-ui-conventions, arch-repo-scaffold, story-design, tests-write, code-implement, docs-sync, fix-bug-triage, fix-bug-reproduce, fix-rootcause-analyze, all 16 discovery skills, adhoc-session |
+| `reviewer` | judges another step's output | its own report only | prd-review, code-review, tests-verify, epic-review, story-review |
 | `integration` | carries out an approved decision in Jira / the code host | a short record, tracker keys | story-start, impact-flag, pr-open, tracker-sync |
 
 A reviewer reviews the step its `changes_requested` / `BLOCK` edge routes to; a workflow names any
@@ -95,7 +95,9 @@ other independence pair with `independent_of` (tests-write vs code-implement).
 ### Built now
 | Skill | In | Out |
 |-------|----|----|
-| `sdlc-plan-prd-write` | idea / domain notes / whitepaper | `PRD.md` — numbered, atomic, testable requirements grouped into feature areas |
+| `sdlc-plan-idea-frame` | a raw idea / notes / transcript | `idea-brief.md` — problem, users, value hypothesis, stated vs inferred assumptions, shape-changing questions each with a proposed default; no requirements |
+| `sdlc-plan-prd-write` | idea / domain notes / whitepaper; under `sdlc-wf-planning-prd`, the brief + gate answers; or a PRD review (revise mode) | `PRD.md` — numbered, atomic, testable requirements grouped into feature areas (+ `prd-revisions.md` in revise mode) |
+| `sdlc-plan-prd-review` | `PRD.md` + `idea-brief.md` + the original idea | **report only**: `prd-review.md` with idea fidelity, brief coverage, findings, questions with defaults and proposed changes; `sdlc-plan-prd-write` (revise) applies them |
 | `sdlc-plan-epics-create` | `PRD.md` | `epics.md` (opening with the `bheembhai:foreach` block the planning fan-out reads) + `epic-map.json` traceability (draft keys; `sdlc-tracker-sync` publishes) |
 | `sdlc-plan-stories-write` | an epic + `epic-map.json`; or a review report (revise mode) | `stories.md` with Gherkin acceptance criteria + `story-map.json` (draft keys; `sdlc-tracker-sync` publishes) |
 | `sdlc-arch-design` | PRD + epics (create); escalated story (amend) | **approved** architecture, ADRs, data model, API contracts, tech stack, testing strategy. **Amend mode**: updates the design + adds an ADR when a story needs an architecture change |
@@ -192,6 +194,35 @@ prerequisites aren't merged. Flow:
 — the `sdlc-wf-planning` / `sdlc-wf-planning-epic` workflows run exactly this. Running
 `sdlc-plan-epic-review` first means `sdlc-plan-epic-sequence` sorts a story set whose cross-story contradictions and
 missing dependency notes are already resolved, rather than baking them into the dependency graph.
+
+### From an idea to a reviewed PRD: `sdlc-wf-planning-prd`
+Start here when all you have is an idea. The run ends at a reviewed PRD and publishes nothing
+(SK-003):
+
+```
+idea (run input)
+   │
+   ▼
+sdlc-plan-idea-frame ──► idea-brief.md      problem, users, assumptions, Q-1..Q-n with defaults
+   │ completed                              (governed: a person answers at the gate)
+   ▼
+sdlc-plan-prd-write ──► PRD.md              from the brief + answers (defaults where unanswered)
+   │ completed           ▲
+   ▼                     │ changes_requested (revise mode, + prd-revisions.md)
+sdlc-plan-prd-review ────┘   prd-review.md  reviewer model: fidelity, brief coverage, findings
+   │ completed
+   ▼
+DONE ──► sdlc-wf-planning (epics → Jira → stories per epic)
+```
+
+Why a separate framing step: an unattended run cannot stop to ask, so `sdlc-plan-prd-write`'s
+"ask only blocking questions" used to mean inventing answers. The brief puts those questions in
+front of a person at a gate, each with a default so the fast policy never stalls. Why a PRD
+reviewer: a PRD error is inherited by every epic, story and test, and until now nothing reviewed
+the PRD on a different model family before it fanned out. Policies:
+`sdlc-policy-planning-prd-governed` (a person answers the brief's questions, answers the review's
+questions and signs off the PRD) and `sdlc-policy-planning-prd-fast` (defaults adopted; a person
+only signs off the reviewed PRD).
 
 ### Fanning the planning run out per epic: `sdlc-wf-planning`
 `sdlc-wf-planning` runs `sdlc-plan-prd-write` → `sdlc-plan-epics-create` → `sdlc-tracker-sync`, then a

@@ -1,0 +1,140 @@
+version: 1
+skill: sdlc-plan-prd-review
+summary: >
+  Review only (ADR-035): the report states idea fidelity, maps every brief item to what carries
+  it, and records each finding with severity, evidence, question and proposed change; every
+  requirement it cites exists in the PRD; nothing but the report changes and nothing goes to
+  Jira; Blocking findings route to prd-write (revise); a Drifted PRD escalates.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+# Brief and report paths are literal until the platform binds {layout.idea_brief} and
+# {layout.prd_review} (SK-003 §Follow-ups); they match the default Project Layout rows.
+facts:
+  prd_req_ids:
+    kind: regex
+    from: prd
+    pattern: '(?m)^\|\s*(N?FR-\d{3})\s*\|'
+  cited_req_ids:
+    kind: regex
+    from: log
+    section: Findings
+    pattern: '\b(N?FR-\d{3})\b'
+  blocking_findings:
+    kind: regex
+    from: log
+    section: Findings
+    pattern: '(?im)^\s*-\s*\**Severity:?\**\s*:?\s*Blocking\b'
+  fidelity:
+    kind: regex
+    from: log
+    section: "Idea fidelity"
+    pattern: '(?im)^\s*-\s*\**Verdict:?\**\s*:?\s*(Faithful|Drifted)\b'
+  drifted:
+    kind: regex
+    from: log
+    section: "Idea fidelity"
+    pattern: '(?im)^\s*-\s*\**Verdict:?\**\s*:?\s*(Drifted)\b'
+
+preconditions:
+  - id: prd_present
+    run: builtin:file_exists
+    args: {path: "{layout.prd}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: brief_present
+    run: builtin:file_exists
+    args: {path: "docs/product/idea-brief.md"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: log
+    path: "docs/product/prd-review.md"
+  - id: prd
+    path: "{layout.prd}"
+    must_change: false
+    description: Read as judge input only; a reviewer never changes it.
+  - id: brief
+    path: "docs/product/idea-brief.md"
+    must_change: false
+    description: Read as judge input only.
+
+checks:
+  - id: log_sections
+    run: builtin:md_sections
+    args:
+      artifact: log
+      required: ["Context loaded", "Idea fidelity", "Brief coverage", "Findings",
+                 "Open questions", "Proposed changes", "Earlier findings"]
+      match: contains
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: log}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: fidelity_stated
+    description: Exactly one Idea fidelity verdict, Faithful or Drifted.
+    run: builtin:count_range
+    args: {fact: facts.fidelity, min: 1, max: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: cites_real_requirements
+    description: Every FR/NFR id a finding cites exists in the PRD.
+    run: builtin:set_relation
+    args: {left: facts.cited_req_ids, right: facts.prd_req_ids, relation: subset}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+  - id: blocking_routes_to_revise
+    description: Blocking findings mean prd-write (revise) must apply them before epics are planned.
+    when: "self_verdict == 'completed'"
+    run: builtin:count_range
+    args: {fact: facts.blocking_findings, max: 0}
+    on_fail: changes_requested
+    reason_code: report_inconsistent
+  - id: escalation_reported
+    when: "facts.drifted"
+    run: builtin:self_verdict_consistent
+    args: {fact: facts.drifted, map: {"*": escalation_required}}
+    on_fail: escalation_required
+    reason_code: wrong_assumption
+  - id: no_tracker_writes
+    description: Read-only reviewer — Jira writes belong to sdlc-tracker-sync.
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)(create|edit|update|transition|delete).*(issue|jira)|createJiraIssue|editJiraIssue|transitionJiraIssue'}
+    on_fail: changes_requested
+    reason_code: policy
+  - id: report_only
+    description: Reviewer writes only its own report (ADR-035).
+    run: builtin:diff_paths
+    args: {allowed: ["docs/product/prd-review.md"]}
+    on_fail: changes_requested
+    reason_code: scope
+
+judge:
+  tier: high
+  vendor: prefer_different
+  inputs: [log, prd, brief, context.query]
+  criteria:
+    - id: findings_are_real
+      question: "Is every Blocking finding a problem that would make sdlc-plan-epics-create produce a wrong or untestable epic, rather than a wording or style preference?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: grounded_evidence
+      question: "Does every finding quote the requirement, brief line or gate answer that shows the problem?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: brief_coverage_honest
+      question: "Does the Brief coverage table list every target user, constraint and question from the brief, and is each 'carried by' entry actually true of the PRD?"
+      on_fail: changes_requested
+      reason_code: coverage_gap
+    - id: what_not_how
+      question: "Do the proposed changes stay at the level of WHAT the product must do, without choosing technologies or designs?"
+      on_fail: changes_requested
+      reason_code: scope
+      min_confidence: 0.6
+    - id: fidelity_judged_right
+      question: "Is the Idea fidelity verdict right: Drifted only if the PRD's primary users, core problem or MVP no longer match the idea and brief, and Faithful otherwise?"
+      on_fail: changes_requested
+      reason_code: report_inconsistent

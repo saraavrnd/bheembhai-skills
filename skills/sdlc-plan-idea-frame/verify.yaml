@@ -1,0 +1,147 @@
+version: 1
+skill: sdlc-plan-idea-frame
+summary: >
+  idea-brief.md exists and follows the template; every assumption says whether it was stated or
+  inferred; every open question is Blocking or Non-blocking and carries a proposed default; the
+  readiness line agrees with the verdict; nothing but the brief changes and nothing goes to Jira.
+verdicts_used: [changes_requested, escalation_required]
+
+# Paths are literal until the platform binds {layout.idea_brief} (SK-003 §Follow-ups); they match
+# the default Project Layout row in _SHARED-project-layout.md.
+facts:
+  question_ids:
+    kind: regex
+    from: brief
+    section: "8. Open questions"
+    pattern: '(?m)^\|\s*(Q-\d+)\s*\|'
+  questions_complete:
+    kind: regex
+    from: brief
+    section: "8. Open questions"
+    pattern: '(?m)^\|\s*(Q-\d+)\s*\|\s*(?:Blocking|Non-blocking)\s*\|[^|\n]*\S[^|\n]*\|[^|\n]*\S[^|\n]*\|'
+  assumption_ids:
+    kind: regex
+    from: brief
+    section: "5. Assumptions"
+    pattern: '(?m)^\|\s*(A-\d+)\s*\|'
+  assumptions_tagged:
+    kind: regex
+    from: brief
+    section: "5. Assumptions"
+    pattern: '(?m)^\|\s*(A-\d+)\s*\|[^|\n]*\S[^|\n]*\|\s*(?:Stated|Inferred)\s*\|'
+  readiness:
+    kind: regex
+    from: brief
+    section: "9. Readiness"
+    pattern: '(?m)^\s*(Ready for PRD|Needs framing)\b'
+  needs_framing:
+    kind: regex
+    from: brief
+    section: "9. Readiness"
+    pattern: '(?m)^\s*(Needs framing)\b'
+
+artifacts:
+  - id: brief
+    path: "docs/product/idea-brief.md"
+
+checks:
+  - id: template_sections
+    run: builtin:md_sections
+    args:
+      artifact: brief
+      required: ["1. Idea as given", "2. Problem", "3. Target users", "4. Value hypothesis",
+                 "5. Assumptions", "6. Constraints", "7. Non-goals", "8. Open questions",
+                 "9. Readiness"]
+      ordered: true
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: brief}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: readiness_stated
+    description: Exactly one readiness line, Ready for PRD or Needs framing.
+    run: builtin:count_range
+    args: {fact: facts.readiness, min: 1, max: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: question_ids_unique
+    run: builtin:unique_values
+    args: {fact: facts.question_ids}
+    on_fail: changes_requested
+    reason_code: duplicate
+  - id: every_question_typed_and_defaulted
+    description: Each Q-n row is Blocking or Non-blocking and has a non-empty question and proposed default.
+    run: builtin:set_relation
+    args: {left: facts.question_ids, right: facts.questions_complete, relation: equal}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: questions_capped
+    description: More than about seven questions means the idea needs framing, not a longer list.
+    run: builtin:count_range
+    args: {fact: facts.question_ids, max: 10}
+    on_fail: changes_requested
+    reason_code: quality
+  - id: assumption_ids_unique
+    run: builtin:unique_values
+    args: {fact: facts.assumption_ids}
+    on_fail: changes_requested
+    reason_code: duplicate
+  - id: every_assumption_has_basis
+    description: Each A-n row says Stated or Inferred.
+    run: builtin:set_relation
+    args: {left: facts.assumption_ids, right: facts.assumptions_tagged, relation: equal}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+  - id: no_requirements_yet
+    description: Requirements belong to sdlc-plan-prd-write; the brief carries none.
+    run: builtin:regex_absent
+    args: {artifact: brief, pattern: '\b(?:N?FR-\d{3}|FA-\d+)\b'}
+    on_fail: changes_requested
+    reason_code: scope
+  - id: escalation_reported
+    when: "facts.needs_framing"
+    run: builtin:self_verdict_consistent
+    args: {fact: facts.needs_framing, map: {"*": escalation_required}}
+    on_fail: escalation_required
+    reason_code: missing_input
+  - id: no_tracker_writes
+    description: Authoring only — Jira writes belong to sdlc-tracker-sync (ADR-035).
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)(create|edit|update|transition|delete).*(issue|jira)|createJiraIssue|editJiraIssue|transitionJiraIssue'}
+    on_fail: changes_requested
+    reason_code: policy
+  - id: brief_only
+    run: builtin:diff_paths
+    args: {allowed: ["docs/product/idea-brief.md"]}
+    on_fail: changes_requested
+    reason_code: scope
+
+judge:
+  tier: medium
+  vendor: prefer_different
+  inputs: [brief, context.query, cited_sources]
+  criteria:
+    - id: faithful_restatement
+      question: "Does 'Idea as given' restate the input without adding capabilities, users or constraints the input does not contain?"
+      on_fail: changes_requested
+      reason_code: wrong_assumption
+    - id: inferences_marked
+      question: "Is every claim in Problem, Target users, Value hypothesis and Constraints either supported by the input or listed as an Inferred assumption?"
+      on_fail: changes_requested
+      reason_code: wrong_assumption
+    - id: problem_not_solution
+      question: "Does the Problem section name the user and the pain without describing the solution or its features?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: blocking_means_shape
+      question: "Would every question marked Blocking, if answered differently, change the PRD's users, feature areas, MVP boundary, hard constraints or core lifecycle — and is no such question marked Non-blocking?"
+      on_fail: changes_requested
+      reason_code: quality
+      min_confidence: 0.6
+    - id: defaults_defensible
+      question: "Is each proposed default a single, concrete decision that keeps the MVP small while still testing the value hypothesis?"
+      on_fail: changes_requested
+      reason_code: quality
+      min_confidence: 0.6
