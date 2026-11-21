@@ -3,7 +3,7 @@
 #   answers travel to stories-write's revise pass), and confirms a clean review.
 # - epic-sequence: approving the order is what lets tracker-sync set the Jira "blocks" links.
 policy: sdlc-policy-planning-epic-governed
-version: 1
+version: 2
 applies_to: sdlc-wf-planning-epic
 gates:
   sdlc-plan-epic-review:
