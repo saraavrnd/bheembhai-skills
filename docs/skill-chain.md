@@ -85,8 +85,8 @@ a model from a different family, so content is never reviewed by the family that
 
 | Role | Does | Writes | Skills |
 |------|------|--------|--------|
-| `author` | creates, updates or deletes content | content in its own scope | idea-frame, prd-write, epics-create, stories-write, epic-sequence, arch-design, arch-ui-conventions, arch-repo-scaffold, story-design, tests-write, code-implement, docs-sync, fix-bug-triage, fix-bug-reproduce, fix-rootcause-analyze, all 16 discovery skills, adhoc-session |
-| `reviewer` | judges another step's output | its own report only | prd-review, code-review, tests-verify, epic-review, story-review |
+| `author` | creates, updates or deletes content | content in its own scope | idea-frame, prd-write, epics-create, epics-order, stories-write, epic-sequence, arch-design, arch-ui-conventions, arch-repo-scaffold, story-design, tests-write, code-implement, docs-sync, fix-bug-triage, fix-bug-reproduce, fix-rootcause-analyze, all 16 discovery skills, adhoc-session |
+| `reviewer` | judges another step's output | its own report only | prd-review, epics-review, code-review, tests-verify, epic-review, story-review |
 | `integration` | carries out an approved decision in Jira / the code host | a short record, tracker keys | story-start, impact-flag, pr-open, tracker-sync |
 
 A reviewer reviews the step its `changes_requested` / `BLOCK` edge routes to; a workflow names any
@@ -98,7 +98,9 @@ other independence pair with `independent_of` (tests-write vs code-implement).
 | `sdlc-plan-idea-frame` | a raw idea / notes / transcript | `idea-brief.md` — problem, users, value hypothesis, stated vs inferred assumptions, shape-changing questions each with a proposed default; no requirements |
 | `sdlc-plan-prd-write` | idea / domain notes / whitepaper; under `sdlc-wf-planning-prd`, the brief + gate answers; or a PRD review (revise mode) | `PRD.md` — numbered, atomic, testable requirements grouped into feature areas (+ `prd-revisions.md` in revise mode) |
 | `sdlc-plan-prd-review` | `PRD.md` + `idea-brief.md` + the original idea | **report only**: `prd-review.md` with idea fidelity, brief coverage, findings, questions with defaults and proposed changes; `sdlc-plan-prd-write` (revise) applies them |
-| `sdlc-plan-epics-create` | `PRD.md` | `epics.md` (opening with the `bheembhai:foreach` block the planning fan-out reads) + `epic-map.json` traceability (draft keys; `sdlc-tracker-sync` publishes) |
+| `sdlc-plan-epics-create` | `PRD.md`; or an epics review (revise mode) | `epics.md` (opening with the `bheembhai:foreach` block the planning fan-out reads) + `epic-map.json` traceability (draft keys; `sdlc-tracker-sync` publishes) (+ `epics-revisions.md` in revise mode) |
+| `sdlc-plan-epics-order` | `epics.md` + `epic-map.json` + `PRD.md` | `epic-order.md` / `.json`: the epics in dependency waves, each edge with source and confidence, the MVP path, cycles flagged; `sdlc-tracker-sync` mirrors the edges as "blocks" links between epics |
+| `sdlc-plan-epics-review` | the epic plan + its order + `PRD.md` | **report only**: `epics-review.md` with PRD fit, cross-epic findings (target `epics` or `order`), questions with defaults and proposed changes; `sdlc-plan-epics-create` (revise) then `sdlc-plan-epics-order` apply them |
 | `sdlc-plan-stories-write` | an epic + `epic-map.json`; or a review report (revise mode) | `stories.md` with Gherkin acceptance criteria + `story-map.json` (draft keys; `sdlc-tracker-sync` publishes) |
 | `sdlc-arch-design` | PRD + epics (create); escalated story (amend) | **approved** architecture, ADRs, data model, API contracts, tech stack, testing strategy. **Amend mode**: updates the design + adds an ADR when a story needs an architecture change |
 | `sdlc-arch-ui-conventions` | approved design with a frontend | thin `ui-conventions.md` starter (split out of `sdlc-arch-design`) |
@@ -111,7 +113,7 @@ other independence pair with `independent_of` (tests-write vs code-implement).
 | `sdlc-deliver-docs-sync` | merged story diff + committed design + AGENTS.md | updates **architecture / data-model / contracts / AGENTS.md** on the branch (proportionate; no-op when nothing changed) |
 | `sdlc-deliver-impact-flag` | this run's diff + other in-progress stories' designs | Jira comment on each overlapping in-progress story + `impact-flags.md`; never blocks |
 | `sdlc-deliver-pr-open` | verified, reviewed and doc-synced story | GitHub/Bitbucket **PR** (via MCP) + Jira story → **In Review** (via MCP); does not merge |
-| `sdlc-tracker-sync` | approved epics / stories / sequence / bug-triage action | the matching Jira issues, links and transitions; swaps draft keys for Jira keys (in `epic-map.json` and in `epics.md`'s fan-out block) |
+| `sdlc-tracker-sync` | approved epics / epic order / stories / sequence / bug-triage action | the matching Jira issues, links and transitions; swaps draft keys for Jira keys (in `epic-map.json`, `epic-order.json` and `epics.md`'s fan-out block); on a per-epic run, only that epic's stories and links |
 
 ### Bug-fix skills
 | Skill | In | Out |
@@ -212,7 +214,8 @@ sdlc-plan-prd-write ──► PRD.md              from the brief + answers (defa
 sdlc-plan-prd-review ────┘   prd-review.md  reviewer model: fidelity, brief coverage, findings
    │ completed
    ▼
-DONE ──► sdlc-wf-planning (epics → Jira → stories per epic)
+DONE ──► sdlc-wf-planning-epics (epics → order → review → Jira), then
+         sdlc-wf-planning-epic once per epic (or sdlc-wf-planning for all of it in one run)
 ```
 
 Why a separate framing step: an unattended run cannot stop to ask, so `sdlc-plan-prd-write`'s
@@ -224,7 +227,45 @@ the PRD on a different model family before it fanned out. Policies:
 questions and signs off the PRD) and `sdlc-policy-planning-prd-fast` (defaults adopted; a person
 only signs off the reviewed PRD).
 
+### PRD to epics, then each epic on its own: `sdlc-wf-planning-epics` + `sdlc-wf-planning-epic`
+A PRD yields an unknown number of epics, and writing, reviewing and sequencing each epic's
+stories is the slow part. SK-004 splits planning in two so that part can be handed out:
+
+```
+PRD.md (reviewed, from sdlc-wf-planning-prd)
+   │
+   ▼                                       sdlc-wf-planning-epics — once per PRD
+sdlc-plan-epics-create ──► epics.md + epic-map.json (draft keys)
+   │ completed             ▲
+   ▼                       │
+sdlc-plan-epics-order ──► epic-order.md/.json   waves of epics, MVP path, cycles → escalate
+   │ completed             │
+   ▼                       │ changes_requested (revise mode, + epics-revisions.md;
+sdlc-plan-epics-review ────┘   order findings applied by epics-order on the way back)
+   │ completed   epics-review.md   reviewer model; governed: a lead signs off here
+   ▼
+sdlc-tracker-sync ──► epics + "blocks" links between them in Jira; draft keys swapped
+   │
+   ▼
+DONE ──► one sdlc-wf-planning-epic run per Jira Epic, started by whoever owns it,
+         in any order and in parallel:
+         stories-write → epic-review → epic-sequence → tracker-sync (that epic's stories only)
+```
+
+`sdlc-wf-planning-epic` declares `work_item: epic`: it is started on a published Jira Epic, and
+the platform binds `{epic}` to that issue's key (SK-004 extends ADR-031's work-item mapping). Every
+write lands in that epic's `docs/product/epics/<EPIC_KEY>/_epic/` folder and its tracker-sync
+touches only that epic's stories, so parallel runs on different epics never collide. The epic
+order constrains building, not planning: stories for a wave-3 epic can be written while wave 1 is
+still being planned. `sdlc-plan-stories-write` reads `epic-order.json` so a story can rely on
+what an earlier epic creates. Policies: `sdlc-policy-planning-epics-governed` (a lead answers the
+review's questions and signs off the plan and order before anything is published) and
+`sdlc-policy-planning-epics-fast` (review questions defaulted; a person still signs off before
+publishing). Each per-epic run keeps `sdlc-policy-planning-epic-governed`.
+
 ### Fanning the planning run out per epic: `sdlc-wf-planning`
+The all-in-one alternative, for small PRDs planned by one person. Its children plan the epics one
+after another (ADR-027 v1 concurrency is 1), on the parent's branch.
 `sdlc-wf-planning` runs `sdlc-plan-prd-write` → `sdlc-plan-epics-create` → `sdlc-tracker-sync`, then a
 `foreach` node launches **one child run of `sdlc-wf-planning-epic` per epic**. The items file is
 `docs/product/epics.md`, not `epic-map.json`: an ADR-027 items file must carry exactly one fenced

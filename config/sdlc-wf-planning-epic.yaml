@@ -1,11 +1,22 @@
-# BheemBhai Planning — CHILD workflow, one run per epic (ADR-035).
+# BheemBhai Planning — one epic to published stories, one run per epic (ADR-035, SK-004).
+# Runs two ways, with the same steps:
+#   - on its own, started on a published Jira Epic (work_item: epic): one person, one epic, and
+#     several epics in parallel by different people. sdlc-wf-planning-epics publishes the epics
+#     (and the order between them) first.
+#   - as the per-epic child of sdlc-wf-planning's fan-out (ADR-027), where ITEM.epic_key binds
+#     {epic}.
+# Either way {epic} is one epic and every write lands in docs/product/epics/<EPIC_KEY>/_epic/,
+# so parallel runs never touch the same files.
 #   stories-write (author, primary model)
 #   -> epic-review (reviewer, reviewer model; changes_requested -> stories-write in revise mode)
 #   -> epic-sequence (author) -> tracker-sync (integration: stories + blocks links)
 # epic-review reviews stories-write: its changes_requested edge says so (ADR-035 §3).
 # sdlc-plan-story-review stays on demand for a single story that still feels underspecified.
 workflow: sdlc-wf-planning-epic
-version: 1
+version: 2
+# The run's Jira issue must be an Epic (SK-004 extends ADR-031's work-item mapping); a fan-out
+# child takes its epic from ITEM.epic_key instead.
+work_item: epic
 category: Software Delivery
 description: Write one epic's stories, review them on a different model family, sequence them and publish them to Jira.
 start: sdlc-plan-stories-write
@@ -41,7 +52,8 @@ steps:
       changes_requested: sdlc-plan-epic-sequence
       escalation_required: DONE                     # a cycle needs a human re-slice
 
-  # Publishes the stories (parented to the epic) and the approved blocks links.
+  # Publishes this epic's stories (parented to it) and the approved blocks links between them;
+  # leaves every other epic alone (another person may be planning it).
   - id: sdlc-tracker-sync
     skill: sdlc-tracker-sync
     model: low

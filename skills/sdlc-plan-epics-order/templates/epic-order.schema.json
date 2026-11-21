@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "sdlc-plan-epics-order",
+  "description": "Machine-readable order of a project's epics. sdlc-tracker-sync swaps draft keys in it when it publishes the epics and mirrors every depends_on edge as a Jira 'blocks' link.",
+  "type": "object",
+  "required": ["epics"],
+  "properties": {
+    "project_key": {"type": "string", "description": "the Jira project, as in epic-map.json"},
+    "epics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["epic_key", "wave", "depends_on"],
+        "properties": {
+          "epic_key": {"type": "string", "description": "e.g. LEARN-11, or FA-2-PENDING before publishing"},
+          "summary": {"type": "string"},
+          "release": {"type": "string", "enum": ["MVP", "Later", "mixed"]},
+          "wave": {"type": "integer", "minimum": 1, "description": "1 = no dependencies; N = depends only on waves < N"},
+          "depends_on": {"type": "array", "items": {"type": "string"}, "description": "epic keys this epic is blocked by"},
+          "edge_sources": {
+            "type": "object",
+            "description": "per-dependency provenance: { '<dep_key>': {'source': ..., 'confidence': ...} }",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["source", "confidence"],
+              "properties": {
+                "source": {"type": "string", "enum": ["link", "prd", "epic-body", "lifecycle"]},
+                "confidence": {"type": "string", "enum": ["firm", "provisional"]},
+                "why": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "mvp_path": {"type": "array", "items": {"type": "string"}, "description": "epic keys needed to deliver every MVP requirement"},
+    "cycles": {
+      "type": "array",
+      "description": "circular dependencies flagged for a person to re-slice (empty if clean)",
+      "items": {"type": "array", "items": {"type": "string"}}
+    }
+  }
+}

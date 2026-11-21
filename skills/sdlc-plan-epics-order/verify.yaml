@@ -1,0 +1,133 @@
+version: 1
+skill: sdlc-plan-epics-order
+summary: >
+  The order covers exactly the epics in epic-map.json, is acyclic with waves that respect every
+  edge, labels provisional edges, states the MVP path, and writes only the order files — no Jira
+  writes (tracker-sync mirrors the approved edges, ADR-035). A detected cycle escalates instead of
+  being hidden.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+# The order paths are literal until the platform binds {layout.epic_order} (SK-004 §Follow-ups);
+# they match the default Project Layout rows.
+facts:
+  map_epic_keys:
+    kind: jsonpath
+    from: "{layout.epic_map}"
+    expr: "$.epics[*].epic_key"
+  order_epic_keys:
+    kind: jsonpath
+    from: order_json
+    expr: "$.epics[*].epic_key"
+  edges:
+    kind: jsonpath
+    from: order_json
+    expr: "$.epics[*]"
+    description: "{epic_key, depends_on[]} entries; graph builtins accept this shape."
+  waves:
+    kind: jsonpath
+    from: order_json
+    expr: "$.epics[*]"
+  cycles:
+    kind: jsonpath
+    from: order_json
+    expr: "$.cycles[*]"
+  provisional_edges:
+    kind: jsonpath
+    from: order_json
+    expr: "$.epics[*].edge_sources.*[?(@.confidence == 'provisional')]"
+
+preconditions:
+  - id: epic_map_present
+    run: builtin:file_exists
+    args: {path: "{layout.epic_map}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: epics_present
+    run: builtin:file_exists
+    args: {path: "{layout.epics}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: order_md
+    path: "docs/product/epic-order.md"
+  - id: order_json
+    path: "docs/product/epic-order.json"
+
+checks:
+  - id: json_schema
+    run: builtin:json_schema
+    args: {artifact: order_json, schema: templates/epic-order.schema.json}
+    on_fail: changes_requested
+    reason_code: schema_invalid
+  - id: covers_exactly_the_plan
+    description: One entry per epic in epic-map.json, with the same keys.
+    run: builtin:set_relation
+    args: {left: facts.map_epic_keys, right: facts.order_epic_keys, relation: equal, exactly_once: true}
+    on_fail: changes_requested
+    reason_code: coverage_gap
+  - id: acyclic
+    run: builtin:graph_acyclic
+    args: {edges: facts.edges}
+    on_fail: escalation_required
+    reason_code: scope
+  - id: waves_consistent
+    run: builtin:waves_respect_edges
+    args: {edges: facts.edges, waves: facts.waves}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: cycles_escalate
+    description: A flagged cycle needs a person to re-slice the epics; it cannot be reported as completed.
+    when: "facts.cycles and self_verdict == 'completed'"
+    run: builtin:count_range
+    args: {fact: facts.cycles, max: 0}
+    on_fail: escalation_required
+    reason_code: scope
+  - id: order_sections
+    run: builtin:md_sections
+    args:
+      artifact: order_md
+      required: ["Waves", "Dependencies", "Parallel groups", "MVP path", "Cycles and conflicts"]
+      match: contains
+    on_fail: changes_requested
+    reason_code: structure
+  - id: provisional_labelled
+    when: "facts.provisional_edges"
+    run: builtin:regex_count
+    args: {artifact: order_md, pattern: '(?i)\bprovisional\b', min: 1}
+    on_fail: changes_requested
+    reason_code: quality
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: order_md}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: no_tracker_writes
+    description: Authoring only — Jira links belong to sdlc-tracker-sync (ADR-035).
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)(create|add|delete|remove).*(issue)?_?link|(create|edit|update|transition|delete).*(issue|jira)'}
+    on_fail: changes_requested
+    reason_code: policy
+  - id: order_files_only
+    run: builtin:diff_paths
+    args: {allowed: ["docs/product/epic-order.md", "docs/product/epic-order.json"]}
+    on_fail: changes_requested
+    reason_code: scope
+
+judge:
+  tier: medium
+  vendor: prefer_different
+  inputs: [order_md, order_json, "{layout.epics}"]
+  criteria:
+    - id: edges_supported
+      question: "Is every dependency edge supported by its stated source (a Jira link, a requirement that names the other epic's output, the epic's own dependency notes, or an entity only the other epic creates), and does it mean the dependent epic cannot be built or tested without the other?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: no_missed_producer
+      question: "Is there no epic whose scope uses an actor, entity or platform piece that only a same-wave or later-wave epic creates?"
+      on_fail: changes_requested
+      reason_code: coverage_gap
+    - id: mvp_path_complete
+      question: "Does the MVP path include every MVP or mixed epic and every epic those depend on, and flag any MVP epic that depends on a Later epic?"
+      on_fail: changes_requested
+      reason_code: coverage_gap

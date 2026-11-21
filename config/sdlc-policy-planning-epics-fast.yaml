@@ -1,0 +1,15 @@
+# For small or well-understood PRDs (SK-004). The review's questions are not gated: epics-create
+# (revise) adopts each proposed default and logs it in epics-revisions.md. A person still signs
+# off the final plan and order before anything is published, and sees any cycle or PRD gap.
+policy: sdlc-policy-planning-epics-fast
+version: 1
+applies_to: sdlc-wf-planning-epics
+gates:
+  sdlc-plan-epics-order:
+    review: required
+    role: any
+    on_status: [escalation_required]
+  sdlc-plan-epics-review:
+    review: required
+    role: any
+    on_status: [completed, escalation_required]

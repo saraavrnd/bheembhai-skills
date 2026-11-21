@@ -3,8 +3,9 @@ name: sdlc-tracker-sync
 role: integration   # ADR-035: author | reviewer | integration
 description: >
   Publish approved planning and bug-triage artifacts to the tracker (Jira) through the Atlassian
-  MCP: create or update the epics in `epic-map.json`, the stories in an epic's `story-map.json`
-  (parented to the epic), the approved "blocks" links in `epic-sequence.json`, and the tracker
+  MCP: create or update the epics in `epic-map.json`, the approved "blocks" links between epics
+  in `epic-order.json`, the stories in an epic's `story-map.json` (parented to the epic), the
+  approved "blocks" links in `epic-sequence.json`, and the tracker
   action a bug's `bug-triage.md` records. Swaps draft `-PENDING` keys for the real Jira keys and
   changes nothing else. Use this as its own step right after an authoring step whose output was
   approved — after `sdlc-plan-epics-create`, after `sdlc-plan-stories-write` / `sdlc-plan-epic-sequence`, after
@@ -13,7 +14,8 @@ description: >
   Progress". It decides nothing: every action comes from an artifact a person already approved.
 compatibility: >
   Requires the Atlassian (Jira) MCP. Reads the planning artifacts and `bug-triage.md`; writes only
-  tracker keys back into `epic-map.json`, `epics.md`, `story-map.json` and `stories.md`.
+  tracker keys back into `epic-map.json`, `epics.md`, `epic-order.json`, `story-map.json` and
+  `stories.md`.
 ---
 
 # sdlc-tracker-sync — Publish Approved Artifacts to Jira
@@ -35,14 +37,21 @@ compatibility: >
 Whichever of these the run has (the scopes below are applied in this order, each only when its
 artifact exists and has something unpublished):
 1. **Epics** — `epic-map.json` + `epics.md` from `sdlc-plan-epics-create`.
+1b. **Epic links** — `epic-order.json` from `sdlc-plan-epics-order` (current layout:
+   `docs/product/epic-order.json`). Approval is the gate on `sdlc-plan-epics-review`.
 2. **Stories** — the epic's `story-map.json` + `stories.md` from `sdlc-plan-stories-write`.
 3. **Links** — the epic's `epic-sequence.json` from `sdlc-plan-epic-sequence`, including any
    `retired_edges`. Approval is the gate after that step; this skill runs only after it.
 4. **Bug** — on a bug run, `bug-triage.md`'s **Jira** section with `Applied: no`.
 
+**On a per-epic run** (`sdlc-wf-planning-epic`: the run is bound to one epic, `{epic}`), only
+scopes 2 and 3 apply, and only to that epic. Leave every other epic, and the epic links, alone:
+other people may be planning other epics at the same time.
+
 ## Output it produces
 - Jira issues created or updated, links set, transitions applied — exactly what the artifacts say.
-- Draft keys swapped for real ones: `<FA-N>-PENDING` in `epic-map.json` / `epics.md` — including
+- Draft keys swapped for real ones: `<FA-N>-PENDING` in `epic-map.json` / `epics.md` /
+  `epic-order.json` — including
   both `id` and `epic_key` of every entry in `epics.md`'s `bheembhai:foreach` block (the planning
   fan-out reads it right after this step) — and `<EPIC>-PENDING-N` in `story-map.json` /
   `stories.md`. No other line of those files changes.
@@ -62,6 +71,14 @@ heading **and** in both `id` and `epic_key` of its entry in the `bheembhai:forea
 top of the file. For an epic that already has a real key, update its summary/description only if
 `epics.md` differs. When this step finishes, no `-PENDING` may remain in the map or the block:
 the per-epic fan-out launches one child run per block entry immediately after this step.
+If `epic-order.json` exists, swap the same draft keys in its `epic_key`, `depends_on`,
+`edge_sources` keys and `mvp_path` too.
+
+### Step 2b — Epic links
+For each `depends_on` edge A → B in `epic-order.json`, set "A blocks B" between the two epics if
+it does not already exist, with the marker comment from `references/atlassian-mcp-usage.md`.
+Never remove an epic link: a re-ordered plan that drops an edge is reported in the hand-off for a
+person to remove by hand.
 
 ### Step 3 — Stories
 For each story with a `-PENDING-N` key: search first; create it (type Story, summary, description

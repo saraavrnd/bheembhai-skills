@@ -1,0 +1,19 @@
+# Default governance for sdlc-wf-planning-epics (ADR-035, SK-004).
+# - epics-order: a person sees a dependency cycle before the run ends (it needs a re-slice).
+# - epics-review: a person answers the report's open questions when it requests changes (the
+#   answers travel to epics-create's revise pass), signs off a clean plan and its order (approving
+#   the order is what lets tracker-sync set the "blocks" links between epics), and decides on a
+#   PRD gap. Nothing reaches Jira before this sign-off.
+# epics-create itself is not gated: the review after it is the check (as in the PRD policies).
+policy: sdlc-policy-planning-epics-governed
+version: 1
+applies_to: sdlc-wf-planning-epics
+gates:
+  sdlc-plan-epics-order:
+    review: required
+    role: any
+    on_status: [escalation_required]
+  sdlc-plan-epics-review:
+    review: required
+    role: lead
+    on_status: [completed, changes_requested, escalation_required]
