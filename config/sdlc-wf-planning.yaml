@@ -8,7 +8,7 @@
 # when the PRD yields many epics or different people plan different epics; this all-in-one run
 # plans every epic one after another (ADR-027 v1 concurrency is 1).
 workflow: sdlc-wf-planning
-version: 2
+version: 3
 category: Software Delivery
 description: Turn a product idea into a PRD, epics and reviewed, sequenced stories in Jira — authors and reviewers on different model families.
 start: sdlc-plan-prd-write
