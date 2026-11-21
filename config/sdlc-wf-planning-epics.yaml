@@ -1,0 +1,61 @@
+# BheemBhai Planning — PRD to epics (ADR-035, SK-004). From a reviewed PRD to published, ordered
+# epics, with each skill doing one job:
+#   epics-create (author: epics.md + epic-map.json, draft keys)
+#   -> epics-order (author: epic-order.md/.json, waves of epics by dependency)
+#   -> epics-review (reviewer, reviewer model; changes_requested -> epics-create in revise mode,
+#      which then flows through epics-order again so the order follows the revised plan)
+#   -> tracker-sync (integration: publish the epics and the "blocks" links between them)
+# Authors run on the run's primary model; epics-review (and every judge) on the reviewer model.
+# epics-review reviews epics-create: its changes_requested edge says so (ADR-035 §3).
+# Stories are NOT written here. Each published epic is planned in its own sdlc-wf-planning-epic
+# run (work_item: epic), so epics can be handed to different people and planned in parallel.
+# sdlc-wf-planning-prd comes before this; sdlc-wf-planning still runs the whole chain in one run.
+# Routing convention: changes_requested re-runs the same step (visit-capped by BB_MAX_STEP_VISITS),
+# except epics-review, whose changes_requested means "revise the epics".
+workflow: sdlc-wf-planning-epics
+version: 1
+category: Software Delivery
+description: Break a reviewed PRD into epics, order them by dependency, review the plan on a different model family, and publish the epics and their links to Jira.
+start: sdlc-plan-epics-create
+
+steps:
+  - id: sdlc-plan-epics-create
+    skill: sdlc-plan-epics-create
+    model: medium
+    label: Plan the epics
+    deadline: 900
+    "on":
+      completed: sdlc-plan-epics-order
+      changes_requested: sdlc-plan-epics-create
+
+  - id: sdlc-plan-epics-order
+    skill: sdlc-plan-epics-order
+    model: low
+    label: Order the epics
+    deadline: 600
+    "on":
+      completed: sdlc-plan-epics-review
+      changes_requested: sdlc-plan-epics-order
+      escalation_required: DONE                     # a cycle needs a person to re-slice the epics
+
+  - id: sdlc-plan-epics-review
+    skill: sdlc-plan-epics-review
+    model: high
+    label: Review the epics and their order
+    deadline: 900
+    "on":
+      completed: sdlc-tracker-sync
+      changes_requested: sdlc-plan-epics-create     # revise mode applies the report
+      # PRD gap: the plan cannot be fixed without changing the PRD (sdlc-wf-planning-prd).
+      escalation_required: DONE
+
+  # Publishes the approved epics, swaps their draft keys (epic-map.json, epics.md, epic-order.json)
+  # and sets the approved "blocks" links between them.
+  - id: sdlc-tracker-sync
+    skill: sdlc-tracker-sync
+    model: low
+    label: Publish the epics to Jira
+    deadline: 600
+    "on":
+      completed: DONE
+      changes_requested: sdlc-tracker-sync

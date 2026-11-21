@@ -2,7 +2,7 @@ version: 1
 skill: sdlc-tracker-sync
 summary: >
   Integration only (ADR-035): every epic and story in the plan has a real Jira key and exists in
-  Jira (stories parented to their epic), the sequence's edges exist as Blocks links (the gate before this step approved them), human-set
+  Jira (stories parented to their epic), the epic order's and the sequence's edges exist as Blocks links (the gate before this step approved them), human-set
   links survive, a Fix bug is in its work-started status, and the repo change is limited to the
   tracker-key swap in the plan files.
 verdicts_used: [failed_execution, changes_requested]
@@ -14,6 +14,10 @@ facts:
   is_bug:
     kind: context
     key: work_item.is_bug
+  work_item_type:
+    kind: context
+    key: work_item.type
+    description: "'epic' on a per-epic planning run (SK-004): only that epic's stories and links are in scope."
   epic_keys:
     kind: jsonpath
     from: "{layout.epic_map}"
@@ -24,6 +28,12 @@ facts:
     from: "{layout.epic_dir}story-map.json"
     expr: "$.stories[*].story_key"
     when: "exists('{layout.epic_dir}story-map.json')"
+  epic_edges:
+    kind: jsonpath
+    from: "docs/product/epic-order.json"
+    expr: "$.epics[*]"
+    when: "exists('docs/product/epic-order.json') and facts.work_item_type != 'epic'"
+    description: The approved order between epics (sdlc-plan-epics-order); path literal until {layout.epic_order} is bound.
   edges:
     kind: jsonpath
     from: "{layout.epic_dir}epic-sequence.json"
@@ -73,7 +83,7 @@ checks:
   - id: keys_only
     description: The only repo change is swapping draft keys for Jira keys in the plan files.
     run: builtin:diff_paths
-    args: {allowed: ["{layout.epic_map}", "{layout.epics}", "{layout.epic_dir}story-map.json", "{layout.epic_dir}stories.md"]}
+    args: {allowed: ["{layout.epic_map}", "{layout.epics}", "docs/product/epic-order.json", "{layout.epic_dir}story-map.json", "{layout.epic_dir}stories.md"]}
     on_fail: changes_requested
     reason_code: scope
   - id: no_pending_epic_keys
@@ -124,6 +134,18 @@ checks:
     when: "facts.story_keys"
     run: builtin:jira_field
     args: {keys: facts.story_keys, field: parent, op: "==", value: "{epic}"}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: no_pending_order_keys
+    when: "facts.epic_edges"
+    run: builtin:regex_count
+    args: {path: "docs/product/epic-order.json", pattern: '-PENDING\b', max: 0}
+    on_fail: changes_requested
+    reason_code: external_action_missing
+  - id: epic_links_set
+    when: "facts.epic_edges"
+    run: builtin:jira_links_exist
+    args: {edges: facts.epic_edges, link_type: Blocks}
     on_fail: changes_requested
     reason_code: external_action_missing
   - id: links_set

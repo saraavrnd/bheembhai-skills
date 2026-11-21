@@ -37,6 +37,9 @@ when the repo has no `AGENTS.md`. When both exist, `AGENTS.md` wins.
 | PRD revisions log | `docs/product/prd-revisions.md` |
 | Epics | `docs/product/epics.md` |
 | Epic map | `docs/product/epic-map.json` |
+| Epic order | `docs/product/epic-order.md` and `.json` |
+| Epics review log | `docs/product/epics-review.md` |
+| Epics revisions log | `docs/product/epics-revisions.md` |
 | Per-epic folder | `docs/product/epics/<EPIC_KEY>/` |
 | Per-epic artifacts | `docs/product/epics/<EPIC_KEY>/_epic/` |
 | Stories list | `docs/product/epics/<EPIC_KEY>/_epic/stories.md` |

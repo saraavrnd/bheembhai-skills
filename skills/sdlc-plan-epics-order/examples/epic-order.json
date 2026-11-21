@@ -1,0 +1,22 @@
+{
+  "project_key": "LEARN",
+  "epics": [
+    {"epic_key": "LEARN-11", "summary": "Curriculum knowledge base", "release": "MVP", "wave": 1, "depends_on": [], "edge_sources": {}},
+    {"epic_key": "LEARN-15", "summary": "SIS integration", "release": "MVP", "wave": 1, "depends_on": [], "edge_sources": {}},
+    {"epic_key": "LEARN-17", "summary": "Deployment & operations", "release": "MVP", "wave": 1, "depends_on": [], "edge_sources": {}},
+    {"epic_key": "LEARN-10", "summary": "Socratic dialogue engine", "release": "MVP", "wave": 2, "depends_on": ["LEARN-11"],
+     "edge_sources": {"LEARN-11": {"source": "epic-body", "confidence": "provisional", "why": "the tutor retrieves curriculum content that LEARN-11 indexes"}}},
+    {"epic_key": "LEARN-16", "summary": "Safety, privacy & compliance", "release": "MVP", "wave": 2, "depends_on": ["LEARN-15"],
+     "edge_sources": {"LEARN-15": {"source": "lifecycle", "confidence": "provisional", "why": "retention and deletion apply to student records that LEARN-15 imports"}}},
+    {"epic_key": "LEARN-12", "summary": "Visual & diagram learning", "release": "mixed", "wave": 3, "depends_on": ["LEARN-10"],
+     "edge_sources": {"LEARN-10": {"source": "prd", "confidence": "firm", "why": "FR-007 renders diagrams inside the dialogue that FR-001 creates"}}},
+    {"epic_key": "LEARN-13", "summary": "Answer grounding & accuracy", "release": "mixed", "wave": 3, "depends_on": ["LEARN-10", "LEARN-11"],
+     "edge_sources": {"LEARN-10": {"source": "prd", "confidence": "firm", "why": "FR-010 verifies the tutor's answers"},
+                      "LEARN-11": {"source": "lifecycle", "confidence": "provisional", "why": "grounding cites the indexed curriculum sources"}}},
+    {"epic_key": "LEARN-14", "summary": "Teacher dashboard", "release": "mixed", "wave": 3, "depends_on": ["LEARN-10", "LEARN-15"],
+     "edge_sources": {"LEARN-10": {"source": "prd", "confidence": "firm", "why": "FR-012 shows the session history the dialogue engine records"},
+                      "LEARN-15": {"source": "lifecycle", "confidence": "provisional", "why": "teachers see the classes and students that LEARN-15 imports"}}}
+  ],
+  "mvp_path": ["LEARN-11", "LEARN-15", "LEARN-17", "LEARN-10", "LEARN-16", "LEARN-12", "LEARN-13", "LEARN-14"],
+  "cycles": []
+}

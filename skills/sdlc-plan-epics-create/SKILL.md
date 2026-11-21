@@ -7,10 +7,12 @@ description: >
   after the `sdlc-plan-prd-write` skill. Trigger this even when the user just says "break the PRD into
   epics", "decompose the PRD", or "plan the epics". This skill reads a PRD.md and groups its
   requirements into epics along feature-area boundaries. Authoring only: it never writes to
-  Jira — `sdlc-tracker-sync` publishes the approved epics (ADR-035).
+  Jira — `sdlc-tracker-sync` publishes the approved epics (ADR-035). In REVISE mode it applies
+  an `sdlc-plan-epics-review` report.
 compatibility: >
-  Tool-agnostic skill body (Claude Code or Codex). Reads `PRD.md`; writes only `epics.md` and
-  `epic-map.json`. No Jira access needed.
+  Tool-agnostic skill body (Claude Code or Codex). Reads `PRD.md` (and `epics-review.md` in
+  revise mode); writes only `epics.md`, `epic-map.json` and, in revise mode, `epics-revisions.md`.
+  No Jira access needed.
 ---
 
 # sdlc-plan-epics-create — PRD to Epics
@@ -43,9 +45,17 @@ planning; getting their boundaries right is what makes the later `sdlc-plan-stor
 > epics after review, swaps the draft keys `<FA-N>-PENDING` for the real Jira keys in
 > `epic-map.json` and `epics.md`, and confirms the target project.
 
+## Modes
+- **Create** (default): no epics review has been handed to this run. Steps 1–3.
+- **Revise**: the run hands you back from `sdlc-plan-epics-review` with `changes_requested` (the
+  hand-off names the report), or the user asks to "apply the epics review". Step R.
+
 ## Input it expects
 A `PRD.md` produced by the `sdlc-plan-prd-write` skill (numbered FR/NFR requirements grouped under feature
 areas FA-N). If given a free-form PRD, first normalise it into that shape before decomposing.
+
+Revise mode only: `epics-review.md` from `sdlc-plan-epics-review` (current layout:
+`docs/product/epics-review.md`) and the gate answers to its open questions.
 
 ## Output it produces
 1. `epics.md` — the proposed epics with their mapped requirements (the reviewable plan). It
@@ -56,6 +66,10 @@ areas FA-N). If given a free-form PRD, first normalise it into that shape before
    skill (`sdlc-plan-stories-write`) knows which requirements each epic must cover. Traceability lives here.
    New epics use draft keys `<FA-N>-PENDING` (e.g. `FA-3-PENDING`); `project_key` is the target
    Jira project if the user named it, else `PENDING`.
+3. Revise mode only: `epics-revisions.md` next to the plan (current layout:
+   `docs/product/epics-revisions.md`): one entry per pass, naming the report applied, each
+   `epics` finding → what changed in which epic, each question → the answer given or the default
+   adopted, and each `order` finding listed as "for `sdlc-plan-epics-order`".
 
 ## Procedure
 
@@ -115,6 +129,24 @@ free prose for reviewers; the fan-out never parses it. Keep every entry's `id` e
 the same real Jira keys as in `epic-map.json` before the per-epic runs start. Tell the user:
 N epics planned, every PRD requirement lands in exactly one epic, and the next steps are
 `sdlc-tracker-sync` (publish the epics to Jira) and then `sdlc-plan-stories-write` for each epic.
+Under `sdlc-wf-planning-epics`, `sdlc-plan-epics-order` orders the epics and
+`sdlc-plan-epics-review` reviews the plan and the order before anything is published.
+
+### Step R — Revise from an epics review
+1. Read `epics-review.md`'s **Findings**, **Open questions** and **Proposed changes**, and the
+   gate answers. Apply only the findings whose **Target** is `epics`; the `order` findings are
+   `sdlc-plan-epics-order`'s, which runs straight after you.
+2. For each question, use the gate answer; if none was given (a policy with no gate on the
+   review), adopt the proposed default and say so in `epics-revisions.md`.
+3. Keep keys stable. An epic that keeps its theme keeps its key, draft or real. A split keeps
+   the key on the first part and gives the new part the next draft key `<FA-N>-PENDING` (add a
+   letter, `FA-3b-PENDING`, when the feature area already has one). A merge keeps the key of the
+   epic that survives and drops the other from the map and the block — never an epic that is
+   already published (real key): flag that in `epics-revisions.md` for a person instead.
+4. Every requirement still lands in exactly one epic, and the `bheembhai:foreach` block still
+   matches the map.
+5. Do not change epics the report does not name, and add no findings of your own: note anything
+   new in `epics-revisions.md` for the next review pass. Append the entry and hand back.
 
 ## Boundary heuristics (quick reference)
 - One feature area → usually one epic.

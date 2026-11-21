@@ -64,6 +64,10 @@ written from them directly. These acceptance criteria are the contract that the 
 - `epic-map.json` from `sdlc-plan-epics-create` — to know which PRD requirement IDs this epic must
   cover (the source of truth for completeness).
 - Optionally the original `PRD.md` for requirement wording.
+- Optionally `epic-order.json` from `sdlc-plan-epics-order` (current layout:
+  `docs/product/epic-order.json`): the epics this one depends on. A story may assume what an
+  earlier epic creates (name that epic in the story's Notes) instead of re-creating it; it must
+  not assume anything from an epic that depends on this one.
 - Revise mode only: the review report (`_epic/epic-review.md` or the story's `story-review.md`)
   and the gate answers in the run hand-off.
 

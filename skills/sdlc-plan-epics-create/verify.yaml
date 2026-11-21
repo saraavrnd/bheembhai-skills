@@ -4,6 +4,10 @@ summary: Every PRD requirement lands in exactly one epic, epic-map.json matches 
 verdicts_used: [failed_execution, changes_requested]
 
 facts:
+  revise_mode:
+    kind: context
+    key: upstream_handoff.from_step
+    description: Set when sdlc-plan-epics-review handed the run back with changes_requested (revise mode).
   prd_req_ids:
     kind: regex
     from: "{layout.prd}"
@@ -111,6 +115,13 @@ checks:
       match: contains
     on_fail: changes_requested
     reason_code: structure
+  - id: revisions_logged
+    description: Revise mode records which review it applied and how each finding was handled.
+    when: "facts.revise_mode == 'sdlc-plan-epics-review'"
+    run: builtin:file_exists
+    args: {path: "docs/product/epics-revisions.md"}
+    on_fail: changes_requested
+    reason_code: traceability_gap
   - id: no_template_residue
     run: builtin:md_no_placeholders
     args: {artifact: epics_md}
@@ -124,7 +135,7 @@ checks:
     reason_code: policy
   - id: plan_files_only
     run: builtin:diff_paths
-    args: {allowed: ["{layout.epics}", "{layout.epic_map}"]}
+    args: {allowed: ["{layout.epics}", "{layout.epic_map}", "docs/product/epics-revisions.md"]}
     on_fail: changes_requested
     reason_code: scope
 

@@ -1,0 +1,148 @@
+version: 1
+skill: sdlc-plan-epics-review
+summary: >
+  Review only (ADR-035): the report states PRD fit and records each finding with target, severity,
+  evidence, question and proposed change; every epic and requirement it cites exists in the plan;
+  nothing but the report changes and nothing goes to Jira; Blocking findings route to
+  epics-create (revise); a PRD gap escalates.
+verdicts_used: [failed_execution, changes_requested, escalation_required]
+
+# The order and report paths are literal until the platform binds {layout.epic_order} and
+# {layout.epics_review} (SK-004 §Follow-ups); they match the default Project Layout rows.
+facts:
+  prd_req_ids:
+    kind: regex
+    from: "{layout.prd}"
+    pattern: '(?m)^\|\s*(N?FR-\d{3})\s*\|'
+  map_epic_keys:
+    kind: jsonpath
+    from: "{layout.epic_map}"
+    expr: "$.epics[*].epic_key"
+  cited_req_ids:
+    kind: regex
+    from: log
+    section: Findings
+    pattern: '\b(N?FR-\d{3})\b'
+  blocking_findings:
+    kind: regex
+    from: log
+    section: Findings
+    pattern: '(?im)^\s*-\s*\**Severity:?\**\s*:?\s*Blocking\b'
+  fit:
+    kind: regex
+    from: log
+    section: "PRD fit"
+    pattern: '(?im)^\s*-\s*\**Verdict:?\**\s*:?\s*(Fits|PRD gap)\b'
+  prd_gap:
+    kind: regex
+    from: log
+    section: "PRD fit"
+    pattern: '(?im)^\s*-\s*\**Verdict:?\**\s*:?\s*(PRD gap)\b'
+
+preconditions:
+  - id: prd_present
+    run: builtin:file_exists
+    args: {path: "{layout.prd}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: plan_present
+    run: builtin:file_exists
+    args: {path: "{layout.epic_map}"}
+    on_fail: failed_execution
+    reason_code: missing_input
+  - id: order_present
+    run: builtin:file_exists
+    args: {path: "docs/product/epic-order.json"}
+    on_fail: failed_execution
+    reason_code: missing_input
+
+artifacts:
+  - id: log
+    path: "docs/product/epics-review.md"
+  - id: epics_md
+    path: "{layout.epics}"
+    must_change: false
+    description: Read as judge input only; a reviewer never changes it.
+  - id: order_md
+    path: "docs/product/epic-order.md"
+    must_change: false
+    description: Read as judge input only.
+
+checks:
+  - id: log_sections
+    run: builtin:md_sections
+    args:
+      artifact: log
+      required: ["Context loaded", "PRD fit", "Findings", "Open questions", "Proposed changes",
+                 "Earlier findings"]
+      match: contains
+    on_fail: changes_requested
+    reason_code: structure
+  - id: no_template_residue
+    run: builtin:md_no_placeholders
+    args: {artifact: log}
+    on_fail: changes_requested
+    reason_code: placeholder_left
+  - id: fit_stated
+    description: Exactly one PRD fit verdict, Fits or PRD gap.
+    run: builtin:count_range
+    args: {fact: facts.fit, min: 1, max: 1}
+    on_fail: changes_requested
+    reason_code: structure
+  - id: cites_real_requirements
+    description: Every FR/NFR id a finding cites exists in the PRD.
+    run: builtin:set_relation
+    args: {left: facts.cited_req_ids, right: facts.prd_req_ids, relation: subset}
+    on_fail: changes_requested
+    reason_code: traceability_gap
+  - id: blocking_routes_to_revise
+    description: Blocking findings mean epics-create (revise) must apply them before the epics are published.
+    when: "self_verdict == 'completed'"
+    run: builtin:count_range
+    args: {fact: facts.blocking_findings, max: 0}
+    on_fail: changes_requested
+    reason_code: report_inconsistent
+  - id: escalation_reported
+    when: "facts.prd_gap"
+    run: builtin:self_verdict_consistent
+    args: {fact: facts.prd_gap, map: {"*": escalation_required}}
+    on_fail: escalation_required
+    reason_code: wrong_assumption
+  - id: no_tracker_writes
+    description: Read-only reviewer — Jira writes belong to sdlc-tracker-sync.
+    run: builtin:trace_tool_absent
+    args: {tool: '(?i)(create|edit|update|transition|delete).*(issue|jira)|createJiraIssue|editJiraIssue|transitionJiraIssue'}
+    on_fail: changes_requested
+    reason_code: policy
+  - id: report_only
+    description: Reviewer writes only its own report (ADR-035).
+    run: builtin:diff_paths
+    args: {allowed: ["docs/product/epics-review.md"]}
+    on_fail: changes_requested
+    reason_code: scope
+
+judge:
+  tier: high
+  vendor: prefer_different
+  inputs: [log, epics_md, order_md, "{layout.epic_map}", "{layout.prd}"]
+  criteria:
+    - id: findings_are_real
+      question: "Is every Blocking finding a problem that would make a per-epic story run plan the wrong scope, or make an epic unbuildable in its wave, rather than a wording or style preference?"
+      on_fail: changes_requested
+      reason_code: quality
+    - id: grounded_evidence
+      question: "Does every finding quote the epic text, requirement or dependency edge that shows the problem, and name only epics that exist in epic-map.json?"
+      on_fail: changes_requested
+      reason_code: unsupported_claim
+    - id: cross_epic_gaps_checked
+      question: "Has the report checked every entity, actor or platform piece that one epic uses against the epic that creates it, and every dependency edge against its wave?"
+      on_fail: changes_requested
+      reason_code: coverage_gap
+    - id: target_right
+      question: "Is each finding's Target right: `epics` for scope, boundaries and requirement placement, `order` for an edge or a wave?"
+      on_fail: changes_requested
+      reason_code: report_inconsistent
+    - id: fit_judged_right
+      question: "Is the PRD fit verdict right: PRD gap only if no change to the epics alone can fix the problem, and Fits otherwise?"
+      on_fail: changes_requested
+      reason_code: report_inconsistent

@@ -1,0 +1,32 @@
+# Epic Order — {{product_name}}
+
+**Status:** AWAITING REVIEW · **Date:** {{date}} · **Epics:** {{n_epics}} · **Waves:** {{n_waves}}
+
+> Proposed order of the epics by dependency. `sdlc-plan-epics-review` reviews it with the epic
+> plan; after sign-off, `sdlc-tracker-sync` mirrors every edge as a Jira "A blocks B" link.
+> Explicit Jira links are ground truth and never changed.
+
+## Waves
+Epics in the same wave are independent and can be built in parallel.
+
+### Wave 1 (no dependencies)
+- {{epic_key}} — {{summary}} ({{release}})
+
+### Wave 2 (depends only on Wave 1)
+- {{epic_key}} — {{summary}} ({{release}}) — depends on: {{deps}}
+
+## Dependencies
+| Epic | Depends on | Source | Confidence | Why |
+|------|-----------|--------|------------|-----|
+| {{B}} | {{A}} | link / prd / epic-body / lifecycle | firm / provisional | {{B}} uses {{what}} that {{A}} creates |
+
+## Parallel groups
+
+## MVP path
+
+## Cycles and conflicts
+None.
+
+## On approval
+- `sdlc-tracker-sync` sets "blocks" links between the epics: {{list of A blocks B}}.
+- Each epic's stories can then be planned in its own `sdlc-wf-planning-epic` run, in any order and in parallel.

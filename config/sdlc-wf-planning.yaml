@@ -3,6 +3,10 @@
 #   prd-write (author) -> epics-create (author) -> tracker-sync (integration: publish epics)
 #   -> foreach epic: sdlc-wf-planning-epic (stories, cross-vendor review, sequence, publish).
 # Authors run on the run's primary model; reviewer steps in the child run on the reviewer model.
+# The same chain split in two (SK-004): sdlc-wf-planning-epics (epics, order, review, publish)
+# once, then sdlc-wf-planning-epic per epic, started by whoever owns that epic. Use the split
+# when the PRD yields many epics or different people plan different epics; this all-in-one run
+# plans every epic one after another (ADR-027 v1 concurrency is 1).
 workflow: sdlc-wf-planning
 version: 2
 category: Software Delivery
